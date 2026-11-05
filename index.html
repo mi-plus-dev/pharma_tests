@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F4EDDD">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Фармакология">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Тест по фармакологии</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   Токены: «аптечная упаковка» — бумага, зелёные чернила, красный и янтарь,
+   жёсткие смещённые тени. Единственный источник цветов, радиусов и шрифтов.
+   ========================================================= */
+:root{
+  /* Палитра */
+  --paper:#F4EDDD; --paper-2:#EBE1C8; --card:#FBF7EB;
+  --ink:#182721; --green:#0E5B45; 
+  --red:#CF4327; --amber:#E0A23E;
+
+  /* Роли */
+  --bg:var(--paper);
+  --muted:#5A675F;
+  --line:rgba(24,39,33,.18);
+  --edge:var(--ink);                 /* цвет контуров (2px) */
+  --hardc:rgba(24,39,33,.92);        /* цвет жёсткой тени */
+  --accent:var(--green);
+ 
+ 
+  --btn:var(--green);
+  --on-btn:var(--paper);
+  --progress:var(--green);
+  /* верно — зелёный, неверно — красный */
+  --good:#0E5B45;
+  --good-soft:rgba(14,91,69,.12);
+  --bad:#B83A20;
+  --bad-soft:rgba(207,67,39,.12);
+  --btn-danger:#CF4327;
+  --overlay:rgba(24,39,33,.45);
+  --on-red:#FBF7EB; --lift:#FFFFFF;
+  --surface:var(--card);
+  --inset:#F2EAD3;
+  --topbar:var(--paper);
+  --shadow:6px 6px 0 var(--hardc);
+  --shadow-sm:4px 4px 0 var(--hardc);
+
+  /* Радиусы */
+  --r-lg:16px;
+  --r-md:12px;
+  --r-sm:8px;
+
+  /* Шрифты: заголовки — Unbounded, текст — Golos Text (подгружаются из Google Fonts,
+     без сети подставляются системные) */
+  --display:"Unbounded","Arial Black","Segoe UI",system-ui,sans-serif;
+  --sans:"Golos Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif","Times New Roman",serif;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+
+  /* Узор фона — тонкие «аптечные» крестики */
+  --pattern:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><path d='M25 21h2v10h-2zM21 25h10v2h-10z' fill='%230E5B45' fill-opacity='.06'/></svg>");
+
+  /* Устаревшие имена LUNA — перенаправлены на новую палитру, чтобы старые экраны не ломались
+     до их переноса (шаги 3–5) */
+  --luna-ice:#F4EDDD;
+ 
+  --luna-sea:#0E5B45;
+  --luna-deep:#0A3D2F;
+  --luna-abyss:#071F18;
+}
+
+/* ========================= База ========================= */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg);scroll-behavior:smooth}
+body{
+  margin:0;min-height:100vh;min-height:100dvh;overflow-x:hidden;
+  background-color:var(--bg);background-image:var(--pattern);
+  color:var(--ink);
+  font:15px/1.45 var(--sans);
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+}
+body.is-locked{overflow:hidden}
+::selection{background:var(--green);color:var(--paper)}
+h1,h2,h3{font-family:var(--display)}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+
+
+/* =========================================================
+   ГЛАВНЫЙ ЭКРАН: шапка, карточки с обложками{display:flex;align-items:center;gap:12px;margin:16px 2px 6px}/* Пункты тем на главной: крупный номер, заголовок, описание, счётчик */
+.list.topics{gap:12px}
+.list.topics .tile{padding:16px 18px;border-radius:var(--r-md)}
+.list.topics .tile-icon{width:48px;height:48px;border-radius:13px;font-size:19px}
+.list.topics .tile-title{font-size:16.5px;line-height:1.28}
+.list.topics .tile-desc{font-size:13.5px;line-height:1.42}
+.list.topics .tile-meta{margin-top:12px}
+
+/* Единый раскрывающийся пункт «По темам»: один пункт на главной, внутри — пять тем курса */
+@keyframes accIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+}
+
+/* Компактные входы во вторичные режимы */
+
+
+/* =========================================================
+   ГЛАВНЫЙ ЭКРАН «РЕЦЕПТЫ» — «аптечная упаковка»: бумага, контуры 2px,
+   жёсткие тени; обе темы идут от общих токенов (--paper, --card, --ink …)
+   ========================================================= */
+.rx-head{margin:22px 2px 0}
+.rx-sec{display:flex;align-items:center;gap:.8rem;margin:0;font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--green)}.rx-sec::after{content:"";flex:1;border-top:2px solid var(--line)}.rx-brand{display:flex;align-items:center;gap:14px;margin-top:0}
+.rx-title{margin:0;font-family:var(--display);font-size:clamp(27px,8.4vw,35px);line-height:1.05;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
+.rx-r{color:var(--red)}
+.rx-sec{margin:34px 2px 16px}
+.rx-rows{display:grid;gap:14px;padding:0 5px 5px 0}
+.rx-row{position:relative;display:flex;align-items:center;width:100%;min-height:58px;padding:0 0 0 18px;border:2px solid var(--edge);border-radius:var(--r-md);overflow:hidden;background:var(--card);color:var(--ink);text-align:left;font-family:var(--sans);font-size:16px;font-weight:600;line-height:1.25;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background .15s}
+@media (hover:hover){.rx-row:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}}
+.rx-row:active{transform:translate(3px,3px);box-shadow:none}
+.rx-no{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 12px 0 -4px;border:2px solid var(--edge);border-radius:50%;background:var(--paper);font-family:var(--display);font-size:12px;font-weight:800;color:var(--ink)}
+.rx-lbl{flex:1;min-width:0}
+.rx-pg{flex:none;margin:0 12px 0 8px;font-family:var(--display);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+.rx-i-cad{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
+.rx-i-book{-webkit-mask-size:54px 31px;mask-size:54px 31px;-webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
+.rx-i-scis{-webkit-mask-size:64px 49px;mask-size:64px 49px;-webkit-mask-image:url("icons/scis.svg");mask-image:url("icons/scis.svg")}
+.rx-i-search{-webkit-mask-size:41px 42px;mask-size:41px 42px;-webkit-mask-image:url("icons/search.svg");mask-image:url("icons/search.svg")}
+.rx-i-clip{-webkit-mask-size:43px 49px;mask-size:43px 49px;-webkit-mask-image:url("icons/clip.svg");mask-image:url("icons/clip.svg")}
+.rx-chev{flex:none;display:grid;place-items:center;width:18px;height:18px;margin-right:0;color:var(--ink);transition:transform .22s ease}
+.rx-chev svg{width:16px;height:16px;stroke-width:2.4}
+.rx-row[aria-expanded="true"] .rx-chev{transform:rotate(180deg)}
+.rx-acc{display:grid;gap:14px}
+.rx-sub{display:grid;gap:12px;padding:0 5px 5px 14px}
+.rx-subitem{display:flex;align-items:center;gap:10px}
+.rx-subitem .rx-row{min-height:50px;padding-left:14px;font-size:15px;background:var(--paper)}
+.rx-reset{flex:none;display:grid;place-items:center;width:38px;height:38px;padding:0;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.rx-reset:active{transform:translate(2px,2px);box-shadow:none}
+.rx-reset svg{width:17px;height:17px}
+@media (prefers-reduced-motion:reduce){.rx-chev{transition:none}}
+button,input{font:inherit;color:inherit;margin:0}
+button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{display:block;flex:none}
+[hidden]{display:none!important}
+
+/* ======================== Каркас ======================== */
+.app{max-width:480px;margin:0 auto;padding:0 16px calc(28px + var(--safe-b))}
+
+/* Верхняя панель на всех экранах: назад · название и позиция · звук; ниже — прогресс и счёт */
+.topbar{position:sticky;top:0;z-index:20;margin:0 -16px;padding:calc(8px + var(--safe-t)) 16px 10px;background:var(--topbar);border-bottom:2px solid var(--edge)}
+.topbar-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px}
+.btn-back{grid-column:1;justify-self:start;display:inline-flex;align-items:center;gap:2px;height:36px;padding:0 14px 0 8px;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.btn-back:active,.topbar .icon-btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn-back svg{width:18px;height:18px}
+.topbar-title{grid-column:2;display:flex;align-items:baseline;justify-content:center;min-width:0;font-family:var(--display);font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--green);text-align:center}
+.topbar-title span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-title b{flex:none;margin-left:6px;color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.top-actions{grid-column:3;width:34px;justify-self:end;display:flex;align-items:center;gap:8px}
+.topbar-sub{display:flex;align-items:center;gap:12px;margin-top:10px}
+.progress{flex:1;height:12px;border:2px solid var(--edge);border-radius:999px;background:var(--paper-2);overflow:hidden}
+.progress i{display:block;width:0;height:100%;border-radius:inherit;background:var(--progress);transition:width .4s cubic-bezier(.4,0,.2,1)}
+.score{display:inline-flex;gap:10px;font-family:var(--display);font-size:12px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.score-ok{color:var(--good)}
+.score-no{color:var(--bad)}
+@media (max-width:359px){.topbar-title span{display:none}.topbar-title b{margin-left:0}}
+
+/* Заголовки экранов */
+.page-head{margin:20px 2px 22px;padding-bottom:16px;border-bottom:2px dashed var(--line)}
+.page-head h1{margin:0;font-family:var(--display);font-size:clamp(20px,6vw,26px);line-height:1.15;font-weight:900;letter-spacing:-.01em;overflow-wrap:anywhere}
+.page-head p{margin:8px 0 0;color:var(--muted);font-size:14.5px}
+.section-title{display:flex;align-items:center;gap:.8rem;margin:28px 2px 14px;font-size:11.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.section-title::after{content:"";flex:1;border-top:2px solid var(--line)}
+
+/* Верхние заголовки-вкладки на первом экране и на экранах разделов */
+.tabs{display:flex;gap:10px;margin:0 0 16px;padding:0 6px 6px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;min-height:42px;padding:8px 14px;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);font-size:13.5px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background-color .15s,color .15s}
+.tab.is-active{background:var(--green);color:var(--on-btn)}
+.tab:active{transform:translate(2px,2px);box-shadow:none}
+
+/* ================= Списки: режимы и блоки ================= */
+.list{display:grid;gap:14px;padding:0 5px 5px 0}
+.tile-wrap{position:relative}
+.tile{display:flex;align-items:flex-start;gap:14px;width:100%;padding:16px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);text-align:left;transition:transform .15s,box-shadow .15s}
+.tile.has-reset{padding-right:60px}
+.tile-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border:2px solid var(--edge);border-radius:10px;background:var(--paper);color:var(--green);font-family:var(--display);font-size:15px;font-weight:800}
+.tile-icon svg{width:22px;height:22px}
+.tile-body{flex:1;min-width:0}
+.tile-title{display:block;font-size:16px;font-weight:700;line-height:1.3}
+.tile-desc{display:block;margin-top:3px;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.tile-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
+.tile-reset{position:absolute;top:12px;right:12px}
+.icon-btn{display:grid;place-items:center;width:36px;height:36px;padding:0;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--hardc);transition:transform .15s,box-shadow .15s}
+.icon-btn:active{transform:translate(2px,2px);box-shadow:none}
+.icon-btn svg{width:18px;height:18px}
+.chip{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:1px 10px;border:2px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.3}
+.chip.is-good{background:var(--green);color:var(--on-btn)}
+.chip.is-bad{background:var(--red);color:var(--on-red)}
+
+/* ===================== Карточка вопроса ===================== */
+.card{position:relative;margin-top:4px;padding:22px 18px 20px;border:2px solid var(--edge);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow)}
+.card[data-swipe]{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.card[data-swipe] input{-webkit-user-select:text;user-select:text}
+.card-tag{display:flex;justify-content:center;margin:-4px 0 14px}
+.card-tag .chip{padding:5px 11px;border-radius:6px;background:var(--green);color:var(--on-btn);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;text-align:center}
+.drug{margin-bottom:18px;padding-bottom:16px;border-bottom:2px dashed var(--line);text-align:center}
+.drug-row{font-size:clamp(20px,6.4vw,25px);line-height:1.2}
+.drug-name{display:inline;margin:0;font-family:var(--display);font-size:inherit;font-weight:800;letter-spacing:-.01em;color:var(--accent);overflow-wrap:anywhere}
+.drug-latin{margin-top:6px;font-family:var(--serif);font-style:italic;font-size:16.5px;line-height:1.35;color:var(--muted)}
+.btn-info{display:inline-grid;place-items:center;width:32px;height:32px;margin-left:8px;padding:0 0 1px;border:2px solid var(--edge);border-radius:50%;background:var(--amber);color:#182721;font:italic 700 18px/1 var(--serif);vertical-align:middle;box-shadow:2px 2px 0 var(--hardc);transition:transform .15s,box-shadow .15s}
+.btn-info:active{transform:translate(2px,2px);box-shadow:none}
+
+.field{margin-bottom:18px}
+.label{display:block;margin:0 2px 8px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--bad)}
+.opts{display:grid;gap:8px}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:50px;padding:12px 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);color:var(--ink);text-align:left;font-size:15.5px;font-weight:600;line-height:1.35;transition:transform .15s,box-shadow .15s,background-color .15s,color .15s,opacity .15s}
+.opt::after{content:"";flex:none;width:20px;text-align:center;font-size:18px;font-weight:800;line-height:1}
+.opt.is-selected{background:var(--amber);color:#182721;transform:translate(-2px,-2px);box-shadow:var(--shadow-sm)}
+.opt.is-correct{background:var(--green);color:var(--on-btn)}
+.opt.is-wrong{background:var(--red);color:var(--on-red)}
+.opt.is-correct::after{content:"✓"}
+.opt:disabled:not(.is-correct):not(.is-wrong){opacity:.55}
+.opt.is-wrong::after{content:"✕"}
+
+.input{display:block;width:100%;min-height:50px;padding:12px 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);color:var(--ink);font-size:16px;-webkit-appearance:none;appearance:none;transition:box-shadow .15s}
+.input::placeholder{color:var(--muted);opacity:.75}
+.input:focus{outline:none;box-shadow:4px 4px 0 var(--accent)}
+.input:disabled{opacity:1;-webkit-text-fill-color:currentColor}
+.input.is-correct{border-color:var(--good);background:var(--good-soft)}
+.input.is-wrong{border-color:var(--bad);background:var(--bad-soft)}
+.hint-slot{display:flex;align-items:center;min-height:32px;margin-top:6px}
+.hint{max-width:100%;padding:3px 9px;border:2px solid var(--edge);border-radius:6px;background:var(--amber);color:#182721;font-size:12.5px;font-weight:800;line-height:1.3}
+
+.verdict{display:flex;align-items:center;gap:10px;min-height:68px;margin:2px 0 16px;padding:10px 14px;border:2px solid var(--edge);border-radius:var(--r-md);font-size:14.5px;font-weight:700;line-height:1.35;box-shadow:var(--shadow-sm)}
+.verdict.is-idle{border-style:dashed;border-color:var(--line);background:transparent;box-shadow:none;color:var(--muted);font-size:14px;font-weight:600}
+@media (max-width:340px){.verdict{min-height:88px}}
+.feedback svg{flex:none;width:22px;height:22px}
+.feedback.is-good{background:var(--green);color:var(--on-btn)}
+.feedback.is-bad{background:var(--red);color:var(--on-red)}
+
+/* Плавная смена после «Проверить»: класс .just-checked ставится один раз, сразу после проверки */
+@keyframes chkFromPaper{from{background-color:var(--paper);color:var(--ink)}}
+@keyframes chkDim{from{opacity:1}}
+@keyframes chkReveal{
+  from{background-color:var(--base,var(--paper));background-image:linear-gradient(var(--fill),var(--fill));background-repeat:no-repeat;background-position:left center;background-size:0% 100%;color:var(--txt0,var(--ink));transform:var(--t0,none);box-shadow:var(--s0,none)}
+  14%{color:var(--txt0,var(--ink))}
+  to{background-color:var(--base,var(--paper));background-image:linear-gradient(var(--fill),var(--fill));background-repeat:no-repeat;background-position:left center;background-size:100% 100%}
+}
+@keyframes chkMark{from{transform:scale(0)}}
+@keyframes chkBtn{from{background-color:var(--btn);color:var(--on-btn)}}
+@keyframes chkVerdict{from{background-color:transparent;color:var(--muted);border-color:var(--line);box-shadow:none;filter:blur(5px)}}
+@keyframes chkFade{from{opacity:0;transform:translateY(-3px)}}
+/* Единая скорость для всех элементов: --dur — длительность, --lag — сдвиг между шагами
+   (0 = всё проявляется одновременно; например .12s вернёт «по очереди») */
+.just-checked{--dur:.45s;--lag:0s;--out:cubic-bezier(.22,.8,.2,1)}
+.just-checked .opt.is-wrong{--fill:var(--red);--base:var(--amber);--txt0:#182721;--t0:translate(-2px,-2px);--s0:var(--shadow-sm);animation:chkReveal var(--dur) var(--out) backwards}
+.just-checked .opt.is-correct{--fill:var(--green);--base:var(--paper);--txt0:var(--ink);--t0:none;--s0:none;animation:chkReveal var(--dur) var(--lag) var(--out) backwards}
+.just-checked .opt.is-correct.was-sel{--base:var(--amber);--txt0:#182721;--t0:translate(-2px,-2px);--s0:var(--shadow-sm)}
+.just-checked .opt:disabled:not(.is-correct):not(.is-wrong){animation:chkDim var(--dur) var(--lag) var(--out) backwards}
+.just-checked .opt.is-wrong::after,.just-checked .opt.is-correct::after{animation:chkMark var(--dur) var(--out) backwards}
+.just-checked .input.is-wrong,.just-checked .input.is-correct{animation:chkFromPaper var(--dur) var(--out) backwards}
+.just-checked .feedback{animation:chkVerdict var(--dur) calc(var(--lag) * 2) var(--out) backwards}
+.just-checked .hint{animation:chkFade var(--dur) calc(var(--lag) * 2) var(--out) backwards}
+.just-checked #primary{animation:chkBtn var(--dur) calc(var(--lag) * 2) var(--out) backwards}
+
+/* ======================== Кнопки ======================== */
+.actions{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 16px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);color:var(--ink);font-size:15.5px;font-weight:700;line-height:1.2;text-align:center;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background-color .15s,color .15s,opacity .15s}
+.btn-primary{background:var(--btn);color:var(--on-btn);font-family:var(--display);font-size:13.5px;font-weight:800}
+.btn-primary[data-act="next"],.btn-primary[data-act="cardNext"]{background:var(--amber);color:#182721}
+.btn-primary:disabled{background:var(--paper-2);color:var(--muted);border-color:var(--line);box-shadow:none}
+.btn-secondary{background:var(--card);color:var(--ink)}
+.btn-secondary:disabled{opacity:.45;box-shadow:none}
+.btn-block{width:100%}
+.btn-danger{background:var(--btn-danger);color:#fff}
+.actions-even{grid-template-columns:1fr 1fr}
+.btn:active:not(:disabled),.opt:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+.tile:active{transform:translate(2px,2px);box-shadow:none}
+@media (hover:hover){
+  .btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+  .tile:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
+  .opt:hover:not(:disabled):not(.is-selected){transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--hardc);background:var(--lift)}
+  .btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
+  .btn-back:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
+  .icon-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--hardc)}
+  .btn-info:hover{background:var(--green);color:var(--on-btn)}
+  .row:hover{background:var(--inset)}
+  .mistake:hover{background:var(--red);color:var(--on-red)}
+}
+
+/* ============= Сведения о препарате (карточки и окно «i») ============= */
+.facts{display:grid;gap:0;margin:0 0 16px;padding:0 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper)}
+.fact{padding:11px 0;border-bottom:1px solid var(--line)}
+.fact:last-child{border-bottom:0}
+.fact dt{margin-bottom:3px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--bad)}
+.fact dd{margin:0;font-size:15px;line-height:1.5}
+.swipe-hint{margin:0 0 12px;text-align:center;font-size:12.5px;color:var(--muted)}
+
+/* ========================= Итоги ========================= */
+.summary-title{margin:2px 0 18px;text-align:center;font-family:var(--display);font-size:clamp(19px,5.6vw,23px);line-height:1.25;font-weight:900;letter-spacing:-.01em}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;padding:0 5px 5px 0}
+.stat{padding:14px 8px 12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);box-shadow:var(--shadow-sm);text-align:center}
+.stat b{display:block;font-family:var(--display);font-size:36px;line-height:1.1;font-weight:900;font-variant-numeric:tabular-nums}
+.stat span{display:block;margin-top:4px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.stat.is-good{background:var(--green);color:var(--on-btn)}
+.stat.is-bad{background:var(--red);color:var(--on-red)}
+.mistakes{display:flex;flex-wrap:wrap;gap:8px;max-height:260px;overflow:auto;margin:0 0 18px;padding:2px}
+.mistake{padding:5px 11px;border:2px solid var(--edge);border-radius:999px;background:var(--card);color:var(--bad);font-size:13.5px;font-weight:700;line-height:1.3;transition:background-color .15s,color .15s}
+.summary-note{margin:-4px 0 16px;text-align:center;color:var(--muted);font-size:14px}
+.after{margin-top:10px}
+.perfect{margin:0 0 18px;padding:12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--green);color:var(--on-btn);box-shadow:var(--shadow-sm);text-align:center;font-family:var(--display);font-size:13px;font-weight:800}
+
+/* ============ Нижнее окно: сведения о препарате и подтверждения ============ */
+.overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;background:var(--overlay);animation:fade .2s ease}
+.sheet{width:100%;max-width:480px;max-height:85vh;max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;padding:10px 18px calc(18px + var(--safe-b));border:2px solid var(--edge);border-bottom:0;border-radius:var(--r-lg) var(--r-lg) 0 0;background:var(--card);box-shadow:0 -6px 0 var(--hardc);animation:sheet .28s cubic-bezier(.2,.8,.2,1)}
+.sheet:focus{outline:none}
+.sheet-handle{width:48px;height:6px;margin:2px auto 16px;border-radius:6px;background:var(--edge);opacity:.4}
+.sheet .drug{margin-bottom:16px}
+.sheet .drug-name{font-size:23px;display:block}
+.sheet-title{margin:6px 0 12px;font-family:var(--display);font-size:18px;line-height:1.25;font-weight:900;letter-spacing:-.01em;text-align:center}
+.sheet-text{margin:0 auto 20px;max-width:34ch;color:var(--muted);text-align:center;font-size:15px;line-height:1.45}
+div.sheet-text{max-width:none;text-align:left;color:var(--ink)}
+div.sheet-text p{margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+div.sheet-text p:last-child{margin:0;padding:0;border:0;color:var(--muted);font-size:13.5px}
+div.sheet-text b{color:var(--bad)}
+div.sheet-text i{font-family:var(--serif);color:var(--green)}
+
+/* ============== Строки препаратов: ошибки и справочник ============== */
+.rows{border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden;margin:0 5px 5px 0}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 16px;border:0;background:none;text-align:left;transition:background-color .15s}
+.row+.row{border-top:1px solid var(--line)}
+.row::after{content:"";flex:none;width:7px;height:7px;margin:0 2px 0 4px;border-top:2px solid var(--ink);border-right:2px solid var(--ink);transform:rotate(45deg);opacity:.7}
+.row:active{background:var(--inset)}
+.row-main{flex:1;min-width:0}
+.row-title{display:block;font-size:15.5px;font-weight:600;line-height:1.3}
+.row-sub{display:block;margin-top:2px;font-size:13px;line-height:1.35;color:var(--muted)}
+.row-note{flex:none;font-family:var(--display);font-size:11px;font-weight:800;color:var(--bad)}
+.search{position:relative;margin:0 0 14px}
+.search svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search .input{padding-left:42px}
+.input[type=search]::-webkit-search-decoration{-webkit-appearance:none}
+.empty{display:grid;justify-items:center;gap:12px;padding:36px 24px;border:2px dashed var(--edge);border-radius:var(--r-lg);background:var(--card);text-align:center}
+.empty svg{width:40px;height:40px;color:var(--green)}
+.empty p{margin:0;max-width:30ch;color:var(--muted);font-size:15px;line-height:1.45}
+.empty-text{margin:24px 8px;text-align:center;color:var(--muted)}
+.list-end{margin-top:14px}
+
+/* ======================== Движение ======================== */
+@keyframes fade{from{opacity:0}}
+@keyframes sheet{from{opacity:0;transform:translateY(40px)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* =========================================================
+   КОМПАКТНЫЙ РЕЖИМ ДЛЯ ТЕЛЕФОНА: вопрос целиком на одном экране
+   ========================================================= */
+body{overscroll-behavior-y:none;-webkit-touch-callout:none}
+.topbar{padding:calc(6px + var(--safe-t)) 16px 8px}
+.topbar-row{min-height:34px}
+.btn-back{height:34px}
+.topbar-sub{margin-top:7px}
+.progress{height:10px}
+.card{margin-top:0;padding:14px 14px 12px}
+.card-tag{margin:-2px 0 8px}
+.drug{margin-bottom:10px;padding-bottom:8px}
+.drug-row{font-size:clamp(19px,5.8vw,22px);line-height:1.15}
+.drug-latin{margin-top:3px;font-size:14.5px;line-height:1.25}
+.btn-info{width:28px;height:28px;margin-left:6px;font-size:16px}
+.field{margin-bottom:10px}
+.label{margin:0 2px 5px;font-size:10.5px;letter-spacing:.12em}
+.opts{gap:5px}
+.opt{min-height:40px;padding:7px 12px;border-radius:10px;font-size:14.5px;line-height:1.25}
+.input{min-height:44px;padding:9px 12px}
+.hint-slot{min-height:26px;margin-top:4px}
+.hint{font-size:12px}
+.verdict{min-height:42px;margin:0 0 10px;padding:6px 12px;font-size:13.5px}
+.feedback svg{width:20px;height:20px}
+.actions{gap:8px}
+.btn{min-height:46px;font-size:15px}
+.btn-primary{font-size:13px}
+.swipe-hint{margin:0 0 8px}
+.facts{margin-bottom:10px}
+.fact{padding:8px 0}
+/* кнопки всегда под рукой, даже если вопрос чуть длиннее экрана */
+.card .actions{position:sticky;bottom:calc(8px + var(--safe-b));z-index:5}
+@media (max-width:380px){
+  .app{padding-left:12px;padding-right:12px}
+  .topbar{margin:0 -12px;padding-left:12px;padding-right:12px}
+  .verdict{min-height:40px;font-size:13px}
+}
+@media (max-height:720px){
+  .card{padding:8px 12px 8px}
+  .drug{margin-bottom:7px;padding-bottom:6px}
+  .field{margin-bottom:7px}
+  .label{margin-bottom:3px}
+  .opts{gap:4px}
+  .opt{min-height:34px;padding:4px 12px;font-size:14px}
+  .verdict{min-height:36px;margin-bottom:7px}
+  .btn{min-height:42px}
+  .topbar-sub{margin-top:5px}
+}
+@media (max-height:620px){
+  .opt{min-height:33px;padding:4px 10px;font-size:13.5px}
+  .drug-latin{font-size:13px}
+  .verdict{min-height:34px}
+}
+
+/* ===== Экраны тестов: без верхней плашки; «Меню» сбоку от шкалы, номер вопроса — на карточке ===== */
+.topbar.is-session{position:static;display:flex;align-items:center;gap:10px;margin:0 -16px;padding:calc(8px + var(--safe-t)) 16px 8px;background:transparent;border-bottom:0}
+.topbar.is-session .topbar-row{display:contents}
+.topbar.is-session .topbar-title,.topbar.is-session .top-actions{display:none}
+.topbar.is-session .topbar-sub{flex:1;min-width:0;margin:0}
+@media (max-width:380px){.topbar.is-session{margin:0 -12px;padding-left:12px;padding-right:12px}}
+.drug{position:relative}
+.drug-count{position:absolute;right:0;top:3px;padding:3px 7px;border:2px solid var(--edge);border-radius:6px;background:var(--paper);color:var(--ink);font:800 11.5px/1.2 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap}
+.drug.has-count .drug-row{padding:0 58px}
+
+/* ===== Правки по скриншоту: название слева, номер справа, плотнее на низких экранах ===== */
+.drug.has-count{text-align:left}
+.drug.has-count .drug-row{padding:0 54px 0 0}
+.drug.has-count .drug-name{font-size:clamp(16px,4.7vw,19px);letter-spacing:-.02em}
+.drug.has-count .drug-latin{margin-top:4px}
+.card .actions{padding:6px 0 2px;background:var(--card);box-shadow:0 -6px 0 var(--card)}
+@media (max-height:660px){
+  .topbar.is-session{padding-top:calc(5px + var(--safe-t));padding-bottom:6px}
+  .card{padding:7px 10px 8px}
+  .drug{margin-bottom:5px;padding-bottom:4px}
+  .drug.has-count .drug-name{font-size:clamp(15px,4.3vw,17px)}
+  .drug-latin{font-size:12.5px;margin-top:2px}
+  .btn-info{width:24px;height:24px;font-size:14px}
+  .drug-count{top:1px;padding:2px 6px;font-size:11px}
+  .field{margin-bottom:4px}
+  .label{margin:0 2px 2px;font-size:9.5px}
+  .opts{gap:3px}
+  .opt{min-height:30px;padding:3px 10px;font-size:13px;line-height:1.2;border-radius:8px}
+  .verdict{min-height:32px;margin-bottom:5px;padding:3px 10px;font-size:12.5px}
+  .btn{min-height:40px;font-size:14px}
+  .card .actions{padding-top:4px}
+}
+
+/* Варианты ответов растягиваются: высота подбирается скриптом (fitOpts) так, чтобы страницу можно было
+   прокрутить ровно на высоту самого большого названия препарата с полем вокруг него */
+.fit-opts .card .opt{min-height:var(--opt-h)}
+
+/* ===== Фон с плавающими капсулами и бегущая строка на главном экране ===== */
+#ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.app{position:relative;z-index:1}
+.pill{position:absolute;border-radius:999px;border:2px solid var(--ink);animation:pillDrift 11s ease-in-out infinite;will-change:transform}
+.pill::after{content:"";position:absolute;inset:0;border-radius:999px;box-shadow:inset 3px 5px 0 rgba(255,255,255,.35)}
+.pill .seam{position:absolute;top:-2px;bottom:-2px;left:50%;width:2px;background:var(--ink)}
+@keyframes pillDrift{0%,100%{transform:translateY(0) rotate(var(--rot,20deg))}50%{transform:translateY(-26px) rotate(calc(var(--rot,20deg) + 6deg))}}
+#ticker{display:none;position:relative;left:0;right:0;z-index:30;overflow:hidden;white-space:nowrap;
+  background:var(--paper-2);border-top:2px solid var(--edge);padding:9px 0 calc(9px + var(--safe-b));pointer-events:none}
+body.rx-home #ticker{display:block}
+body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}   /* строка ниже первого экрана: до неё надо листать */
+.ticker-track{display:inline-block;animation:tickerRun var(--tick-dur,90s) linear infinite;
+  font-family:var(--display);font-weight:600;font-size:11.5px;letter-spacing:.14em}
+.ticker-track span{margin:0 18px;color:var(--green)}
+.ticker-track span:nth-child(even){color:var(--red)}
+@keyframes tickerRun{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.pill,.ticker-track{animation:none}}
+
+.rx-go{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 8px 0 0;color:var(--ink)}
+.rx-go svg{width:20px;height:20px;stroke-width:2.6}
+.rx-row .rx-go:not(.rx-chev) svg{transform:rotate(-90deg)}
+.rx-chev.rx-go{width:30px;height:30px}
+.rx-chev.rx-go svg{width:20px;height:20px}
+
+/* Значок сброса прогресса раздела — на правом верхнем углу строки */
+.rx-wrap{position:relative}
+.rx-badge{position:absolute;top:-13px;right:-5px;z-index:3;display:grid;place-items:center;width:30px;height:30px;padding:0;border:2px solid var(--red);border-radius:50%;background:var(--card);color:var(--red);box-shadow:2px 2px 0 var(--hardc,#182721);transition:transform .15s,box-shadow .15s}
+.rx-badge::after{content:"";position:absolute;inset:-9px}
+.rx-badge:active{transform:translate(2px,2px);box-shadow:none}
+.rx-badge svg{width:15px;height:15px;stroke-width:2.4}
+
+/* Подвал главного экрана */
+.rx-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 10px;margin:38px 2px 6px;padding-top:16px;border-top:2px dashed var(--line);text-align:center;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.rx-foot a{padding:6px 2px;color:var(--green);font-weight:600;text-decoration:none;white-space:nowrap}
+.rx-foot a:active{opacity:.6}
+.rx-dot{color:var(--muted)}
+@media (hover:hover){.rx-foot a:hover{text-decoration:underline}}
+</style>
+</head>
+<body>
+<div id="ambient" aria-hidden="true"></div>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-row">
+      <button class="btn-back" id="backBtn" type="button" data-act="up" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span id="backLabel">Меню</span></button>
+      <div class="topbar-title" id="topTitle"></div>
+      <div class="top-actions" aria-hidden="true"></div>
+    </div>
+    <div class="topbar-sub" id="topSub" hidden>
+      <div class="progress"><i id="progressFill"></i></div>
+      <div class="score" id="score" hidden><span class="score-ok" id="scoreOk"></span><span class="score-no" id="scoreNo"></span></div>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+<div id="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"></div></div>
+<div id="sheetRoot"></div>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+
+
+
+
+
+/* =========================================================
+   ДАННЫЕ: [название, доза/форма, путь введения, группа, латынь]
+   ========================================================= */
+const allRoutes = [...new Set(DB.map(d=>d[2]))];
+const allGroups = [...new Set(DB.map(d=>d[3]))];
+const DB_INDEX = new Map(DB.map((d,i)=>[d,i]));
+
+/* ---- Фон: плавающие капсулы + бегущая строка с латинскими названиями препаратов ---- */
+(function(){
+  // капсулы как в образце: две половинки, шов посередине, блик; [верх/низ, лево/право, ширина, высота, левая половина, правая половина, поворот, задержка]
+  const pills = [
+    ['top:5%','right:14%',76,30,'--green','--card',24,0],
+    ['top:60%','left:10%',56,23,'--red','--card',-32,-4],
+    ['top:22%','left:6%',64,26,'--amber','--card',60,-7],
+    ['bottom:16%','right:12%',50,22,'--green','--red',-14,-2],
+    ['top:42%','left:62%',46,19,'--amber','--card',-48,-5]
+  ];
+  document.getElementById('ambient').innerHTML = pills.map(c =>
+    `<span class="pill" style="${c[0]};${c[1]};width:${c[2]}px;height:${c[3]}px;--rot:${c[6]}deg;animation-delay:${c[7]}s;background:linear-gradient(90deg,var(${c[4]}) 50%,var(${c[5]}) 50%)"><span class="seam"></span></span>`).join('');
+  const names = DB.filter((_,i) => i % 9 === 0).map(d => d[4].split('(')[0].trim().toUpperCase());
+  const half = names.map(t => `<span>✚ ${t}</span>`).join('');
+  const track = document.getElementById('tickerTrack');
+  track.innerHTML = half + half;
+  track.style.setProperty('--tick-dur', Math.round(names.join('').length * 0.32) + 's');
+})();
+
+
+/* =========================================================
+   ЕДИНЫЕ ТЕМАТИЧЕСКИЕ БЛОКИ — общие для «Теста по блокам»,
+   «Впиши сам по блокам» и «Карточек». Внутри блока препараты идут
+   в порядке перечисления групп. Если группу забыли вписать в блок,
+   она попадёт в последний, чтобы препараты не потерялись.
+   ========================================================= */
+const BLOCKS = [
+  {title:'Вегетативная нервная система и анальгетики',
+   desc:'Холино- и адреносредства, ганглиоблокаторы, опиоиды и НПВС',
+   groups:['М-холиномиметики','Антихолинэстеразные средства','М-холиноблокаторы','Ганглиоблокаторы',
+     'Альфа-адреномиметики','Бета-адреномиметики','Альфа- и бета-адреномиметики',
+     'Альфа-адреноблокаторы','Бета-адреноблокаторы','Альфа- и бета-адреноблокаторы',
+     'Наркотические анальгетики','Антагонисты опиоидных рецепторов','Ненаркотические анальгетики, НПВС']},
+  {title:'Центральная нервная система и анестезия',
+   desc:'Наркоз, анестетики, психотропные, противоэпилептические',
+   groups:['Средства для наркоза','Местные анестетики','Снотворные','Седативные','Анксиолитики','Нейролептики',
+     'Антидепрессанты','Противоэпилептические','Противопаркинсонические','Ноотропы',
+     'Аналептики, стимуляторы дыхания','Противомигренозные средства']},
+  {title:'Сердце, сосуды и кровь',
+   desc:'Гликозиды, нитраты, гипотензивные, диуретики, средства для крови',
+   groups:['Сердечные гликозиды','Негликозидные кардиотоники','Антиангинальные, нитраты','Блокаторы кальциевых каналов','Ингибиторы АПФ',
+     'Антагонисты рецепторов ангиотензина II','Диуретики','Антиаритмики','Гиполипидемические средства',
+     'Метаболики, антиоксиданты','Ангиопротекторы','Антикоагулянты, антиагреганты','Гемостатики','Плазмозаменители']},
+  {title:'Противомикробные средства и иммунитет',
+   desc:'Антибиотики, противовирусные, иммуномодуляторы, антигистаминные',
+   groups:['Пенициллины','Цефалоспорины','Макролиды, азалиды','Тетрациклины','Аминогликозиды','Амфениколы',
+     'Фторхинолоны','Сульфаниламиды','Производные нитрофурана','Противотуберкулёзные','Противогрибковые',
+     'Противовирусные','Противопротозойные','Прочие противомикробные','Иммуномодуляторы, противовирусные',
+     'Антигистаминные средства','Цитостатики']},
+  {title:'Дыхание, пищеварение, гормоны и витамины',
+   desc:'Отхаркивающие, средства для ЖКТ, гормоны, ГКС, инсулины, витамины',
+   groups:['Муколитики, отхаркивающие','Противокашлевые','Бронхолитики','Противорвотные','Спазмолитики',
+     'Слабительные','Блокаторы Н2-рецепторов','Глюкокортикостероиды','Гормоны','Антитиреоидные',
+     'Инсулины','Гипогликемические средства','Анаболические стероиды','Витамины','Ферменты']},
+];
+(function(){
+  const listed = new Set(BLOCKS.flatMap(b=>b.groups));
+  const rest = allGroups.filter(g=>!listed.has(g));
+  if(rest.length) BLOCKS[BLOCKS.length-1].groups.push(...rest);
+  BLOCKS.forEach((b,i)=>{ b.num = i+1; b.items = b.groups.flatMap(g=>DB.filter(d=>d[3]===g)); });
+})();
+
+/* =========================================================
+   СЕМЕСТРЫ — какие тематические блоки входят в какой семестр.
+   Порядок блоков: 1 — вегетативная НС и анальгетики, 2 — центральная НС и анестезия,
+   3 — сердце, сосуды и кровь, 4 — противомикробные и иммунитет,
+   5 — дыхание, пищеварение, гормоны и витамины.
+   Чтобы поменять распределение, достаточно переписать массивы blocks.
+   ========================================================= */
+const SEMESTERS = [
+  {title:'1 семестр', short:'Зимний зачёт',  desc:'Вегетативная и центральная нервная система, анестезиология', blocks:[0, 1]},
+  {title:'2 семестр', short:'Летний зачёт', desc:'Кровообращение, противомикробные средства, дыхание, пищеварение, гормоны', blocks:[2, 3, 4]}
+];
+
+
+/* ========================= Утилиты ========================= */
+function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+const ESC = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c=>ESC[c]); }
+function plural(n, one, few, many){
+  const a = n%10, b = n%100;
+  return a===1 && b!==11 ? one : a>=2 && a<=4 && (b<12 || b>14) ? few : many;
+}
+function objOf(v){ return v && typeof v==='object' && !Array.isArray(v) ? v : {}; }
+const store = {
+  get(k){ try{ const v = localStorage.getItem(k); return v===null ? null : JSON.parse(v); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
+  has(k){ try{ return localStorage.getItem(k)!==null; }catch(e){ return false; } }
+};
+
+/* =========================================================
+   ВАРИАНТЫ ОТВЕТОВ для режимов с выбором
+   ========================================================= */
+// Похожие группы: неверные варианты подбираются по близости (общие кластеры)
+const GROUP_CLUSTERS = [
+  ["Альфа-адреномиметики","Бета-адреномиметики","Альфа- и бета-адреномиметики"],
+  ["Бета-адреноблокаторы","Альфа- и бета-адреноблокаторы","Альфа-адреноблокаторы"],
+  ["Альфа-адреномиметики","Альфа-адреноблокаторы","Бета-адреномиметики","Бета-адреноблокаторы"],
+  ["Альфа- и бета-адреномиметики","Альфа- и бета-адреноблокаторы"],
+  ["Наркотические анальгетики","Ненаркотические анальгетики, НПВС","Антагонисты опиоидных рецепторов"],
+  ["Пенициллины","Цефалоспорины"],
+  ["Макролиды, азалиды","Тетрациклины","Аминогликозиды","Амфениколы"],
+  ["Фторхинолоны","Сульфаниламиды","Производные нитрофурана"],
+  ["Пенициллины","Цефалоспорины","Макролиды, азалиды","Тетрациклины","Аминогликозиды","Фторхинолоны","Амфениколы","Сульфаниламиды","Производные нитрофурана","Противотуберкулёзные","Прочие противомикробные"],
+  ["Противогрибковые","Противовирусные","Противопротозойные","Прочие противомикробные","Иммуномодуляторы, противовирусные"],
+  ["Сердечные гликозиды","Негликозидные кардиотоники"],
+  ["Сердечные гликозиды","Негликозидные кардиотоники","Антиаритмики","Антиангинальные, нитраты"],
+  ["Антиангинальные, нитраты","Блокаторы кальциевых каналов","Метаболики, антиоксиданты"],
+  ["Ингибиторы АПФ","Антагонисты рецепторов ангиотензина II","Диуретики","Блокаторы кальциевых каналов"],
+  ["Ингибиторы АПФ","Антагонисты рецепторов ангиотензина II"],
+  ["Бета-адреноблокаторы","Блокаторы кальциевых каналов","Антиаритмики","Ингибиторы АПФ"],
+  ["Антикоагулянты, антиагреганты","Гемостатики","Ангиопротекторы"],
+  ["Гиполипидемические средства","Антикоагулянты, антиагреганты","Ангиопротекторы"],
+  ["Аналептики, стимуляторы дыхания","Ноотропы","Метаболики, антиоксиданты"],
+  ["Нейролептики","Анксиолитики","Антидепрессанты","Снотворные","Седативные"],
+  ["Снотворные","Седативные","Анксиолитики"],
+  ["Противоэпилептические","Анксиолитики","Противопаркинсонические","Нейролептики"],
+  ["Ноотропы","Метаболики, антиоксиданты","Ангиопротекторы"],
+  ["Муколитики, отхаркивающие","Противокашлевые","Бронхолитики"],
+  ["Бронхолитики","М-холиноблокаторы","Бета-адреномиметики"],
+  ["Противорвотные","Спазмолитики","Слабительные","Блокаторы Н2-рецепторов"],
+  ["Спазмолитики","М-холиноблокаторы","Антихолинэстеразные средства","Бронхолитики"],
+  ["М-холиноблокаторы","М-холиномиметики","Антихолинэстеразные средства","Ганглиоблокаторы"],
+  ["Глюкокортикостероиды","Гормоны","Анаболические стероиды","Антитиреоидные"],
+  ["Инсулины","Гипогликемические средства","Гормоны"],
+  ["Витамины","Метаболики, антиоксиданты","Ферменты"],
+  ["Местные анестетики","Средства для наркоза","Наркотические анальгетики"],
+  ["Антигистаминные средства","Блокаторы Н2-рецепторов","Противомигренозные средства","Глюкокортикостероиды"],
+  ["Цитостатики","Иммуномодуляторы, противовирусные","Глюкокортикостероиды"],
+  ["Плазмозаменители","Гемостатики","Витамины"],
+  ["Ферменты","Муколитики, отхаркивающие"],
+  ["Антитиреоидные","Гормоны"]
+];
+// Неверные варианты: берём 2 из самых близких групп (чем меньше и теснее общий кластер, тем выше вес), остальное — запасной вариант
+function pickGroup(correct){
+  const score = new Map();
+  for(const cl of GROUP_CLUSTERS){
+    if(!cl.includes(correct)) continue;
+    for(const g of cl) if(g!==correct) score.set(g, (score.get(g)||0)+1/(cl.length-1));
+  }
+  const ranked = shuffle([...score.keys()]).sort((a,b)=>score.get(b)-score.get(a));
+  let wrong = shuffle(ranked.slice(0,3)).slice(0,2);
+  if(wrong.length<2){
+    const rest = shuffle(allGroups.filter(g=>g!==correct && !wrong.includes(g)));
+    wrong = wrong.concat(rest.slice(0,2-wrong.length));
+  }
+  return shuffle([correct, ...wrong]);
+}
+function pick3(correct, pool){
+  const others = [...new Set(pool.filter(x=>x!==correct))];
+  const wrong = shuffle(others).slice(0,2);
+  return shuffle([correct, ...wrong]);
+}
+// Грубая категория формы по пути введения — чтобы варианты дозы не были все «на один вид»
+// (иначе по формату записи, напр. одни таблетки, путь введения угадывается без знания препарата)
+function routeCategory(route){
+  route = String(route).split(',')[0].trim();
+  if(route==='внутрь' || route==='сублингвально') return 'oral';
+  if(route==='в/м' || route==='в/в' || route==='п/к') return 'injection';
+  return 'other'; // местно, капли, ректально, интраназально, назально, ингаляционно
+}
+// 2 неверных варианта дозы: хотя бы часть — из ДРУГОЙ категории формы, чтобы варианты не выглядели однотипно
+function pick3Dose(correctDose, correctRoute){
+  const cat = routeCategory(correctRoute);
+  const sameCat = [], otherCat = [];
+  for(const d of DB){
+    if(d[1] === correctDose) continue;
+    if(routeCategory(d[2]) === cat) sameCat.push(d[1]);
+    else otherCat.push(d[1]);
+  }
+  const otherPick = shuffle([...new Set(otherCat)]).slice(0,2);
+  const need = 2 - otherPick.length;
+  const samePick = need>0 ? shuffle([...new Set(sameCat)]).slice(0,need) : [];
+  const wrong = [...new Set([...otherPick, ...samePick])].slice(0,2);
+  return shuffle([correctDose, ...wrong]);
+}
+
+/* =========================================================
+   ПРОВЕРКА ВПИСАННЫХ ОТВЕТОВ («Впиши сам»)
+   ========================================================= */
+function levenshtein(a,b){
+  const m=a.length, n=b.length;
+  if(m===0) return n;
+  if(n===0) return m;
+  const dp = new Array(n+1);
+  for(let j=0;j<=n;j++) dp[j]=j;
+  for(let i=1;i<=m;i++){
+    let prev = dp[0];
+    dp[0] = i;
+    for(let j=1;j<=n;j++){
+      const tmp = dp[j];
+      dp[j] = a[i-1]===b[j-1] ? prev : 1+Math.min(prev, dp[j], dp[j-1]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+function normalizeAnswer(s){
+  return String(s||'')
+    .toLowerCase()
+    .replace(/ё/g,'е')
+    .replace(/[«»"']/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+// Дозы с несколькими вариантами («0,5; 0,25 таб.», «0,1; 0,2 капс.; 0,1 таб.») — достаточно ввести ЛЮБОЙ один.
+// Для сегмента без формы (напр. «0,5») форма берётся из ближайшего следующего сегмента («0,5 таб.»).
+function doseVariants(correct){
+  const parts = String(correct).split(';').map(s=>s.trim()).filter(Boolean);
+  const out = [String(correct)];
+  if(parts.length < 2) return out;
+  for(let i=0;i<parts.length;i++){
+    let seg = parts[i];
+    if(/^[\d\s.,]+$/.test(seg)){
+      for(let j=i+1;j<parts.length;j++){
+        const m = parts[j].match(/^[\d\s.,]+(.*)$/);
+        if(m && m[1].trim()){ seg = seg + ' ' + m[1].trim(); break; }
+      }
+    }
+    out.push(seg);
+  }
+  return out;
+}
+// Строгое сравнение дозы: числа/концентрации должны совпасть ТОЧНО (0,5 ≠ 0,05 ≠ 0,03); форма (таб., капс., мл)
+// и знак % необязательны и не проверяются. Запятая/точка равнозначны, «500 000» = «500000», МЕ = ЕД.
+function doseCanon(s){
+  return String(s||'').toLowerCase().replace(/ё/g,'е')
+    .replace(/[«»"']/g,'')
+    .replace(/,/g,'.')
+    .replace(/(^|\s)(\d{1,3})\s+(?=000(?!\d))/g,'$1$2')
+    .replace(/\.(?!\d)/g,' ')
+    .replace(/(^|\s)ме(?=[\s\/]|$)/g,'$1ед')
+    .replace(/\s+/g,' ').trim();
+}
+function doseMatchOne(user, correct){
+  // сравниваются только числа (даже слитные с буквами: «100ед», «10мл»), слова и знак % не проверяются
+  const nums = x => (doseCanon(x).match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  const u = nums(user), c = nums(correct);
+  if(!u.length || u.length > c.length) return false;
+  return u.every((w,i) => w === c[i]);
+}
+// Слово после запятой с пробелом («0,00025 г/доза, аэрозоль») — второй допустимый ответ (напр. форма «аэрозоль»).
+function doseAltVariants(correct){
+  const out = [];
+  for(const part of String(correct).split(';')){
+    part.split(/,\s+/).slice(1).forEach(x => { x = x.trim(); if(/^[а-яёa-z]/i.test(x)) out.push(x); });
+  }
+  return out;
+}
+function doseAltMatch(user, alt){
+  const ucanon = doseCanon(user);
+  if(/\d/.test(ucanon)) return doseMatchOne(user, alt);      // с числом — как обычная доза
+  const uw = ucanon.split(' ').filter(w => w.length>=3);
+  const aw = doseCanon(alt).split(' ').filter(w => w.length>=3 && !/\d/.test(w));
+  if(!uw.length || !aw.length) return false;
+  return uw.every(w => aw.some(x => w===x || (Math.min(w.length,x.length)>=4 && (w.startsWith(x)||x.startsWith(w))) || (Math.min(w.length,x.length)>=3 && levenshtein(w,x)<=1)));
+}
+function isCloseMatch(user, correct, isDose){
+  if(isDose) return doseVariants(correct).some(v => doseMatchOne(user, v)) || doseAltVariants(correct).some(v => doseAltMatch(user, v));
+  return isCloseMatchOne(user, correct);
+}
+// Название группы сравнивается ПО СЛОВАМ: каждое значимое слово ответа должно найтись среди слов правильного
+// названия — с допуском на опечатки и окончания (гипогликимический ≈ гипогликемические). Слова вроде «средства»,
+// «препараты» не считаются. Слово должно совпасть минимум по первым 3 буквам, поэтому «наркотические» ≠ «ненаркотические»,
+// «альфа» ≠ «бета».
+const GROUP_STOP = new Set(['и','средства','средство','препараты','препарат','группа','лекарственные']);
+function groupWords(s){
+  return normalizeAnswer(s).split(/[\s,;\-–—\/()]+/).filter(w => w && !GROUP_STOP.has(w));
+}
+function groupWordOk(a,b){
+  if(a===b) return true;
+  if(a.length<4 || b.length<4) return false;
+  if(a.slice(0,3)!==b.slice(0,3)) return false;
+  let k=0; while(k<a.length && k<b.length && a[k]===b[k]) k++;
+  if(k>=8 && k>=0.7*Math.min(a.length,b.length)) return true; // усечённое слово: противоэпилептик
+  return levenshtein(a,b) <= Math.max(1, Math.floor(Math.max(a.length,b.length)*0.2));
+}
+// Слова всех групп считаются один раз, а не при каждой проверке
+const GROUP_INDEX = allGroups.map(g => ({norm: normalizeAnswer(g), words: groupWords(g)}));
+function isCloseMatchOne(user, correct){
+  const u = groupWords(user), c = groupWords(correct);
+  if(!u.length || !c.length) return false;
+  if(!u.every(w => c.some(x => groupWordOk(w,x)))) return false;
+  // Неполный ответ допустим («НПВС»), НО не если он целиком совпадает с названием ДРУГОЙ группы:
+  // «альфа-адреномиметики» — это отдельная группа, а не ответ для «Альфа- и бета-адреномиметики».
+  // Название через запятую («Иммуномодуляторы, противовирусные») — это ДВЕ группы сразу: подходит любая из частей.
+  for(const part of String(correct).split(',')){
+    const pw = groupWords(part);
+    if(pw.length && pw.every(x => u.some(w => groupWordOk(w,x))) && u.every(w => pw.some(x => groupWordOk(w,x)))) return true;
+  }
+  const cn = normalizeAnswer(correct);
+  for(const {norm, words: gw} of GROUP_INDEX){
+    if(norm === cn) continue;
+    if(gw.length && gw.every(x => u.some(w => groupWordOk(w,x))) && u.every(w => gw.some(x => groupWordOk(w,x)))) return false;
+  }
+  return true;
+}
+// Сохранённые вердикты пересчитываются по ТЕКУЩИМ правилам проверки
+// (иначе ответ, проверенный в старой версии, навсегда остаётся с прежним «неверно»).
+function reevalWrite(st, entry){
+  if(st.checked && entry && (st.typed.dose.trim() || st.typed.group.trim())){
+    st.doseOk = isCloseMatch(st.typed.dose, entry[1], true);
+    st.groupOk = isCloseMatch(st.typed.group, entry[3], false);
+    st.correct = st.doseOk && st.groupOk;
+  }
+  return st;
+}
+
+/* =========================================================
+   РЕЖИМЫ И СОХРАНЕНИЕ ПРОГРЕССА
+   Ключи и формат «Теста» и «Впиши сам» прежние — сохранённый прогресс подхватывается.
+   Блоки стали едиными, поэтому их прогресс хранится под ключами v2.
+   ========================================================= */
+const KEYS = {
+  quiz:'pharma_quiz_progress_v1',
+  write:'pharma_write_progress_v1',
+  study:'pharma_study_progress_v2',
+  writeBlock:'pharma_writeblock_progress_v2',
+  groupCards:'pharma_cards_progress_v2',
+  semQuiz:'pharma_sem_progress_v1',
+  semWrite:'pharma_sem_write_v1',
+  mistakesQuiz:'pharma_mistakes_quiz_v1',
+  mistakesWrite:'pharma_mistakes_write_v1',
+  mistakes:'pharma_mistakes_v1',
+  view:'pharma_quiz_view_v1'
+};
+const OLD_BLOCK_KEYS = ['pharma_study_progress_v1','pharma_writeblock_progress_v1','pharma_cards_progress_v1'];
+
+// Сессии с вопросами. kind: «choice» — выбор из трёх вариантов, «write» — свободный ввод.
+// block — по одному тематическому блоку; dynamic — по текущему списку ошибок.
+const SESSION = {
+  quiz:          {kind:'choice', title:'Экзамен'},   // карточка «Экзамен» = полный тест
+  write:         {kind:'write',  title:'Впиши сам'},
+  study:         {kind:'choice', block:true},
+  writeBlock:    {kind:'write',  block:true},
+  mistakesQuiz:  {kind:'choice', dynamic:true, title:'Повторение'},
+  mistakesWrite: {kind:'write',  dynamic:true, title:'Повторение'},
+  semQuiz:       {kind:'choice', sem:true},
+  semWrite:      {kind:'write',  sem:true}
+};
+const MISTAKE_MODES = ['mistakesQuiz', 'mistakesWrite'];
+// Списки блоков и экран, который открывается из каждого
+const LISTS = {
+  studyList:      {target:'study',      title:'Тест по блокам',      desc:'Те же вопросы, что в тесте, но по одному тематическому блоку. Внутри блока препараты не повторяются.'},
+  writeBlockList: {target:'writeBlock', title:'Впиши сам по блокам', desc:'Видно только название — дозу и группу вписываете сами. Внутри блока препараты не повторяются.'},
+  groupList:      {target:'groupCards', title:'Карточки',            desc:'Вся информация о препарате на одной карточке — для повторения, без вопросов.'}
+};
+// Куда ведёт «Назад»; всё, чего здесь нет, возвращает в меню
+const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
+  semQuiz:'menu', semWrite:'menu', semester:'semesters',
+  quiz:'examQuiz', write:'examWrite', studyList:'examQuiz', writeBlockList:'examWrite', examQuiz:'exam', examWrite:'exam'};
+// Куда ведёт «назад» с карточек: из тем — в темы, из семестра — в семестр
+let cardsBack = 'topics';
+const parentOf = m => m==='groupCards' ? cardsBack : (PARENT[m] || 'menu');
+// Глубина экрана в истории браузера: каждый шаг вглубь — одна запись
+function depthOf(m){ let d = 0, seen = {}; while(m && m!=='menu' && !seen[m]){ seen[m] = 1; m = parentOf(m); d++; } return d; }
+
+/* --- Состояние одного вопроса --- */
+const CATS = ['dose', 'route', 'group'];
+const rightOf = d => ({dose:d[1], route:d[2], group:d[3]});
+function optsFor(cat, d){
+  return cat==='dose' ? pick3Dose(d[1], d[2]) : cat==='route' ? pick3(d[2], allRoutes) : pickGroup(d[3]);
+}
+// Написания, исправленные в данных: в сохранённых вариантах ответов старые строки заменяются новыми
+// (две последние — возврат дозировок, которые ненадолго убирались)
+const RENAMED = new Map([
+  ['назально', 'интраназально'],
+  ['0,5; 0,025 капс.; 0,5 таб.', '0,5; 0,25 капс.; 0,5 таб.'],
+  ['1 мл; 25% 2 мл', '25% 1 мл; 25% 2 мл'],
+  ['3,4% 10 мл', '3,44% 10 мл'],
+  ['0,04% 1 мл', '0,04% 1 мл; 0,4% 1 мл'],
+  ['100 ЕД/мл 3 мл', '100 МЕ/мл 5 мл; 100 ЕД/мл 3 мл']
+]);
+// То же для отдельных препаратов: группа сменилась только у них, а не во всей базе
+const RENAMED_FOR = {
+  'Левосимендан': {group: new Map([['Сердечные гликозиды', 'Негликозидные кардиотоники']])}
+};
+// Сохранённые варианты приводятся к текущим данным: правильный ответ всегда среди трёх разных вариантов
+function fixChoice(st, d){
+  const right = rightOf(d);
+  const renamed = (c, x) => RENAMED_FOR[d[0]]?.[c]?.get(x) ?? RENAMED.get(x) ?? x;
+  for(const c of CATS) if(st.sel[c]!==null) st.sel[c] = renamed(c, st.sel[c]);
+  if(st.opts){
+    for(const c of CATS){
+      let o = st.opts[c].map(x => renamed(c, x));
+      if(o.length!==3 || new Set(o).size!==3 || !o.includes(right[c])){
+        const keep = [right[c]];
+        if(st.checked && st.sel[c]!==null && st.sel[c]!==right[c]) keep.push(st.sel[c]);
+        o = shuffle(keep.concat(optsFor(c, d).filter(x => !keep.includes(x))).slice(0, 3));
+      }
+      if(!st.checked && st.sel[c]!==null && !o.includes(st.sel[c])) st.sel[c] = null;
+      st.opts[c] = o;
+    }
+  }
+  if(st.checked) st.correct = CATS.every(c => st.sel[c]===right[c]);
+  return st;
+}
+const strOrNull = v => typeof v==='string' ? v : null;
+function isOpts(o){ return !!o && CATS.every(k => Array.isArray(o[k]) && o[k].length > 0 && o[k].every(x => typeof x==='string')); }
+
+const KIND = {
+  choice: {
+    blank: () => ({opts:null, sel:{dose:null, route:null, group:null}, checked:false, correct:false}),
+    restore: (st, d) => fixChoice({
+      opts: isOpts(st && st.opts) ? {dose:[...st.opts.dose], route:[...st.opts.route], group:[...st.opts.group]} : null,
+      sel: {dose: strOrNull(st?.sel?.dose), route: strOrNull(st?.sel?.route), group: strOrNull(st?.sel?.group)},
+      checked: !!st?.checked,
+      correct: !!st?.correct
+    }, d),
+    touched: st => st.checked || st.sel.dose!==null || st.sel.route!==null || st.sel.group!==null,
+    ready: st => st.sel.dose!==null && st.sel.route!==null && st.sel.group!==null
+  },
+  write: {
+    blank: () => ({typed:{dose:'', group:''}, checked:false, correct:false, doseOk:false, groupOk:false}),
+    restore: (st, d) => reevalWrite({
+      typed: {dose: String(st?.typed?.dose ?? ''), group: String(st?.typed?.group ?? '')},
+      checked: !!st?.checked,
+      correct: !!st?.correct,
+      doseOk: !!st?.doseOk,
+      groupOk: !!st?.groupOk
+    }, d),
+    touched: st => st.checked || !!st.typed.dose || !!st.typed.group,
+    ready: st => !!(st.typed.dose.trim() && st.typed.group.trim())
+  }
+};
+const kindOf = S => KIND[SESSION[S.mode].kind];
+const readAll = key => objOf(store.get(key));
+function itemsOf(mode, block){
+  const cfg = SESSION[mode];
+  if(cfg.block) return BLOCKS[block].items;
+  if(cfg.dynamic) return mistakeItems();
+  if(cfg.sem) return semItems();
+  return DB;
+}
+// Препараты текущего семестра — для «Зимнего» и «Летнего» зачётов
+function semItems(){
+  const sem = SEMESTERS[semIdx] || SEMESTERS[0];
+  return sem.blocks.flatMap(bi => BLOCKS[bi].items);
+}
+function semTitle(){ const s = SEMESTERS[semIdx] || SEMESTERS[0]; return s.short || s.title; }
+
+function loadSession(mode, block){
+  const cfg = SESSION[mode];
+  const sv = objOf(cfg.block ? readAll(KEYS[mode])[block] : store.get(KEYS[mode]));
+  if(cfg.sem && sv.sem !== semIdx) return null;   // прогресс другого семестра не подходит
+  const n = Array.isArray(sv.order) ? sv.order.length : 0;
+  if(!n || !Array.isArray(sv.state) || sv.state.length!==n) return null;
+  if(!sv.order.every(i => Number.isInteger(i) && i>=0 && i<DB.length)) return null;
+  const order = sv.order.map(i => DB[i]);
+  if(new Set(order).size!==n) return null;
+  if(!cfg.dynamic){
+    const items = itemsOf(mode, block);
+    if(n!==items.length) return null;
+    const allowed = new Set(items);
+    if(order.some(d => !allowed.has(d))) return null;
+  }
+  const clamp = v => Number.isInteger(v) ? Math.min(Math.max(v, 0), n) : 0;
+  const K = KIND[cfg.kind];
+  return {mode, block, order, pos: clamp(cfg.block ? sv.pos : sv.idx), furthest: clamp(sv.furthest),
+          state: sv.state.map((st,i) => K.restore(st, order[i]))};
+}
+function newSession(mode, block){
+  const cfg = SESSION[mode];
+  const order = shuffle(itemsOf(mode, block));
+  return {mode, block, sem: cfg.sem ? semIdx : undefined, order, pos:0, furthest:0,
+          state: order.map(() => KIND[cfg.kind].blank())};
+}
+let saveTimer = 0, pendingSave = null;
+function saveSession(S){
+  clearTimeout(saveTimer); pendingSave = null;
+  const order = S.order.map(d => DB_INDEX.get(d));
+  if(SESSION[S.mode].sem){                       // зачёт по семестру: ключ + номер семестра
+    store.set(KEYS[S.mode], {sem:S.sem, order, idx:S.pos, furthest:S.furthest, state:S.state});
+    return;
+  }
+  if(SESSION[S.mode].block){
+    const all = readAll(KEYS[S.mode]);
+    all[S.block] = {order, pos:S.pos, furthest:S.furthest, state:S.state};
+    store.set(KEYS[S.mode], all);
+  } else {
+    store.set(KEYS[S.mode], {order, idx:S.pos, furthest:S.furthest, state:S.state});
+  }
+}
+// Ввод текста сохраняется с небольшой задержкой, а не на каждую букву
+function saveSoon(S){ pendingSave = S; clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 400); }
+function flushSave(){ if(pendingSave) saveSession(pendingSave); }
+addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState==='hidden') flushSave(); });
+
+function clearSaved(mode, block){
+  const all = readAll(KEYS[mode]);
+  delete all[block];
+  store.set(KEYS[mode], all);
+}
+function progressOf(S){
+  if(!S) return null;
+  const n = S.order.length;
+  if(S.pos >= n) return {done:true};
+  if(S.pos===0 && S.furthest===0 && !kindOf(S).touched(S.state[0])) return null;
+  return {pos:S.pos+1, n};
+}
+function totals(S){
+  let c=0, w=0; const wrong=[];
+  for(let i=0;i<S.furthest;i++){
+    const st = S.state[i];
+    if(!st.checked) continue;
+    if(st.correct) c++; else { w++; wrong.push(S.order[i]); }
+  }
+  return {c, w, wrong};
+}
+
+/* =========================================================
+   СПИСОК ОШИБОК: препараты, на которых ошиблись в последний раз.
+   Неверный ответ в любом режиме добавляет препарат, верный — убирает.
+   Хранится как {индекс препарата: {n: сколько раз ошиблись, t: когда в последний раз}}.
+   ========================================================= */
+let mistakes = {};
+const mistakeCount = () => Object.keys(mistakes).length;
+function saveMistakes(){ store.set(KEYS.mistakes, mistakes); }
+function mistakeItems(){
+  return Object.keys(mistakes).map(Number)
+    .sort((a,b) => (mistakes[b].t - mistakes[a].t) || DB[a][0].localeCompare(DB[b][0], 'ru'))
+    .map(i => DB[i]);
+}
+function dropMistakeSessions(){ for(const m of MISTAKE_MODES){ store.del(KEYS[m]); delete sess[m]; } }
+function noteAnswer(d, ok){
+  const i = DB_INDEX.get(d);
+  if(ok){
+    if(!(i in mistakes)) return;
+    delete mistakes[i];
+    // список опустел — незаконченный круг повторения больше не нужен
+    if(!mistakeCount() && !SESSION[mode]?.dynamic) dropMistakeSessions();
+  } else {
+    mistakes[i] = {n: (mistakes[i]?.n || 0) + 1, t: Date.now()};
+  }
+  saveMistakes();
+}
+function initMistakes(){
+  const v = store.get(KEYS.mistakes);
+  if(v && typeof v==='object' && !Array.isArray(v)){
+    for(const [k, m] of Object.entries(v)){
+      const i = Number(k);
+      if(Number.isInteger(i) && i>=0 && i<DB.length){
+        mistakes[i] = {n: Number.isInteger(m?.n) && m.n>0 ? m.n : 1, t: Number.isFinite(m?.t) ? m.t : 0};
+      }
+    }
+    return;
+  }
+  // Первый запуск со списком ошибок: переносим ошибки из уже сохранённого прогресса
+  const found = [sess.quiz, sess.write];
+  for(const m of ['study', 'writeBlock']) BLOCKS.forEach((b,i) => { const S = loadSession(m, i); if(S) found.push(S); });
+  for(const S of found) S.state.forEach((st,i) => {
+    if(st.checked && !st.correct){
+      const k = DB_INDEX.get(S.order[i]);
+      mistakes[k] = {n: (mistakes[k]?.n || 0) + 1, t: 0};
+    }
+  });
+  saveMistakes();
+}
+
+/* ========================= Состояние ========================= */
+const sess = {quiz: loadSession('quiz') || newSession('quiz'), write: loadSession('write') || newSession('write')};
+initMistakes();
+let blockSess = null;                                  // открытый блок «Теста» или «Впиши сам»
+let semSess = null;                                     // открытый зачёт по семестру (Зимний / Летний)
+const lastBlock = {study:0, writeBlock:0, groupCards:0};
+const cards = {block:0, pos:0};
+let mode = 'menu';
+let checkedAt = 0;                                     // защита от двойного нажатия «Проверить» → «Далее»
+let enterDir = 0;                                      // направление въезда новой карточки после свайпа
+
+function cur(){
+  const cfg = SESSION[mode];
+  if(!cfg) return null;
+  if(cfg.sem) return semSess;
+  return (cfg.block ? blockSess : sess[mode]) || null;
+}
+function cardsPos(i){
+  const p = readAll(KEYS.groupCards)[i];
+  return Number.isInteger(p) && p>=0 && p<BLOCKS[i].items.length ? p : 0;
+}
+function saveCards(){
+  const all = readAll(KEYS.groupCards);
+  all[cards.block] = cards.pos;
+  store.set(KEYS.groupCards, all);
+}
+function saveView(){
+  store.set(KEYS.view, {mode, semIdx, cardsBack, studyBlockIdx:lastBlock.study, wbBlockIdx:lastBlock.writeBlock, groupIdx:lastBlock.groupCards});
+}
+function restoreView(){
+  const v = objOf(store.get(KEYS.view));
+  const okIdx = i => Number.isInteger(i) && i>=0 && i<BLOCKS.length;
+  if(okIdx(v.studyBlockIdx)) lastBlock.study = v.studyBlockIdx;
+  if(okIdx(v.wbBlockIdx)) lastBlock.writeBlock = v.wbBlockIdx;
+  if(okIdx(v.groupIdx)) lastBlock.groupCards = v.groupIdx;
+  if(Number.isInteger(v.semIdx) && v.semIdx>=0 && v.semIdx<SEMESTERS.length) semIdx = v.semIdx;
+  if(v.cardsBack==='semester') cardsBack = 'semester';
+  let m = v.mode;
+  // Первый запуск после перехода на единые блоки: прогресс старых блоков удаляется,
+  // а вместо старого блока открывается список новых
+  let migrated = false;
+  for(const k of OLD_BLOCK_KEYS) if(store.has(k)){ store.del(k); migrated = true; }
+  if(migrated && LISTS[PARENT[m]]) m = PARENT[m];
+  if(m==='semQuiz' || m==='semWrite'){ const S = loadSession(m); if(S){ semSess = S; mode = m; } }
+  else if(m==='quiz' || m==='write' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || LISTS[m]) mode = m;
+  else if(m==='groupCards' || SESSION[m]?.block) openBlock(m, lastBlock[m], true);
+  else if(SESSION[m]?.dynamic) openMistakes(m, true);
+}
+
+/* ========================= Действия ========================= */
+function go(m){ flushSave(); mode = m; render(); }
+
+function openBlock(target, i, silent){
+  lastBlock[target] = i;
+  if(target==='groupCards'){ cards.block = i; cards.pos = cardsPos(i); }
+  else blockSess = loadSession(target, i) || newSession(target, i);
+  mode = target;
+  if(!silent) render();
+}
+// Зачёт по семестру: отдельная сессия и отдельный прогресс для каждого семестра
+function startSemTest(i){
+  flushSave();
+  semIdx = i;
+  semSess = loadSession('semQuiz') || newSession('semQuiz');
+  mode = 'semQuiz';
+  render();
+}
+function openMistakes(m, silent){
+  let S = sess[m] || loadSession(m);
+  // законченный круг начинается заново — по актуальному списку ошибок
+  if(!S || S.pos >= S.order.length) S = mistakeCount() ? newSession(m) : null;
+  if(S){ sess[m] = S; mode = m; } else mode = 'mistakes';
+  if(!silent) render();
+}
+function askReset(m, i){
+  const cfg = SESSION[m] || {};
+  const text = m==='groupCards' ? `Карточки блока ${i+1} начнутся с первой.`
+    : cfg.block ? `Ответы в блоке ${i+1} удалятся, и он начнётся заново. Список ошибок не изменится.`
+    : cfg.dynamic ? 'Повторение начнётся заново — по текущему списку ошибок.'
+    : `Ответы в режиме «${cfg.title}» удалятся, и начнётся новый круг. Список ошибок не изменится.`;
+  askConfirm('Сбросить прогресс?', text, 'Сбросить', () => {
+    if(m==='groupCards' || cfg.block) clearSaved(m, i);
+    else if(cfg.dynamic){ store.del(KEYS[m]); delete sess[m]; }
+    else { sess[m] = newSession(m); saveSession(sess[m]); }
+    render();
+  });
+}
+
+/* ===== Сброс прогресса по разделам: значок на строке главного экрана, виден только если в разделе есть прогресс ===== */
+function savedHasProgress(m, sv){
+  sv = objOf(sv);
+  const n = Array.isArray(sv.order) ? sv.order.length : 0;
+  if(!n) return false;
+  if((sv.pos ?? sv.idx ?? 0) > 0 || (sv.furthest ?? 0) > 0) return true;
+  try{
+    const K = KIND[SESSION[m].kind], d = DB[sv.order[0]];
+    return !!(d && Array.isArray(sv.state) && K.touched(K.restore(sv.state[0], d)));   // ответ на первом вопросе без «Далее»
+  }catch(e){ return false; }
+}
+const modesHaveProgress = modes => modes.some(m => {
+  const raw = SESSION[m].block ? Object.values(readAll(KEYS[m])) : [store.get(KEYS[m])];
+  return raw.some(sv => savedHasProgress(m, sv));
+});
+const cardsHaveProgress = () => Object.values(readAll(KEYS.groupCards)).some(p => Number.isInteger(p) && p>0);
+const semHasProgress = i => ['semQuiz','semWrite'].some(m => { const sv = objOf(store.get(KEYS[m])); return sv.sem===i && savedHasProgress(m, sv); });
+const EXAM_MODES = ['quiz','write','study','writeBlock'];
+// Разделы главного экрана: есть ли прогресс, подпись и что именно удалять
+const RESET_SECTIONS = {
+  sem0:    {has: () => semHasProgress(0), title:'I семестр', text:'Ответы в зачёте по I семестру удалятся, и он начнётся заново.',
+            run(){ for(const m of ['semQuiz','semWrite']) store.del(KEYS[m]); semSess = null; }},
+  sem1:    {has: () => semHasProgress(1), title:'II семестр', text:'Ответы в зачёте по II семестру удалятся, и он начнётся заново.',
+            run(){ for(const m of ['semQuiz','semWrite']) store.del(KEYS[m]); semSess = null; }},
+  exam:    {has: () => modesHaveProgress(EXAM_MODES), title:'Экзамен', text:'Ответы в тесте и в «Впиши сам» удалятся — и по всем рецептам, и по блокам. Список ошибок сохранится.',
+            run(){ for(const m of ['study','writeBlock']) store.del(KEYS[m]); blockSess = null; sess.quiz = newSession('quiz'); sess.write = newSession('write'); store.del(KEYS.quiz); store.del(KEYS.write); }},
+  topics:  {has: cardsHaveProgress, title:'По темам', text:'Карточки всех тем начнутся с первой.',
+            run(){ store.del(KEYS.groupCards); }},
+  mistakes:{has: () => modesHaveProgress(MISTAKE_MODES), title:'Работа над ошибками', text:'Повторение начнётся заново — по текущему списку ошибок. Сам список сохранится.',
+            run(){ for(const m of MISTAKE_MODES){ store.del(KEYS[m]); delete sess[m]; } }}
+};
+function askResetSection(id){
+  const R = RESET_SECTIONS[id];
+  if(!R) return;
+  askConfirm(`Сбросить «${R.title}»?`, R.text, 'Сбросить', () => { R.run(); render(); });
+}
+// Значок сброса на углу строки; пустая строка, если сбрасывать нечего
+const resetBadge = id => RESET_SECTIONS[id].has()
+  ? `<button class="rx-badge" type="button" data-act="resetSection" data-sec="${id}" title="Сбросить прогресс" aria-label="Сбросить прогресс: ${RESET_SECTIONS[id].title}">${ICON.reset}</button>` : '';
+const withReset = (id, html) => `<div class="rx-wrap">${html}${resetBadge(id)}</div>`;
+function askClearMistakes(){
+  askConfirm('Очистить список ошибок?', 'Все препараты уйдут из списка. Прогресс в тестах и блоках не изменится.', 'Очистить', () => {
+    mistakes = {};
+    saveMistakes();
+    dropMistakeSessions();
+    render();
+  });
+}
+function ensureOpts(S){
+  const st = S.state[S.pos];
+  if(st.opts) return;
+  const d = S.order[S.pos];
+  st.opts = {dose: optsFor('dose', d), route: optsFor('route', d), group: optsFor('group', d)};
+  saveSession(S);
+}
+function selectOpt(cat, i){
+  const S = cur();
+  if(!S || S.pos>=S.order.length) return;
+  const st = S.state[S.pos];
+  if(st.checked || !st.opts || !(cat in st.sel) || st.opts[cat][i]===undefined) return;
+  st.sel[cat] = st.opts[cat][i];
+  saveSession(S);
+  // перерисовываем только выбранный ряд и кнопку, а не всю карточку
+  view.querySelectorAll(`.opt[data-cat="${cat}"]`).forEach((b,j) => {
+    b.classList.toggle('is-selected', j===i);
+    b.setAttribute('aria-pressed', j===i);
+  });
+  syncPrimary(S);
+}
+function syncPrimary(S){
+  const btn = document.getElementById('primary');
+  if(btn && btn.dataset.act==='check') btn.disabled = !kindOf(S).ready(S.state[S.pos]);
+}
+function check(){
+  const S = cur();
+  if(!S || S.pos>=S.order.length) return;
+  const st = S.state[S.pos];
+  if(st.checked || !kindOf(S).ready(st)) return;
+  const [, dose, route, group] = S.order[S.pos];
+  if(SESSION[S.mode].kind==='choice'){
+    st.correct = st.sel.dose===dose && st.sel.route===route && st.sel.group===group;
+  } else {
+    st.doseOk = isCloseMatch(st.typed.dose, dose, true);
+    st.groupOk = isCloseMatch(st.typed.group, group, false);
+    st.correct = st.doseOk && st.groupOk;
+  }
+  st.checked = true;
+  if(S.pos+1 > S.furthest) S.furthest = S.pos+1;
+  checkedAt = Date.now();
+  saveSession(S);
+  noteAnswer(S.order[S.pos], st.correct);
+  render();
+  const card = view.querySelector('.card');
+  if(card) card.classList.add('just-checked');
+}
+function next(fromSwipe){
+  const S = cur();
+  if(!S || S.pos>=S.order.length || !S.state[S.pos].checked) return;
+  if(fromSwipe!==true && Date.now()-checkedAt < 350) return;
+  S.pos++;
+  saveSession(S);
+  render();
+}
+// «Далее» — карточка смахивается влево так же, как при свайпе, и въезжает следующая
+function nextAnimated(){
+  const S = cur();
+  if(!S || S.pos>=S.order.length || !S.state[S.pos].checked) return;
+  if(Date.now()-checkedAt < 350) return;
+  const el = view.querySelector('.card');
+  if(!el || el.dataset.leaving || matchMedia('(prefers-reduced-motion: reduce)').matches){ next(); return; }
+  el.dataset.leaving = '1';
+  el.style.pointerEvents = 'none';
+  el.style.transition = 'transform .2s ease, opacity .2s ease';
+  el.style.transform = 'translateX(-120%) rotate(-10deg)';
+  el.style.opacity = '0';
+  setTimeout(() => { enterDir = 1; next(true); enterDir = 0; }, 160);
+}
+function prev(){
+  const S = cur();
+  if(!S || S.pos<=0) return;
+  S.pos--;
+  saveSession(S);
+  render();
+}
+function restart(){
+  const S = cur();
+  if(!S) return;
+  const cfg = SESSION[S.mode];
+  if(cfg.dynamic){
+    if(!mistakeCount()){ dropMistakeSessions(); go('mistakes'); return; }
+    sess[S.mode] = newSession(S.mode);
+    saveSession(sess[S.mode]);
+  } else if(cfg.block){
+    blockSess = newSession(S.mode, S.block);
+    clearSaved(S.mode, S.block);
+  } else {
+    sess[S.mode] = newSession(S.mode);
+    saveSession(sess[S.mode]);
+  }
+  render();
+}
+function cardMove(d){
+  const n = BLOCKS[cards.block].items.length, p = cards.pos+d;
+  if(p<0 || p>=n) return;
+  cards.pos = p;
+  saveCards();
+  render();
+}
+function cardRestart(){
+  cards.pos = 0;
+  clearSaved('groupCards', cards.block);
+  render();
+}
+
+/* ========================= Отрисовка ========================= */
+const view = document.getElementById('view');
+const $id = id => document.getElementById(id);
+
+const svgIcon = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICON = {
+  choice: svgIcon('<path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.4"/><path d="M3.3 12.2l1.4 1.4 2.6-2.8"/><circle cx="5" cy="18" r="1.4"/>'),
+  pen:    svgIcon('<path d="M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 7.5l3 3"/>'),
+  cards:  svgIcon('<rect x="3.5" y="7.5" width="12.5" height="13" rx="2.5"/><path d="M8 4.5h9.5A2.5 2.5 0 0 1 20 7v10"/>'),
+  target: svgIcon('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>'),
+  search: svgIcon('<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>'),
+  chevron: svgIcon('<path d="M6 9.5l6 6 6-6"/>'),
+  reset:  svgIcon('<path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4.5V9h4.5"/>'),
+  ok:     svgIcon('<circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.7 2.7 5.3-5.6"/>'),
+  no:     svgIcon('<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>'),
+};
+const FIELDS = {dose:'Концентрация / форма', route:'Способ введения', group:'Фармакологическая группа'};
+
+// t: {back, title, count, score, progress} — чего нет, то скрыто
+function setTop(t){
+  document.querySelector('.topbar').classList.toggle('is-session', !!t.compact);
+  $id('backBtn').hidden = !t.back;
+  if(t.back) $id('backLabel').textContent = t.back;
+  $id('topTitle').innerHTML = t.title ? `<span>${esc(t.title)}</span>` + (t.count ? `<b>${esc(t.count)}</b>` : '') : '';
+  $id('topSub').hidden = t.progress==null;
+  if(t.progress!=null) $id('progressFill').style.width = Math.round(t.progress*100) + '%';
+  const score = $id('score');
+  score.hidden = !t.score;
+  if(t.score){
+    $id('scoreOk').textContent = '✓ ' + t.score.c;
+    $id('scoreNo').textContent = '✕ ' + t.score.w;
+    score.setAttribute('aria-label', `Верно: ${t.score.c}, ошибок: ${t.score.w}`);
+  }
+}
+function chip(p){
+  if(!p) return '';
+  return p.done ? '<span class="chip is-good">✓ Пройдено</span>' : `<span class="chip">${p.what || 'Вопрос'} ${p.pos} из ${p.n}</span>`;
+}
+const count = n => `${n} ${plural(n,'препарат','препарата','препаратов')}`;
+// Плитка режима или блока; reset — подпись кнопки сброса, если прогресс есть
+function tile(o){
+  const attrs = `data-mode="${o.m}"${o.i!=null ? ` data-i="${o.i}"` : ''}`;
+  return `<div class="tile-wrap">
+    <button class="tile${o.reset ? ' has-reset' : ''}" type="button" data-act="${o.act || 'go'}" ${attrs}>
+      <span class="tile-icon">${o.icon}</span>
+      <span class="tile-body"><span class="tile-title">${o.title}</span>${o.desc ? `<span class="tile-desc">${o.desc}</span>` : ''}${o.meta ? `<span class="tile-meta">${o.meta}</span>` : ''}</span>
+    </button>${o.reset ? `
+    <button class="icon-btn tile-reset" type="button" data-act="reset" ${attrs} title="Сбросить прогресс" aria-label="${o.reset}">${ICON.reset}</button>` : ''}
+  </div>`;
+}
+// Строка препарата в списке ошибок и справочнике
+function drugRow(d, note){
+  return `<button class="row" type="button" data-act="drug" data-d="${DB_INDEX.get(d)}">
+    <span class="row-main"><span class="row-title">${esc(d[0])}</span><span class="row-sub">${esc(d[3])}</span></span>${note ? `<span class="row-note">${note}</span>` : ''}
+  </button>`;
+}
+
+/* =========================================================
+   ВЕРХНИЕ ЗАГОЛОВКИ-ВКЛАДКИ: «Все экз. рецепты», «По семестрам», «По темам».
+   Они же стоят на каждом из этих трёх экранов, поэтому переключение
+   между разделами всегда в один клик.
+   ========================================================= */
+const TABS = [
+  {m:'allRx',     title:'Все экз. рецепты'},
+  {m:'semesters', title:'По семестрам'},
+  {m:'topics',    title:'По темам'}
+];
+const tabsHtml = active => `<nav class="tabs" aria-label="Разделы">${
+  TABS.map(t => `<button class="tab${t.m===active ? ' is-active' : ''}" type="button" data-act="tab" data-mode="${t.m}"${t.m===active ? ' aria-current="page"' : ''}>${t.title}</button>`).join('')
+}</nav>`;
+// Экран карточек открывается из разных разделов — «назад» ведёт туда, откуда пришли
+let semIdx = 0;
+// Раскрыт ли единый пункт «По темам» на главном экране
+let topicsOpen = false;
+
+// Все экзаменационные рецепты списком (с поиском) — первая вкладка
+function viewAllRx(){
+  setTop({back:'Меню', title:'Все экз. рецепты'});
+  return `${tabsHtml('allRx')}
+    <header class="page-head"><h1>Все экз. рецепты</h1><p>${count(DB.length)} по алфавиту. Нажмите на препарат, чтобы открыть карточку с дозой, путём введения и группой.</p></header>
+    <div class="search">${ICON.search}<input class="input" id="refQuery" type="search" placeholder="Название, латынь или группа" aria-label="Поиск препарата"
+      autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></div>
+    <div id="refList">${refRows('')}</div>`;
+}
+
+// Список семестров
+function viewSemesters(){
+  setTop({back:'Меню', title:'По семестрам'});
+  const rows = SEMESTERS.map((sem,i) => {
+    const n = sem.blocks.reduce((k,b) => k + BLOCKS[b].items.length, 0);
+    return tile({act:'openSemester', i, icon:String(i+1), title:esc(sem.title), desc:esc(sem.desc),
+      meta:`<span>${sem.blocks.length} ${plural(sem.blocks.length,'тема','темы','тем')}</span><span>${count(n)}</span>`});
+  }).join('');
+  return `${tabsHtml('semesters')}
+    <header class="page-head"><h1>По семестрам</h1><p>Препараты экзаменационных рецептов, разложенные по семестрам и темам.</p></header>
+    <div class="list">${rows}</div>`;
+}
+
+// Темы выбранного семестра
+function viewSemester(){
+  const sem = SEMESTERS[semIdx] || SEMESTERS[0];
+  setTop({back:'Семестры', title:sem.title});
+  const rows = sem.blocks.map(bi => {
+    const b = BLOCKS[bi];
+    const pos = cardsPos(bi);
+    const p = pos>0 ? {pos:pos+1, n:b.items.length, what:'Карточка'} : null;
+    return tile({act:'openSemBlock', m:'groupCards', i:bi, icon:String(b.num), title:esc(b.title), desc:esc(b.desc),
+      meta:`<span>${count(b.items.length)}</span>${chip(p)}`,
+      reset: p && `Сбросить прогресс темы «${b.title}»`});
+  }).join('');
+  return `${tabsHtml('semesters')}
+    <header class="page-head"><h1>${esc(sem.title)}</h1><p>${esc(sem.desc)}</p></header>
+    <div class="list">${rows}</div>`;
+}
+
+// Все темы подряд
+function viewTopics(){
+  setTop({back:'Меню', title:'По темам'});
+  const rows = BLOCKS.map((b,i) => {
+    const pos = cardsPos(i);
+    const p = pos>0 ? {pos:pos+1, n:b.items.length, what:'Карточка'} : null;
+    return tile({act:'open', m:'groupCards', i, icon:String(b.num), title:esc(b.title), desc:esc(b.desc),
+      meta:`<span>${count(b.items.length)}</span>${chip(p)}`, reset: p && `Сбросить прогресс темы «${b.title}»`});
+  }).join('');
+  return `${tabsHtml('topics')}
+    <header class="page-head"><h1>По темам</h1><p>Все ${BLOCKS.length} ${plural(BLOCKS.length,'тема','темы','тем')} курса фармакологии.</p></header>
+    <div class="list">${rows}</div>`;
+}
+
+// «Как писать рецепты» — краткая схема оформления (учебная)
+function openHowTo(){
+  openSheet(`<h2 class="sheet-title" id="sheetTitle">Как писать рецепты</h2>
+    <div class="sheet-text">
+      <p><b>1. Бланк.</b> ФИО и возраст пациента, дата выписки.</p>
+      <p><b>2. Rp. (Recipe — «возьми»).</b> Препарат в латинском написании, форма и дозировка, число доз в конце: <i>Rp.: Tab. Analgini 0,5 N 10</i>.</p>
+      <p><b>3. D.S. (Da, Signa — «дай, обозначь»).</b> Способ применения для пациента: <i>D.S. По 1 таблетке 3 раза в день</i>.</p>
+      <p><b>4. Подпись и печать врача</b>, дата.</p>
+      <p>Схема учебная: сверяйте оформление с действующими требованиями к рецептурным бланкам.</p>
+    </div>` + CLOSE_BTN);
+}
+function viewMenu(){
+  setTop({});
+  const row = (attrs, no, title, icon, extra='') => `<button class="rx-row" type="button" ${attrs}>
+      ${icon ? '' : `<span class="rx-no">${no}</span>`}<span class="rx-lbl">${title}</span>${extra}${icon ? `<span class="rx-ico rx-i-${icon}" aria-hidden="true"></span><span class="rx-go" aria-hidden="true">${ICON.chevron}</span>` : ''}</button>`;
+
+  // «Зачёты»: семестровые тесты и экзамен
+  const exams = [
+    withReset('sem0', row('data-act="openSemTest" data-i="0"', '1', 'I семестр', 'cad')),
+    withReset('sem1', row('data-act="openSemTest" data-i="1"', '2', 'II семестр', 'cad')),
+    withReset('exam', row('data-act="go" data-mode="exam"', '3', 'Экзамен', 'cad'))
+  ].join('');
+
+  // «По темам»: раскрывающийся пункт с пятью темами курса
+  const subs = BLOCKS.map((b,i) => {
+    const pos = cardsPos(i);
+    const pg = pos>0 ? `<span class="rx-pg">${pos+1}/${b.items.length}</span>` : '';
+    const reset = pos>0 ? `<button class="rx-reset" type="button" data-act="reset" data-mode="groupCards" data-i="${i}" title="Сбросить прогресс" aria-label="Сбросить прогресс темы «${esc(b.title)}»">${ICON.reset}</button>` : '';
+    return `<div class="rx-subitem">${row(`data-act="openTopic" data-mode="groupCards" data-i="${i}"`, b.num, esc(b.title), '', pg)}${reset}</div>`;
+  }).join('');
+
+  return `
+    <header class="rx-head">
+      <div class="rx-brand"><h1 class="rx-title"><span class="rx-r">Р</span>ецепты</h1></div>
+    </header>
+    <h2 class="rx-sec">Зачёты</h2>
+    <div class="rx-rows">${exams}</div>
+    <h2 class="rx-sec" style="margin-top:42px">Другое</h2>
+    <div class="rx-rows rx-acc">
+      <div class="rx-wrap">
+        <button class="rx-row" type="button" id="topicsToggle" data-act="topicsToggle" aria-expanded="${topicsOpen ? 'true' : 'false'}" aria-controls="topicsBody">
+          <span class="rx-lbl">По темам</span><span class="rx-ico rx-i-book" aria-hidden="true"></span><span class="rx-chev rx-go" aria-hidden="true">${ICON.chevron}</span>
+        </button>
+        ${resetBadge('topics')}
+        <div class="rx-sub" id="topicsBody"${topicsOpen ? '' : ' hidden'} style="margin-top:12px">${subs}</div>
+      </div>
+      ${withReset('mistakes', row('data-act="go" data-mode="mistakes"', '?', 'Работа над ошибками', 'scis'))}
+      ${row('data-act="go" data-mode="reference"', '?', 'Справочник', 'search')}
+      ${row('data-act="howWrite"', '?', 'Как писать рецепты', 'clip')}
+    </div>
+    ${footerHtml()}`;
+}
+// Подвал главного экрана: © · Обратная связь · Официальный сайт
+// Заполните нужное — пустое не показывается; если пусто всё, подвала нет
+const COPYRIGHT_NAME = '';   // например: 'Иванов И. И.' → «© 2026 Иванов И. И.»
+const FEEDBACK_URL = '';     // ссылка на форму/чат или mailto:адрес → кнопка «Обратная связь»
+const SITE_URL = '';         // адрес сайта → кнопка «Официальный сайт»
+function footerHtml(){
+  const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  const parts = [];
+  if(COPYRIGHT_NAME) parts.push(`<span>© ${new Date().getFullYear()} ${esc(COPYRIGHT_NAME)}</span>`);
+  if(FEEDBACK_URL) parts.push(link(FEEDBACK_URL, 'Обратная связь'));
+  if(SITE_URL) parts.push(link(SITE_URL, 'Официальный сайт'));
+  return parts.length ? `<footer class="rx-foot">${parts.join('<span class="rx-dot" aria-hidden="true">·</span>')}</footer>` : '';
+}
+// «Экзамен»: сначала формат — тест или «Впиши сам»
+function viewExam(){
+  setTop({back:'Меню', title:'Экзамен'});
+  return `<header class="page-head"><h1>Экзамен</h1><p>Выберите формат подготовки.</p></header>
+    <div class="list">${
+      tile({m:'examQuiz',  icon:ICON.choice, title:'Тест',       desc:'Выбираете дозу, путь введения и группу из трёх вариантов.'})}${
+      tile({m:'examWrite', icon:ICON.pen,    title:'Впиши сам',  desc:'Видно только название — дозу, путь и группу вписываете сами.'})}
+    </div>`;
+}
+// Объём: все рецепты подряд или по частям (темам)
+function viewExamScope(){
+  const kind = mode==='examQuiz' ? 'quiz' : 'write', isQuiz = kind==='quiz';
+  const title = isQuiz ? 'Тест' : 'Впиши сам';
+  setTop({back:'Экзамен', title});
+  const S = sess[kind], p = progressOf(S);
+  return `<header class="page-head"><h1>${title}</h1><p>Сколько рецептов проходить за раз?</p></header>
+    <div class="list">${
+      tile({m:kind, icon:ICON.cards, title:`Все ${DB.length} ${plural(DB.length,'рецепт','рецепта','рецептов')}`, desc:'Весь экзамен одним кругом, в случайном порядке.',
+        meta:chip(p), reset: p && 'Сбросить прогресс'})}${
+      tile({m:isQuiz ? 'studyList' : 'writeBlockList', icon:ICON.pen, title:'По частям', desc:'По одному тематическому блоку.',
+        meta:`<span>${BLOCKS.length} ${plural(BLOCKS.length,'блок','блока','блоков')}</span>`})}
+    </div>`;
+}
+function viewList(){
+  const L = LISTS[mode];
+  setTop({back:'Экзамен'});
+  const rows = BLOCKS.map((b,i) => {
+    let p = null;
+    if(L.target==='groupCards'){ const pos = cardsPos(i); if(pos>0) p = {pos:pos+1, n:b.items.length, what:'Карточка'}; }
+    else p = progressOf(loadSession(L.target, i));
+    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(b.title), desc:esc(b.desc),
+      meta:`<span>${count(b.items.length)}</span>${chip(p)}`, reset: p && `Сбросить прогресс блока ${b.num}`});
+  }).join('');
+  return `<header class="page-head"><h1>${L.title}</h1><p>${L.desc}</p></header><div class="list">${rows}</div>`;
+}
+
+function viewMistakes(){
+  setTop({back:'Меню'});
+  const items = mistakeItems();
+  const head = '<header class="page-head"><h1>Работа над ошибками</h1><p>Препараты, на которых вы ошиблись в тестах. Верный ответ в любом режиме убирает препарат из списка.</p></header>';
+  if(!items.length){
+    dropMistakeSessions();
+    return head + `<div class="empty">${ICON.target}<p>Ошибок нет. Препараты, на которых вы ошибётесь, появятся здесь.</p></div>`;
+  }
+  const sTile = (m, icon, title, desc) => {
+    const S = sess[m] || loadSession(m);
+    const p = S && S.pos < S.order.length ? progressOf(S) : null;
+    return tile({act:'openMistakes', m, icon, title, desc, meta:chip(p), reset: p && 'Начать повторение заново'});
+  };
+  return head + `
+    <div class="list">
+      ${sTile('mistakesQuiz', ICON.choice, 'Тест', 'Три варианта ответа на дозу, путь введения и группу')}
+      ${sTile('mistakesWrite', ICON.pen, 'Впиши сам', 'Дозу и группу вписываете без подсказок')}
+    </div>
+    <h2 class="section-title">${count(items.length)} в списке</h2>
+    <div class="rows">${items.map(d => {
+      const n = mistakes[DB_INDEX.get(d)].n;
+      return drugRow(d, n>1 ? `${n} ${plural(n,'ошибка','ошибки','ошибок')}` : '');
+    }).join('')}</div>
+    <button class="btn btn-secondary btn-block list-end" type="button" data-act="clearMistakes">Очистить список</button>`;
+}
+
+// Справочник: поиск по названию, латыни, группе и другим названиям
+const REF = DB.map(d => ({d, key: normalizeAnswer([d[0], d[4], d[3], INFO[d[0]]?.s].join(' '))}))
+  .sort((a,b) => a.d[0].localeCompare(b.d[0], 'ru'));
+function refRows(q){
+  const nq = normalizeAnswer(q);
+  const hits = nq ? REF.filter(r => r.key.includes(nq)) : REF;
+  return hits.length
+    ? `<div class="rows">${hits.map(r => drugRow(r.d)).join('')}</div>`
+    : '<p class="empty-text">Ничего не нашлось. Проверьте написание или поищите по группе.</p>';
+}
+function viewReference(){
+  setTop({back:'Меню'});
+  return `<header class="page-head"><h1>Справочник</h1><p>Все ${count(DB.length)} по алфавиту. Нажмите на препарат, чтобы открыть его карточку.</p></header>
+    <div class="search">${ICON.search}<input class="input" id="refQuery" type="search" placeholder="Название, латынь или группа" aria-label="Поиск препарата"
+      autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></div>
+    <div id="refList">${refRows('')}</div>`;
+}
+
+function drugHead(name, latin, withInfo, counter){
+  return `<header class="drug${counter ? ' has-count' : ''}">${counter ? `<span class="drug-count" aria-label="Вопрос ${esc(counter.replace('/',' из '))}">${esc(counter)}</span>` : ''}
+    <div class="drug-row"><h2 class="drug-name">${esc(name)}</h2>${withInfo && INFO[name] ? ' <button class="btn-info" type="button" data-act="info" aria-label="Подробнее о препарате">i</button>' : ''}</div>
+    <div class="drug-latin" lang="la">${esc(latin)}</div>
+  </header>`;
+}
+function facts(rows){
+  return rows.map(([k,v]) => `<div class="fact"><dt>${k}</dt><dd>${esc(v || '—')}</dd></div>`).join('');
+}
+// Сведения о препарате; withAnswers — вместе с дозой и способом введения
+function drugFacts(d, withAnswers){
+  const info = INFO[d[0]] || {};
+  const rows = [['Другие названия', info.s], ['Фармакокинетика', info.k], ['Фармакодинамика', info.d], ['Показание', info.i]];
+  return `<dl class="facts">${facts(withAnswers ? [[FIELDS.dose, d[1]], [FIELDS.route, d[2]], ...rows] : rows)}</dl>`;
+}
+function choiceFields(st, right){
+  return Object.entries(FIELDS).map(([cat, label]) => `
+    <div class="field" role="group" aria-label="${label}">
+      <div class="label">${label}</div>
+      <div class="opts">${st.opts[cat].map((o,i) => {
+        let cls = 'opt';
+        if(st.checked){ if(o===right[cat]) cls += ' is-correct'; else if(o===st.sel[cat]) cls += ' is-wrong'; if(o===st.sel[cat]) cls += ' was-sel'; }
+        else if(o===st.sel[cat]) cls += ' is-selected';
+        return `<button class="${cls}" type="button" data-act="opt" data-cat="${cat}" data-i="${i}" aria-pressed="${o===st.sel[cat]}"${st.checked ? ' disabled' : ''}><span>${esc(o)}</span></button>`;
+      }).join('')}</div>
+    </div>`).join('');
+}
+function writeFields(st, dose, group){
+  const field = (key, ph, ok, right, enter) => `
+    <div class="field">
+      <label class="label" for="f-${key}">${FIELDS[key]}</label>
+      <input class="input${st.checked ? (ok ? ' is-correct' : ' is-wrong') : ''}" id="f-${key}" data-field="${key}" type="text"
+        value="${esc(st.typed[key])}" placeholder="${ph}"${st.checked ? ' disabled' : ''}
+        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${enter}">
+      <div class="hint-slot">${st.checked && !ok ? `<span class="hint">Правильно: ${esc(right)}</span>` : ''}</div>
+    </div>`;
+  return field('dose', 'Например: 0,5 таб.', st.doseOk, dose, 'next') + field('group', 'Например: НПВС', st.groupOk, group, 'done');
+}
+function verdict(st, kind, ready){
+  if(!st.checked){
+    return '<div class="verdict is-idle" aria-hidden="true"></div>';   // пустая рамка: место под результат
+  }
+  const ok = st.correct;
+  const text = ok ? 'Верно!' : kind==='choice' ? 'Неверно — верное отмечено зелёным' : 'Есть неточности — правильный ответ под полем';
+  return `<div class="verdict feedback ${ok ? 'is-good' : 'is-bad'}" role="status">${ok ? ICON.ok : ICON.no}<span>${text}</span></div>`;
+}
+
+function viewSummary(S, cfg, t){
+  const n = S.order.length, nm = mistakeCount();
+  let heading, primary, after = '', note = '';
+  if(cfg.dynamic){
+    heading = nm ? 'Круг повторения пройден' : 'Все ошибки исправлены';
+    primary = nm
+      ? '<button class="btn btn-primary" type="button" data-act="restart">Повторить ещё раз</button>'
+      : '<button class="btn btn-primary" type="button" data-act="up">Готово</button>';
+    if(nm) note = `<p class="summary-note">В списке ошибок ${plural(nm,'остался','осталось','осталось')} ${count(nm)}</p>`;
+  } else {
+    heading = cfg.block ? `Блок ${S.block+1} пройден` : 'Круг завершён';
+    primary = `<button class="btn btn-primary" type="button" data-act="restart">${cfg.block ? 'Пройти заново' : 'Новый круг'}</button>`;
+    if(nm) after = '<button class="btn btn-secondary btn-block after" type="button" data-act="go" data-mode="mistakes">Работа над ошибками</button>';
+  }
+  setTop({back: cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? 'Меню' : 'Экзамен', compact:true, score:t, progress:1});
+  return `<article class="card" data-swipe>
+    <h2 class="summary-title">${heading}</h2>
+    <div class="stats">
+      <div class="stat is-good"><b>${t.c}</b><span>верно</span></div>
+      <div class="stat is-bad"><b>${t.w}</b><span>${plural(t.w,'ошибка','ошибки','ошибок')}</span></div>
+    </div>
+    ${t.wrong.length
+      ? `<div class="label">Ошибки — нажмите, чтобы посмотреть ответ</div><div class="mistakes">${t.wrong.map(d => `<button class="mistake" type="button" data-act="drug" data-d="${DB_INDEX.get(d)}">${esc(d[0])}</button>`).join('')}</div>`
+      : '<p class="perfect">Без единой ошибки!</p>'}
+    ${note}
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" data-act="prev">Назад</button>
+      ${primary}
+    </div>
+    ${after}
+  </article>`;
+}
+
+function viewSession(){
+  const S = cur(), cfg = SESSION[S.mode], n = S.order.length, t = totals(S);
+  if(S.pos >= n) return viewSummary(S, cfg, t);
+  if(cfg.kind==='choice') ensureOpts(S);
+  const backLabel = cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? 'Меню' : 'Экзамен';
+  const title = cfg.block ? `Блок ${S.block+1}` : cfg.sem ? `Зачёт · ${semTitle()}` : cfg.title;
+  setTop({back: backLabel, compact:true, score:t, progress:S.pos/n});
+  const d = S.order[S.pos], [name, dose, route, group, latin] = d;
+  const st = S.state[S.pos];
+  const primary = st.checked
+    ? `<button class="btn btn-primary" id="primary" type="button" data-act="next">${S.pos===n-1 ? 'Завершить' : 'Далее'}</button>`
+    : `<button class="btn btn-primary" id="primary" type="button" data-act="check"${kindOf(S).ready(st) ? '' : ' disabled'}>Проверить</button>`;
+  return `<article class="card" data-swipe>
+    ${drugHead(name, latin, true, `${S.pos+1}/${n}`)}
+    ${cfg.kind==='choice' ? choiceFields(st, rightOf(d)) : writeFields(st, dose, group)}
+    ${verdict(st, cfg.kind, kindOf(S).ready(st))}
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" data-act="prev"${S.pos===0 ? ' disabled' : ''}>Назад</button>
+      ${primary}
+    </div>
+  </article>`;
+}
+
+function viewCards(){
+  const b = BLOCKS[cards.block], n = b.items.length;
+  cards.pos = Math.min(Math.max(cards.pos, 0), n-1);
+  const d = b.items[cards.pos];
+  setTop({back: cardsBack==='semester' ? 'Семестр' : cardsBack==='groupList' ? 'Блоки' : cardsBack==='menu' ? 'Меню' : 'Темы', title: cardsBack==='menu' ? b.title : `Блок ${b.num}`, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
+  return `<article class="card" data-swipe>
+    <div class="card-tag"><span class="chip">${esc(d[3])}</span></div>
+    ${drugHead(d[0], d[4], false)}
+    ${drugFacts(d, true)}
+    <p class="swipe-hint">Смахните карточку, чтобы перейти к соседней</p>
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" data-act="cardPrev"${cards.pos===0 ? ' disabled' : ''}>Назад</button>
+      ${cards.pos===n-1
+        ? '<button class="btn btn-primary" type="button" data-act="cardRestart">Пройти заново</button>'
+        : '<button class="btn btn-primary" type="button" data-act="cardNext">Далее</button>'}
+    </div>
+  </article>`;
+}
+
+
+/* =========================================================
+   РАСТЯЖЕНИЕ ВАРИАНТОВ ОТВЕТОВ
+   Высота вариантов подбирается так, чтобы страница прокручивалась вниз
+   ровно на высоту самой большой шапки препарата (название + латынь + поля вокруг).
+   ========================================================= */
+const headCache = {};
+function tallestHeader(){
+  const card = view.querySelector('.card'), head = card && card.querySelector('.drug');
+  if(!head) return 0;
+  const key = head.offsetWidth + 'x' + innerHeight;
+  if(headCache[key] != null) return headCache[key];
+  const probe = document.createElement('div');
+  probe.className = 'drug has-count';
+  probe.style.cssText = 'position:absolute;left:0;top:0;width:' + head.offsetWidth + 'px;visibility:hidden;pointer-events:none';
+  card.appendChild(probe);
+  let max = 0;
+  for(const d of DB){
+    probe.innerHTML = `<div class="drug-row"><h2 class="drug-name">${esc(d[0])}</h2> <button class="btn-info" type="button">i</button></div><div class="drug-latin">${esc(d[4])}</div>`;
+    max = Math.max(max, probe.offsetHeight);
+  }
+  probe.remove();
+  return headCache[key] = max + (parseFloat(getComputedStyle(head).marginBottom) || 0);
+}
+function fitOpts(){
+  const y0 = scrollY;
+  fitOptsRaw();
+  if(Math.abs(scrollY - y0) > 1) scrollTo({top:y0, behavior:'instant'});
+}
+function fitOptsRaw(){
+  const S = cur();
+  const on = !!S && SESSION[mode] && SESSION[mode].kind==='choice' && S.pos < S.order.length;
+  view.classList.toggle('fit-opts', on);
+  view.style.removeProperty('--opt-h');
+  if(!on || !view.querySelector('.opt')) return;
+  const app = document.querySelector('.app');
+  const target = innerHeight + tallestHeader();
+  const heightAt = h => { view.style.setProperty('--opt-h', h + 'px'); return app.getBoundingClientRect().height; };
+  if(heightAt(0) >= target){ view.style.removeProperty('--opt-h'); return; }
+  let lo = 0, hi = 160;
+  while(hi - lo > 0.05){
+    const mid = (lo + hi) / 2;
+    if(heightAt(mid) <= target) lo = mid; else hi = mid;
+  }
+  view.style.setProperty('--opt-h', lo.toFixed(2) + 'px');
+}
+let fitTimer = 0;
+addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitOpts, 120); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for(const k in headCache) delete headCache[k]; fitOpts(); });
+
+const VIEWS = {menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
+  allRx: viewAllRx, semesters: viewSemesters, semester: viewSemester, topics: viewTopics};
+
+// Плавный подъём к началу страницы (около полсекунды, с замедлением к концу)
+let glideRaf = 0;
+function glideToTop(){
+  cancelAnimationFrame(glideRaf);
+  const from = scrollY;
+  if(from <= 0) return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){ scrollTo({top:0, behavior:'instant'}); return; }
+  const t0 = performance.now(), dur = 520;
+  const stop = () => { cancelAnimationFrame(glideRaf); removeEventListener('touchstart', stop); removeEventListener('wheel', stop); };
+  addEventListener('touchstart', stop, {passive:true, once:true});
+  addEventListener('wheel', stop, {passive:true, once:true});
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    scrollTo({top: from * (1 - e), behavior:'instant'});
+    if(k < 1) glideRaf = requestAnimationFrame(step);
+  };
+  glideRaf = requestAnimationFrame(step);
+}
+let drawnKey = '';
+function draw(){
+  if(!VIEWS[mode] && !LISTS[mode] && !SESSION[mode]) mode = 'menu';
+  if(SESSION[mode] && !cur()) mode = parentOf(mode);   // сессия не найдена — на уровень выше
+  if(SESSION[mode] && SESSION[mode].sem && !cur()){ semSess = newSession(mode); }
+  saveView();
+  closeSheet(true);
+  const keepY = scrollY;                 // положение прокрутки до перерисовки
+  view.innerHTML = (VIEWS[mode] || (LISTS[mode] ? viewList : viewSession))();
+  document.body.classList.toggle('rx-home', mode==='menu');
+  fitOpts();
+  // новый экран или другой препарат — показываем его с начала, а не с места прокрутки прошлого
+  const S = cur();
+  const key = [mode, S ? S.block : cards.block, S ? S.pos : cards.pos].join('|');
+  if(key!==drawnKey){
+    const sameScreen = drawnKey.split('|').slice(0,2).join('|') === key.split('|').slice(0,2).join('|');
+    drawnKey = key;
+    if(sameScreen && keepY > 0){
+      // следующий вопрос того же экрана: остаёмся на месте и плавно поднимаемся вверх
+      if(Math.abs(scrollY - keepY) > 1) scrollTo({top:keepY, behavior:'instant'});
+      glideToTop();
+    } else if(scrollY > 0) scrollTo({top:0, behavior:'instant'});   // другой экран — сразу с начала
+  }
+  else if(Math.abs(scrollY - keepY) > 1) scrollTo({top:keepY, behavior:'instant'});   // тот же вопрос (например, после «Проверить») — экран не двигаем
+  enterScreen();
+  if(enterDir){
+    const el = view.querySelector('.card');
+    if(el && el.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      el.animate([{transform:`translateX(${enterDir*48}px)`, opacity:0}, {transform:'none', opacity:1}], {duration:220, easing:'ease-out'});
+    }
+    enterDir = 0;
+  }
+}
+function render(){ draw(); syncHistory(); }
+// Переход между экранами: старый уходит в сторону, новый въезжает — направление зависит от глубины
+const canAnimate = () => !!view.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+let shownMode = null, navBusy = false;
+function enterScreen(){
+  const from = shownMode;
+  shownMode = mode;
+  if(from===null || from===mode || !canAnimate()) return;
+  const dir = depthOf(mode) >= depthOf(from) ? 1 : -1;
+  view.animate([{transform:`translateX(${dir*34}px)`, opacity:0}, {transform:'none', opacity:1}], {duration:230, easing:'cubic-bezier(.2,.8,.25,1)'});
+}
+const NAV_ACTS = new Set(['up','go','tab','openSemester','openSemTest','openSemBlock','open','openTopic','openMistakes']);
+
+/* ===================== Нижнее окно: сведения и подтверждения ===================== */
+const sheetRoot = $id('sheetRoot');
+let sheetOpener = null, onConfirm = null;
+function openSheet(inner){
+  onConfirm = null;
+  sheetOpener = document.activeElement;
+  sheetRoot.innerHTML = `<div class="overlay" data-act="overlay">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1"><div class="sheet-handle"></div>${inner}</div>
+  </div>`;
+  document.body.classList.add('is-locked');
+  sheetRoot.querySelector('.sheet').focus({preventScroll:true});
+}
+function closeSheet(silent){
+  if(!sheetRoot.childElementCount) return false;
+  sheetRoot.innerHTML = '';
+  onConfirm = null;
+  document.body.classList.remove('is-locked');
+  if(!silent && sheetOpener && sheetOpener.isConnected) sheetOpener.focus({preventScroll:true});
+  sheetOpener = null;
+  return true;
+}
+const CLOSE_BTN = '<button class="btn btn-secondary btn-block" type="button" data-act="close">Закрыть</button>';
+const sheetHead = d => `<header class="drug"><h2 class="drug-name" id="sheetTitle">${esc(d[0])}</h2><div class="drug-latin" lang="la">${esc(d[4])}</div></header>`;
+// Подсказка «i» во время вопроса: только сведения о препарате, без ответов
+function openInfo(){
+  const S = cur();
+  if(!S || S.pos>=S.order.length || !INFO[S.order[S.pos][0]]) return;
+  const d = S.order[S.pos];
+  openSheet(sheetHead(d) + drugFacts(d, false) + CLOSE_BTN);
+}
+// Полная карточка препарата — из итогов, списка ошибок и справочника
+function openDrug(d){
+  if(!d) return;
+  openSheet(`<div class="card-tag"><span class="chip">${esc(d[3])}</span></div>` + sheetHead(d) + drugFacts(d, true) + CLOSE_BTN);
+}
+function askConfirm(title, text, ok, fn){
+  openSheet(`<h2 class="sheet-title" id="sheetTitle">${title}</h2><p class="sheet-text">${text}</p>
+    <div class="actions actions-even">
+      <button class="btn btn-secondary" type="button" data-act="close">Отмена</button>
+      <button class="btn btn-danger" type="button" data-act="confirm">${ok}</button>
+    </div>`);
+  onConfirm = fn;
+}
+
+/* ========================= События ========================= */
+const ACTIONS = {
+  up: () => go(parentOf(mode)),
+  go: el => go(el.dataset.mode),
+  tab: el => go(el.dataset.mode),
+  openSemester: el => { semIdx = +el.dataset.i || 0; cardsBack = 'semester'; go('semester'); },
+  openSemTest: el => { semIdx = +el.dataset.i || 0; cardsBack = 'semester'; startSemTest(semIdx); },
+  openSemBlock: el => { cardsBack = 'semester'; openBlock('groupCards', +el.dataset.i); },
+  open: el => { if(el.dataset.mode==='groupCards') cardsBack = mode; openBlock(el.dataset.mode, +el.dataset.i); },
+  openTopic: el => { cardsBack = 'menu'; openBlock('groupCards', +el.dataset.i); },
+  openMistakes: el => openMistakes(el.dataset.mode),
+  reset: el => askReset(el.dataset.mode, el.dataset.i==null ? null : +el.dataset.i),
+  clearMistakes: () => askClearMistakes(),
+  confirm: () => { const fn = onConfirm; closeSheet(); if(fn) fn(); },
+  drug: el => openDrug(DB[+el.dataset.d]),
+  opt: el => selectOpt(el.dataset.cat, +el.dataset.i),
+  check: () => check(),
+  next: () => nextAnimated(),
+  prev: () => prev(),
+  restart: () => restart(),
+  info: () => openInfo(),
+  close: () => closeSheet(),
+  overlay: (el, e) => { if(e.target===el) closeSheet(); },
+  cardNext: () => cardMove(1),
+  cardPrev: () => cardMove(-1),
+  cardRestart: () => cardRestart(),
+  howWrite: () => openHowTo(),
+  resetSection: el => askResetSection(el.dataset.sec),
+  topicsToggle: el => {
+    topicsOpen = !topicsOpen;
+    el.setAttribute('aria-expanded', topicsOpen ? 'true' : 'false');
+    const body = $id('topicsBody');
+    if(body) body.hidden = !topicsOpen;
+  }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if(!el || el.disabled) return;
+  const act = el.dataset.act, fn = ACTIONS[act];
+  if(!fn) return;
+  if(NAV_ACTS.has(act) && canAnimate() && !sheetRoot.childElementCount){
+    if(navBusy) return;
+    navBusy = true;
+    const out = view.animate([{transform:'none', opacity:1}, {transform:`translateX(${act==='up' ? 22 : -22}px)`, opacity:0}], {duration:110, easing:'ease-in', fill:'forwards'});
+    out.onfinish = () => { try{ fn(el, e); } finally { out.cancel(); navBusy = false; } };
+    return;
+  }
+  fn(el, e);
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if(t.id==='refQuery'){ $id('refList').innerHTML = refRows(t.value); return; }
+  const key = t.dataset && t.dataset.field;
+  const S = cur();
+  if(!key || !S || S.pos>=S.order.length) return;
+  const st = S.state[S.pos];
+  if(st.checked) return;
+  st.typed[key] = t.value;
+  saveSoon(S);
+  syncPrimary(S);
+});
+// Клавиатура: Enter — «Проверить» / «Далее», стрелки — соседний вопрос или карточка, Esc — закрыть окно
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape'){ closeSheet(); return; }
+  if(e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+  const t = e.target, field = t.dataset && t.dataset.field;
+  if(field){
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    if(field==='dose'){ const g = $id('f-group'); if(g) g.focus(); }
+    else check();
+    return;
+  }
+  if(t.id==='refQuery'){ if(e.key==='Enter'){ e.preventDefault(); t.blur(); } return; }
+  if(sheetRoot.childElementCount || (t.closest && t.closest('input, textarea, select'))) return;
+  if(e.key==='ArrowRight' || e.key==='ArrowLeft'){
+    const cfg = swipeConfig(), fwd = e.key==='ArrowRight';
+    if(cfg && (fwd ? cfg.canNext : cfg.canPrev)){ e.preventDefault(); (fwd ? cfg.next : cfg.prev)(); }
+  } else if(e.key==='Enter'){
+    // на обычной кнопке Enter нажимает её саму; с варианта ответа или пустого места — главную кнопку
+    if(t.closest && t.closest('button, a') && !t.classList.contains('opt')) return;
+    const p = $id('primary');
+    if(p && !p.disabled){ e.preventDefault(); p.click(); }
+  }
+});
+
+/* ===================== Свайп карточек ===================== */
+function swipeConfig(){
+  if(mode==='groupCards'){
+    const n = BLOCKS[cards.block].items.length;
+    return {canPrev: cards.pos>0, canNext: cards.pos<n-1, prev: () => cardMove(-1), next: () => cardMove(1)};
+  }
+  const S = cur();
+  if(!S) return null;
+  return {canPrev: S.pos>0, canNext: S.pos<S.order.length && S.state[S.pos].checked, prev, next: () => next(true)};
+}
+(function(){
+  const THRESH = 70;
+  let el = null, cfg = null, sx = 0, sy = 0, dx = 0, active = false, locked = false, pid = null, raf = 0, suppress = false;
+  function frame(){
+    raf = 0;
+    let x = dx;
+    if((x<0 && !cfg.canNext) || (x>0 && !cfg.canPrev)) x = x/4; // сопротивление, если дальше нельзя
+    el.style.transform = `translateX(${x}px) rotate(${x/28}deg)`;
+    el.style.opacity = String(Math.max(0.4, 1 - Math.abs(x)/320));
+  }
+  view.addEventListener('pointerdown', e => {
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    const card = e.target.closest('.card[data-swipe]');
+    if(!card || e.target.closest('input,textarea,select')) return; // не мешаем вводу текста
+    cfg = swipeConfig();
+    if(!cfg) return;
+    el = card; sx = e.clientX; sy = e.clientY; dx = 0; active = true; locked = false; pid = e.pointerId;
+  });
+  view.addEventListener('pointermove', e => {
+    if(!active || e.pointerId!==pid) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if(!locked){
+      if(Math.abs(my)>10 && Math.abs(my)>Math.abs(mx)){ active = false; return; } // вертикальная прокрутка
+      if(Math.abs(mx)>10 && Math.abs(mx)>Math.abs(my)*1.2){
+        locked = true;
+        try{ el.setPointerCapture(pid); }catch(err){}
+        el.style.transition = 'none';
+      } else return;
+    }
+    dx = mx;
+    e.preventDefault();
+    if(!raf) raf = requestAnimationFrame(frame);
+  });
+  function end(commit){
+    if(!active) return;
+    active = false;
+    if(!locked) return; // это был обычный тап — кнопки работают как обычно
+    locked = false;
+    if(raf){ cancelAnimationFrame(raf); raf = 0; }
+    try{ el.releasePointerCapture(pid); }catch(err){}
+    suppress = true;
+    setTimeout(() => { suppress = false; }, 60);
+    el.style.transition = 'transform .2s ease, opacity .2s ease';
+    const dir = commit && dx<=-THRESH && cfg.canNext ? 1 : commit && dx>=THRESH && cfg.canPrev ? -1 : 0;
+    if(dir){
+      const move = dir>0 ? cfg.next : cfg.prev;
+      el.style.pointerEvents = 'none';
+      el.style.transform = `translateX(${dir>0 ? -120 : 120}%) rotate(${dir>0 ? -10 : 10}deg)`;
+      el.style.opacity = '0';
+      setTimeout(() => { enterDir = dir; move(); enterDir = 0; }, 160);
+    } else {
+      el.style.transform = '';
+      el.style.opacity = '';
+    }
+  }
+  view.addEventListener('pointerup', () => end(true));
+  view.addEventListener('pointercancel', () => end(false));
+  view.addEventListener('click', e => { if(suppress){ e.stopPropagation(); e.preventDefault(); } }, true);
+})();
+
+/* =========================================================
+   СИСТЕМНАЯ КНОПКА «НАЗАД»
+   Глубина экрана: 0 — меню; 1 — режимы, списки блоков, ошибки и справочник; 2 — внутри блока или повторения.
+   Каждому уровню соответствует запись в истории, поэтому «назад» поднимает на уровень выше.
+   ========================================================= */
+let histIgnore = 0, histWait = false;
+const histCur = () => (history.state && typeof history.state.d==='number') ? history.state.d : 0;
+function userActive(){
+  try{ return !navigator.userActivation || navigator.userActivation.hasBeenActive; }catch(e){ return true; }
+}
+// Chrome на Android пропускает записи истории, созданные без касания пользователя,
+// поэтому при автовосстановлении экрана ждём первого касания
+function deferSync(){
+  if(histWait) return;
+  histWait = true;
+  const evs = ['click','touchend','pointerup','keydown'];
+  const h = () => {
+    if(!userActive()) return;
+    histWait = false;
+    evs.forEach(t => document.removeEventListener(t, h, true));
+    syncHistory();
+  };
+  evs.forEach(t => document.addEventListener(t, h, true));
+}
+function syncHistory(){
+  try{
+    const d = depthOf(mode);
+    let c = histCur();
+    if(d > c){
+      if(!userActive()){ deferSync(); return; }
+      while(c < d){ c++; history.pushState({d:c}, ''); }
+    } else if(d < c){
+      histIgnore++;
+      setTimeout(() => { histIgnore = 0; }, 600);
+      history.go(d - c);
+    }
+  }catch(e){}
+}
+addEventListener('popstate', e => {
+  if(histIgnore > 0){ histIgnore--; return; }
+  if(closeSheet()){ // открыто окно «i» — закрываем его и остаёмся на экране
+    try{ history.pushState({d: depthOf(mode)}, ''); }catch(err){}
+    return;
+  }
+  const target = (e.state && typeof e.state.d==='number') ? e.state.d : 0;
+  if(target < depthOf(mode)){
+    flushSave();
+    while(depthOf(mode) > target) mode = parentOf(mode);
+    draw();
+  }
+});
+
+/* ========================= Запуск ========================= */
+/* Встроенные браузеры iOS (ссылка из мессенджера и т.п.) рисуют страницу под строкой состояния и нижней панелью,
+   а env(safe-area-inset-*) там равен 0 — тогда подставляются запасные отступы.
+   Отключить: добавить к адресу ?safe=0, принудительно включить: ?safe=1 */
+function edgeFallback(){
+  try{
+    const q = new URLSearchParams(location.search).get('safe');
+    if(q==='0') return;
+    const standalone = navigator.standalone===true || matchMedia('(display-mode: standalone)').matches;
+    if(standalone || !(q==='1' || /iP(hone|od)/.test(navigator.userAgent))) return;
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)';
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe), t = parseFloat(cs.paddingTop) || 0, b = parseFloat(cs.paddingBottom) || 0;
+    probe.remove();
+    if(q!=='1' && innerHeight < screen.height - 2) return;           // обычная вкладка: браузер сам оставляет место
+    const root = document.documentElement.style;
+    // минимум: верх — под строку состояния и «остров»/вырез (шкала прогресса начинается на 12px ниже кнопок),
+    // низ — над плавающей панелью Safari (её верхний край ≈ 72px от низа экрана)
+    const h = screen.height, island = h>=852 && h!==896 && h!==926;
+    if(!t) root.setProperty('--safe-t', (island ? 34 : h>=812 ? 30 : 12) + 'px');
+    if(!b) root.setProperty('--safe-b', '66px');
+  }catch(e){}
+}
+
+try{ history.replaceState({d:0}, ''); }catch(e){}
+edgeFallback();
+restoreView();
+render();
+
+
+/* Работа без интернета: service worker кэширует страницу, данные, иконки и шрифты */
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script></body>
+</html>
