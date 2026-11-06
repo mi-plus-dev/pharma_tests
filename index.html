@@ -69,13 +69,6 @@
   /* Узор фона — тонкие «аптечные» крестики */
   --pattern:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><path d='M25 21h2v10h-2zM21 25h10v2h-10z' fill='%230E5B45' fill-opacity='.06'/></svg>");
 
-  /* Устаревшие имена LUNA — перенаправлены на новую палитру, чтобы старые экраны не ломались
-     до их переноса (шаги 3–5) */
-  --luna-ice:#F4EDDD;
- 
-  --luna-sea:#0E5B45;
-  --luna-deep:#0A3D2F;
-  --luna-abyss:#071F18;
 }
 
 /* ========================= База ========================= */
@@ -95,19 +88,11 @@ h1,h2,h3{font-family:var(--display)}
 
 
 /* =========================================================
-   ГЛАВНЫЙ ЭКРАН: шапка, карточки с обложками{display:flex;align-items:center;gap:12px;margin:16px 2px 6px}/* Пункты тем на главной: крупный номер, заголовок, описание, счётчик */
-.list.topics{gap:12px}
-.list.topics .tile{padding:16px 18px;border-radius:var(--r-md)}
-.list.topics .tile-icon{width:48px;height:48px;border-radius:13px;font-size:19px}
-.list.topics .tile-title{font-size:16.5px;line-height:1.28}
-.list.topics .tile-desc{font-size:13.5px;line-height:1.42}
-.list.topics .tile-meta{margin-top:12px}
+   ГЛАВНЫЙ ЭКРАН: шапка, карточки с обложками
+   ========================================================= */
+.rx-head{display:flex;align-items:center;gap:12px;margin:16px 2px 6px}
 
 /* Единый раскрывающийся пункт «По темам»: один пункт на главной, внутри — пять тем курса */
-@keyframes accIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){
-}
-
 /* Компактные входы во вторичные режимы */
 
 
@@ -116,10 +101,9 @@ h1,h2,h3{font-family:var(--display)}
    жёсткие тени; обе темы идут от общих токенов (--paper, --card, --ink …)
    ========================================================= */
 .rx-head{margin:22px 2px 0}
-.rx-sec{display:flex;align-items:center;gap:.8rem;margin:0;font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--green)}.rx-sec::after{content:"";flex:1;border-top:2px solid var(--line)}.rx-brand{display:flex;align-items:center;gap:14px;margin-top:0}
+.rx-sec{display:flex;align-items:center;gap:.8rem;margin:34px 2px 16px;font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--green)}.rx-sec::after{content:"";flex:1;border-top:2px solid var(--line)}.rx-brand{display:flex;align-items:center;gap:14px;margin-top:0}
 .rx-title{margin:0;font-family:var(--display);font-size:clamp(27px,8.4vw,35px);line-height:1.05;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
 .rx-r{color:var(--red)}
-.rx-sec{margin:34px 2px 16px}
 .rx-rows{display:grid;gap:14px;padding:0 5px 5px 0}
 .rx-row{position:relative;display:flex;align-items:center;width:100%;min-height:58px;padding:0 0 0 18px;border:2px solid var(--edge);border-radius:var(--r-md);overflow:hidden;background:var(--card);color:var(--ink);text-align:left;font-family:var(--sans);font-size:16px;font-weight:600;line-height:1.25;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background .15s}
 @media (hover:hover){.rx-row:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}}
@@ -203,7 +187,6 @@ svg{display:block;flex:none}
 .icon-btn svg{width:18px;height:18px}
 .chip{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:1px 10px;border:2px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.3}
 .chip.is-good{background:var(--green);color:var(--on-btn)}
-.chip.is-bad{background:var(--red);color:var(--on-red)}
 
 /* ===================== Карточка вопроса ===================== */
 .card{position:relative;margin-top:4px;padding:22px 18px 20px;border:2px solid var(--edge);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow)}
@@ -236,8 +219,8 @@ svg{display:block;flex:none}
 .input:disabled{opacity:1;-webkit-text-fill-color:currentColor}
 .input.is-correct{border-color:var(--good);background:var(--good-soft)}
 .input.is-wrong{border-color:var(--bad);background:var(--bad-soft)}
-.hint-slot{display:flex;align-items:center;min-height:32px;margin-top:6px}
-.hint{max-width:100%;padding:3px 9px;border:2px solid var(--edge);border-radius:6px;background:var(--amber);color:#182721;font-size:12.5px;font-weight:800;line-height:1.3}
+.hint-slot{display:flex;align-items:center;min-height:33px;margin-top:5px}
+.hint{max-width:100%;padding:3.5px 9.5px;border:2px solid var(--edge);border-radius:6px;background:var(--amber);color:#182721;font-size:13px;font-weight:800;line-height:1.3}
 
 .verdict{display:flex;align-items:center;gap:10px;min-height:68px;margin:2px 0 16px;padding:10px 14px;border:2px solid var(--edge);border-radius:var(--r-md);font-size:14.5px;font-weight:700;line-height:1.35;box-shadow:var(--shadow-sm)}
 .verdict.is-idle{border-style:dashed;border-color:var(--line);background:transparent;box-shadow:none;color:var(--muted);font-size:14px;font-weight:600}
@@ -380,8 +363,8 @@ body{overscroll-behavior-y:none;-webkit-touch-callout:none}
 .opts{gap:5px}
 .opt{min-height:40px;padding:7px 12px;border-radius:10px;font-size:14.5px;line-height:1.25}
 .input{min-height:44px;padding:9px 12px}
-.hint-slot{min-height:26px;margin-top:4px}
-.hint{font-size:12px}
+.hint-slot{min-height:28px;margin-top:3.5px}
+.hint{font-size:12.6px}
 .verdict{min-height:42px;margin:0 0 10px;padding:6px 12px;font-size:13.5px}
 .feedback svg{width:20px;height:20px}
 .actions{gap:8px}
@@ -422,7 +405,6 @@ body{overscroll-behavior-y:none;-webkit-touch-callout:none}
 @media (max-width:380px){.topbar.is-session{margin:0 -12px;padding-left:12px;padding-right:12px}}
 .drug{position:relative}
 .drug-count{position:absolute;right:0;top:3px;padding:3px 7px;border:2px solid var(--edge);border-radius:6px;background:var(--paper);color:var(--ink);font:800 11.5px/1.2 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap}
-.drug.has-count .drug-row{padding:0 58px}
 
 /* ===== Правки по скриншоту: название слева, номер справа, плотнее на низких экранах ===== */
 .drug.has-count{text-align:left}
@@ -449,7 +431,9 @@ body{overscroll-behavior-y:none;-webkit-touch-callout:none}
 
 /* Варианты ответов растягиваются: высота подбирается скриптом (fitOpts) так, чтобы страницу можно было
    прокрутить ровно на высоту самого большого названия препарата с полем вокруг него */
-.fit-opts .card .opt{min-height:var(--opt-h)}
+.fit-opts .card .opt{min-height:var(--opt-h);padding-left:1em;padding-right:1em}
+/* варианты ответов крупнее в 1,2 раза (шрифт; высоту умножает fitOpts) */
+.fit-opts .card .opt > span{font-size:1.2em}
 
 /* ===== Фон с плавающими капсулами и бегущая строка на главном экране ===== */
 #ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
@@ -488,6 +472,11 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rx-foot a:active{opacity:.6}
 .rx-dot{color:var(--muted)}
 @media (hover:hover){.rx-foot a:hover{text-decoration:underline}}
+
+/* Плашка «Верно / Неверно» не перекрывается нижней панелью кнопок */
+.verdict{height:auto;flex:none;margin-bottom:16px !important}
+.card .actions{box-shadow:0 -3px 0 var(--card)}
+@media (max-height:720px){.verdict{margin-bottom:13px !important}}
 </style>
 </head>
 <body>
@@ -609,10 +598,10 @@ function plural(n, one, few, many){
 }
 function objOf(v){ return v && typeof v==='object' && !Array.isArray(v) ? v : {}; }
 const store = {
-  get(k){ try{ const v = localStorage.getItem(k); return v===null ? null : JSON.parse(v); }catch(e){ return null; } },
-  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
-  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
-  has(k){ try{ return localStorage.getItem(k)!==null; }catch(e){ return false; } }
+  get(k){ try{ const v = localStorage.getItem(k); return v===null ? null : JSON.parse(v); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem(k); }catch{} },
+  has(k){ try{ return localStorage.getItem(k)!==null; }catch{ return false; } }
 };
 
 /* =========================================================
@@ -756,7 +745,7 @@ function doseCanon(s){
     .replace(/,/g,'.')
     .replace(/(^|\s)(\d{1,3})\s+(?=000(?!\d))/g,'$1$2')
     .replace(/\.(?!\d)/g,' ')
-    .replace(/(^|\s)ме(?=[\s\/]|$)/g,'$1ед')
+    .replace(/(^|\s)ме(?=[\s/]|$)/g,'$1ед')
     .replace(/\s+/g,' ').trim();
 }
 function doseMatchOne(user, correct){
@@ -792,7 +781,7 @@ function isCloseMatch(user, correct, isDose){
 // «альфа» ≠ «бета».
 const GROUP_STOP = new Set(['и','средства','средство','препараты','препарат','группа','лекарственные']);
 function groupWords(s){
-  return normalizeAnswer(s).split(/[\s,;\-–—\/()]+/).filter(w => w && !GROUP_STOP.has(w));
+  return normalizeAnswer(s).split(/[\s,;\-–—/()]+/).filter(w => w && !GROUP_STOP.has(w));
 }
 function groupWordOk(a,b){
   if(a===b) return true;
@@ -880,7 +869,7 @@ const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'grou
 let cardsBack = 'topics';
 const parentOf = m => m==='groupCards' ? cardsBack : (PARENT[m] || 'menu');
 // Глубина экрана в истории браузера: каждый шаг вглубь — одна запись
-function depthOf(m){ let d = 0, seen = {}; while(m && m!=='menu' && !seen[m]){ seen[m] = 1; m = parentOf(m); d++; } return d; }
+function depthOf(m){ let d = 0; const seen = {}; while(m && m!=='menu' && !seen[m]){ seen[m] = 1; m = parentOf(m); d++; } return d; }
 
 /* --- Состояние одного вопроса --- */
 const CATS = ['dose', 'route', 'group'];
@@ -964,12 +953,22 @@ function semItems(){
   const sem = SEMESTERS[semIdx] || SEMESTERS[0];
   return sem.blocks.flatMap(bi => BLOCKS[bi].items);
 }
-function semTitle(){ const s = SEMESTERS[semIdx] || SEMESTERS[0]; return s.short || s.title; }
 
+// Зачёты по семестрам: в одном ключе лежит {номер семестра: прогресс}; старый формат (один семестр) переносится
+function semRead(m){
+  const raw = objOf(store.get(KEYS[m]));
+  if(Array.isArray(raw.order) && Number.isInteger(raw.sem)) return {[raw.sem]: raw};
+  return raw;
+}
+function semDrop(i){
+  for(const m of ['semQuiz','semWrite']){
+    const all = semRead(m); delete all[i];
+    if(Object.keys(all).length) store.set(KEYS[m], all); else store.del(KEYS[m]);
+  }
+}
 function loadSession(mode, block){
   const cfg = SESSION[mode];
-  const sv = objOf(cfg.block ? readAll(KEYS[mode])[block] : store.get(KEYS[mode]));
-  if(cfg.sem && sv.sem !== semIdx) return null;   // прогресс другого семестра не подходит
+  const sv = objOf(cfg.sem ? semRead(mode)[semIdx] : cfg.block ? readAll(KEYS[mode])[block] : store.get(KEYS[mode]));
   const n = Array.isArray(sv.order) ? sv.order.length : 0;
   if(!n || !Array.isArray(sv.state) || sv.state.length!==n) return null;
   if(!sv.order.every(i => Number.isInteger(i) && i>=0 && i<DB.length)) return null;
@@ -983,7 +982,7 @@ function loadSession(mode, block){
   }
   const clamp = v => Number.isInteger(v) ? Math.min(Math.max(v, 0), n) : 0;
   const K = KIND[cfg.kind];
-  return {mode, block, order, pos: clamp(cfg.block ? sv.pos : sv.idx), furthest: clamp(sv.furthest),
+  return {mode, block, sem: cfg.sem ? semIdx : undefined, order, pos: clamp(cfg.block ? sv.pos : sv.idx), furthest: clamp(sv.furthest),
           state: sv.state.map((st,i) => K.restore(st, order[i]))};
 }
 function newSession(mode, block){
@@ -997,7 +996,9 @@ function saveSession(S){
   clearTimeout(saveTimer); pendingSave = null;
   const order = S.order.map(d => DB_INDEX.get(d));
   if(SESSION[S.mode].sem){                       // зачёт по семестру: ключ + номер семестра
-    store.set(KEYS[S.mode], {sem:S.sem, order, idx:S.pos, furthest:S.furthest, state:S.state});
+    const all = semRead(S.mode);
+    all[S.sem] = {order, idx:S.pos, furthest:S.furthest, state:S.state};
+    store.set(KEYS[S.mode], all);
     return;
   }
   if(SESSION[S.mode].block){
@@ -1010,6 +1011,7 @@ function saveSession(S){
 }
 // Ввод текста сохраняется с небольшой задержкой, а не на каждую букву
 function saveSoon(S){ pendingSave = S; clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 400); }
+function dropPending(){ clearTimeout(saveTimer); pendingSave = null; }   // сброс: отложенная запись старого прогресса не нужна
 function flushSave(){ if(pendingSave) saveSession(pendingSave); }
 addEventListener('pagehide', flushSave);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='hidden') flushSave(); });
@@ -1166,6 +1168,7 @@ function askReset(m, i){
     : cfg.dynamic ? 'Повторение начнётся заново — по текущему списку ошибок.'
     : `Ответы в режиме «${cfg.title}» удалятся, и начнётся новый круг. Список ошибок не изменится.`;
   askConfirm('Сбросить прогресс?', text, 'Сбросить', () => {
+    dropPending();
     if(m==='groupCards' || cfg.block) clearSaved(m, i);
     else if(cfg.dynamic){ store.del(KEYS[m]); delete sess[m]; }
     else { sess[m] = newSession(m); saveSession(sess[m]); }
@@ -1182,21 +1185,21 @@ function savedHasProgress(m, sv){
   try{
     const K = KIND[SESSION[m].kind], d = DB[sv.order[0]];
     return !!(d && Array.isArray(sv.state) && K.touched(K.restore(sv.state[0], d)));   // ответ на первом вопросе без «Далее»
-  }catch(e){ return false; }
+  }catch{ return false; }
 }
 const modesHaveProgress = modes => modes.some(m => {
   const raw = SESSION[m].block ? Object.values(readAll(KEYS[m])) : [store.get(KEYS[m])];
   return raw.some(sv => savedHasProgress(m, sv));
 });
 const cardsHaveProgress = () => Object.values(readAll(KEYS.groupCards)).some(p => Number.isInteger(p) && p>0);
-const semHasProgress = i => ['semQuiz','semWrite'].some(m => { const sv = objOf(store.get(KEYS[m])); return sv.sem===i && savedHasProgress(m, sv); });
+const semHasProgress = i => ['semQuiz','semWrite'].some(m => { const sv = objOf(semRead(m)[i]); return savedHasProgress(m, sv); });
 const EXAM_MODES = ['quiz','write','study','writeBlock'];
 // Разделы главного экрана: есть ли прогресс, подпись и что именно удалять
 const RESET_SECTIONS = {
   sem0:    {has: () => semHasProgress(0), title:'I семестр', text:'Ответы в зачёте по I семестру удалятся, и он начнётся заново.',
-            run(){ for(const m of ['semQuiz','semWrite']) store.del(KEYS[m]); semSess = null; }},
+            run(){ semDrop(0); semSess = null; }},
   sem1:    {has: () => semHasProgress(1), title:'II семестр', text:'Ответы в зачёте по II семестру удалятся, и он начнётся заново.',
-            run(){ for(const m of ['semQuiz','semWrite']) store.del(KEYS[m]); semSess = null; }},
+            run(){ semDrop(1); semSess = null; }},
   exam:    {has: () => modesHaveProgress(EXAM_MODES), title:'Экзамен', text:'Ответы в тесте и в «Впиши сам» удалятся — и по всем рецептам, и по блокам. Список ошибок сохранится.',
             run(){ for(const m of ['study','writeBlock']) store.del(KEYS[m]); blockSess = null; sess.quiz = newSession('quiz'); sess.write = newSession('write'); store.del(KEYS.quiz); store.del(KEYS.write); }},
   topics:  {has: cardsHaveProgress, title:'По темам', text:'Карточки всех тем начнутся с первой.',
@@ -1207,7 +1210,7 @@ const RESET_SECTIONS = {
 function askResetSection(id){
   const R = RESET_SECTIONS[id];
   if(!R) return;
-  askConfirm(`Сбросить «${R.title}»?`, R.text, 'Сбросить', () => { R.run(); render(); });
+  askConfirm(`Сбросить «${R.title}»?`, R.text, 'Сбросить', () => { dropPending(); R.run(); render(); });
 }
 // Значок сброса на углу строки; пустая строка, если сбрасывать нечего
 const resetBadge = id => RESET_SECTIONS[id].has()
@@ -1271,24 +1274,29 @@ function check(){
 function next(fromSwipe){
   const S = cur();
   if(!S || S.pos>=S.order.length || !S.state[S.pos].checked) return;
-  if(fromSwipe!==true && Date.now()-checkedAt < 350) return;
+  if(fromSwipe!==true && Date.now()-checkedAt < 200) return;
   S.pos++;
   saveSession(S);
   render();
 }
 // «Далее» — карточка смахивается влево так же, как при свайпе, и въезжает следующая
+let leaveTimer = 0;
 function nextAnimated(){
   const S = cur();
   if(!S || S.pos>=S.order.length || !S.state[S.pos].checked) return;
-  if(Date.now()-checkedAt < 350) return;
+  if(Date.now()-checkedAt < 200) return;
   const el = view.querySelector('.card');
-  if(!el || el.dataset.leaving || matchMedia('(prefers-reduced-motion: reduce)').matches){ next(); return; }
+  if(el && el.dataset.leaving){                 // повторное нажатие во время ухода карточки — сразу следующая
+    clearTimeout(leaveTimer);
+    enterDir = 1; next(true); enterDir = 0;
+    return;
+  }
+  if(!el || matchMedia('(prefers-reduced-motion: reduce)').matches){ next(); return; }
   el.dataset.leaving = '1';
-  el.style.pointerEvents = 'none';
   el.style.transition = 'transform .2s ease, opacity .2s ease';
   el.style.transform = 'translateX(-120%) rotate(-10deg)';
   el.style.opacity = '0';
-  setTimeout(() => { enterDir = 1; next(true); enterDir = 0; }, 160);
+  leaveTimer = setTimeout(() => { enterDir = 1; next(true); enterDir = 0; }, 160);
 }
 function prev(){
   const S = cur();
@@ -1300,11 +1308,16 @@ function prev(){
 function restart(){
   const S = cur();
   if(!S) return;
+  dropPending();   // отложенное сохранение старого круга не должно воскресить его
   const cfg = SESSION[S.mode];
   if(cfg.dynamic){
     if(!mistakeCount()){ dropMistakeSessions(); go('mistakes'); return; }
     sess[S.mode] = newSession(S.mode);
     saveSession(sess[S.mode]);
+  } else if(cfg.sem){
+    if(Number.isInteger(S.sem)) semIdx = S.sem;
+    semSess = newSession(S.mode);
+    saveSession(semSess);
   } else if(cfg.block){
     blockSess = newSession(S.mode, S.block);
     clearSaved(S.mode, S.block);
@@ -1639,7 +1652,7 @@ function writeFields(st, dose, group){
     </div>`;
   return field('dose', 'Например: 0,5 таб.', st.doseOk, dose, 'next') + field('group', 'Например: НПВС', st.groupOk, group, 'done');
 }
-function verdict(st, kind, ready){
+function verdict(st, kind){
   if(!st.checked){
     return '<div class="verdict is-idle" aria-hidden="true"></div>';   // пустая рамка: место под результат
   }
@@ -1649,7 +1662,7 @@ function verdict(st, kind, ready){
 }
 
 function viewSummary(S, cfg, t){
-  const n = S.order.length, nm = mistakeCount();
+  const nm = mistakeCount();
   let heading, primary, after = '', note = '';
   if(cfg.dynamic){
     heading = nm ? 'Круг повторения пройден' : 'Все ошибки исправлены';
@@ -1686,9 +1699,8 @@ function viewSession(){
   if(S.pos >= n) return viewSummary(S, cfg, t);
   if(cfg.kind==='choice') ensureOpts(S);
   const backLabel = cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? 'Меню' : 'Экзамен';
-  const title = cfg.block ? `Блок ${S.block+1}` : cfg.sem ? `Зачёт · ${semTitle()}` : cfg.title;
   setTop({back: backLabel, compact:true, score:t, progress:S.pos/n});
-  const d = S.order[S.pos], [name, dose, route, group, latin] = d;
+  const d = S.order[S.pos], [name, dose, , group, latin] = d;
   const st = S.state[S.pos];
   const primary = st.checked
     ? `<button class="btn btn-primary" id="primary" type="button" data-act="next">${S.pos===n-1 ? 'Завершить' : 'Далее'}</button>`
@@ -1696,7 +1708,7 @@ function viewSession(){
   return `<article class="card" data-swipe>
     ${drugHead(name, latin, true, `${S.pos+1}/${n}`)}
     ${cfg.kind==='choice' ? choiceFields(st, rightOf(d)) : writeFields(st, dose, group)}
-    ${verdict(st, cfg.kind, kindOf(S).ready(st))}
+    ${verdict(st, cfg.kind)}
     <div class="actions">
       <button class="btn btn-secondary" type="button" data-act="prev"${S.pos===0 ? ' disabled' : ''}>Назад</button>
       ${primary}
@@ -1752,6 +1764,7 @@ function fitOpts(){
   fitOptsRaw();
   if(Math.abs(scrollY - y0) > 1) scrollTo({top:y0, behavior:'instant'});
 }
+const OPT_SCALE = 1.2;   // во сколько раз варианты ответов крупнее подогнанного размера
 function fitOptsRaw(){
   const S = cur();
   const on = !!S && SESSION[mode] && SESSION[mode].kind==='choice' && S.pos < S.order.length;
@@ -1761,13 +1774,13 @@ function fitOptsRaw(){
   const app = document.querySelector('.app');
   const target = innerHeight + tallestHeader();
   const heightAt = h => { view.style.setProperty('--opt-h', h + 'px'); return app.getBoundingClientRect().height; };
-  if(heightAt(0) >= target){ view.style.removeProperty('--opt-h'); return; }
+  if(heightAt(0) >= target){ view.classList.remove('fit-opts'); view.style.removeProperty('--opt-h'); return; }
   let lo = 0, hi = 160;
   while(hi - lo > 0.05){
     const mid = (lo + hi) / 2;
     if(heightAt(mid) <= target) lo = mid; else hi = mid;
   }
-  view.style.setProperty('--opt-h', lo.toFixed(2) + 'px');
+  view.style.setProperty('--opt-h', (lo * OPT_SCALE).toFixed(2) + 'px');   // подогнали по экрану, затем увеличили в 1,2 раза
 }
 let fitTimer = 0;
 addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitOpts, 120); });
@@ -1777,20 +1790,23 @@ const VIEWS = {menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrit
   allRx: viewAllRx, semesters: viewSemesters, semester: viewSemester, topics: viewTopics};
 
 // Плавный подъём к началу страницы (около полсекунды, с замедлением к концу)
-let glideRaf = 0;
+let glideRaf = 0, glideStop = () => {};
 function glideToTop(){
   cancelAnimationFrame(glideRaf);
+  glideStop();
   const from = scrollY;
   if(from <= 0) return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){ scrollTo({top:0, behavior:'instant'}); return; }
   const t0 = performance.now(), dur = 520;
-  const stop = () => { cancelAnimationFrame(glideRaf); removeEventListener('touchstart', stop); removeEventListener('wheel', stop); };
-  addEventListener('touchstart', stop, {passive:true, once:true});
-  addEventListener('wheel', stop, {passive:true, once:true});
+  glideStop();
+  const stop = () => { cancelAnimationFrame(glideRaf); glideStop(); };
+  glideStop = () => { removeEventListener('touchstart', stop); removeEventListener('wheel', stop); glideStop = () => {}; };
+  addEventListener('touchstart', stop, {passive:true});
+  addEventListener('wheel', stop, {passive:true});
   const step = now => {
     const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
     scrollTo({top: from * (1 - e), behavior:'instant'});
-    if(k < 1) glideRaf = requestAnimationFrame(step);
+    if(k < 1) glideRaf = requestAnimationFrame(step); else glideStop();
   };
   glideRaf = requestAnimationFrame(step);
 }
@@ -1798,7 +1814,6 @@ let drawnKey = '';
 function draw(){
   if(!VIEWS[mode] && !LISTS[mode] && !SESSION[mode]) mode = 'menu';
   if(SESSION[mode] && !cur()) mode = parentOf(mode);   // сессия не найдена — на уровень выше
-  if(SESSION[mode] && SESSION[mode].sem && !cur()){ semSess = newSession(mode); }
   saveView();
   closeSheet(true);
   const keepY = scrollY;                 // положение прокрутки до перерисовки
@@ -1928,7 +1943,19 @@ document.addEventListener('click', e => {
     if(navBusy) return;
     navBusy = true;
     const out = view.animate([{transform:'none', opacity:1}, {transform:`translateX(${act==='up' ? 22 : -22}px)`, opacity:0}], {duration:110, easing:'ease-in', fill:'forwards'});
-    out.onfinish = () => { try{ fn(el, e); } finally { out.cancel(); navBusy = false; } };
+    // Переход выполняется ровно один раз: по окончанию анимации, по её отмене (например, вкладка скрыта)
+    // или по страховочному таймеру 400 мс — что наступит раньше. Иначе navBusy остался бы true и навигация зависла.
+    let done = false;
+    const go = () => {
+      if(done) return;
+      done = true;
+      clearTimeout(guard);
+      out.onfinish = out.oncancel = null;
+      try{ fn(el, e); } finally { try{ out.cancel(); }catch(_){} navBusy = false; }
+    };
+    const guard = setTimeout(go, 400);
+    out.onfinish = go;
+    out.oncancel = go;
     return;
   }
   fn(el, e);
@@ -2005,7 +2032,7 @@ function swipeConfig(){
       if(Math.abs(my)>10 && Math.abs(my)>Math.abs(mx)){ active = false; return; } // вертикальная прокрутка
       if(Math.abs(mx)>10 && Math.abs(mx)>Math.abs(my)*1.2){
         locked = true;
-        try{ el.setPointerCapture(pid); }catch(err){}
+        try{ el.setPointerCapture(pid); }catch{}
         el.style.transition = 'none';
       } else return;
     }
@@ -2019,7 +2046,7 @@ function swipeConfig(){
     if(!locked) return; // это был обычный тап — кнопки работают как обычно
     locked = false;
     if(raf){ cancelAnimationFrame(raf); raf = 0; }
-    try{ el.releasePointerCapture(pid); }catch(err){}
+    try{ el.releasePointerCapture(pid); }catch{}
     suppress = true;
     setTimeout(() => { suppress = false; }, 60);
     el.style.transition = 'transform .2s ease, opacity .2s ease';
@@ -2048,7 +2075,7 @@ function swipeConfig(){
 let histIgnore = 0, histWait = false;
 const histCur = () => (history.state && typeof history.state.d==='number') ? history.state.d : 0;
 function userActive(){
-  try{ return !navigator.userActivation || navigator.userActivation.hasBeenActive; }catch(e){ return true; }
+  try{ return !navigator.userActivation || navigator.userActivation.hasBeenActive; }catch{ return true; }
 }
 // Chrome на Android пропускает записи истории, созданные без касания пользователя,
 // поэтому при автовосстановлении экрана ждём первого касания
@@ -2076,12 +2103,12 @@ function syncHistory(){
       setTimeout(() => { histIgnore = 0; }, 600);
       history.go(d - c);
     }
-  }catch(e){}
+  }catch{}
 }
 addEventListener('popstate', e => {
   if(histIgnore > 0){ histIgnore--; return; }
   if(closeSheet()){ // открыто окно «i» — закрываем его и остаёмся на экране
-    try{ history.pushState({d: depthOf(mode)}, ''); }catch(err){}
+    try{ history.pushState({d: depthOf(mode)}, ''); }catch{}
     return;
   }
   const target = (e.state && typeof e.state.d==='number') ? e.state.d : 0;
@@ -2114,14 +2141,13 @@ function edgeFallback(){
     const h = screen.height, island = h>=852 && h!==896 && h!==926;
     if(!t) root.setProperty('--safe-t', (island ? 34 : h>=812 ? 30 : 12) + 'px');
     if(!b) root.setProperty('--safe-b', '66px');
-  }catch(e){}
+  }catch{}
 }
 
-try{ history.replaceState({d:0}, ''); }catch(e){}
+try{ history.replaceState({d:0}, ''); }catch{}
 edgeFallback();
 restoreView();
 render();
-
 
 /* Работа без интернета: service worker кэширует страницу, данные, иконки и шрифты */
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
