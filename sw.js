@@ -1,6 +1,6 @@
 /* Service worker: приложение целиком работает без интернета.
    Чтобы выпустить обновление, увеличьте номер в CACHE (pharma-v1 -> pharma-v2). */
-const CACHE = 'pharma-v7';
+const CACHE = 'pharma-v9';
 const CORE = ['./', './index.html', './data.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg'];
 const EXTRA_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
