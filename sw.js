@@ -1,11 +1,11 @@
 /* Service worker: приложение целиком работает без интернета.
    Чтобы выпустить обновление, увеличьте номер в CACHE (pharma-v1 -> pharma-v2). */
-const CACHE = 'pharma-v10';
-const CORE = ['./', './index.html', './data.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg'];
+const CACHE = 'pharma-v15';
+const CORE = ['./', './index.html', './style.css', './data.js', './app.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg'];
 const EXTRA_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()

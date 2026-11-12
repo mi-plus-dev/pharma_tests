@@ -1,0 +1,754 @@
+/* =========================================================
+   Токены: «аптечная упаковка» — бумага, зелёные чернила, красный и янтарь,
+   жёсткие смещённые тени. Единственный источник цветов, радиусов и шрифтов.
+   ========================================================= */
+:root{
+  /* Палитра */
+  --paper:#F4EDDD; --paper-2:#EBE1C8; --card:#FBF7EB;
+  --ink:#182721; --green:#0E5B45; 
+  --red:#CF4327; --amber:#E0A23E;
+
+  /* Роли */
+  --bg:var(--paper);
+  --muted:#5A675F;
+  --line:rgba(24,39,33,.18);
+  --edge:var(--ink);                 /* цвет контуров (2px) */
+  --hardc:rgba(24,39,33,.92);        /* цвет жёсткой тени */
+  --accent:var(--green);
+ 
+ 
+  --btn:var(--green);
+  --on-btn:var(--paper);
+  --progress:var(--green);
+  /* верно — зелёный, неверно — красный */
+  --good:#0E5B45;
+  --good-soft:rgba(14,91,69,.12);
+  --bad:#B83A20;
+  --bad-soft:rgba(207,67,39,.12);
+  --btn-danger:#CF4327;
+  --overlay:rgba(24,39,33,.45);
+  --on-red:#FBF7EB; --lift:#FFFFFF;
+  --surface:var(--card);
+  --inset:#F2EAD3;
+  --topbar:var(--paper);
+  --shadow:6px 6px 0 var(--hardc);
+  --shadow-sm:4px 4px 0 var(--hardc);
+
+  /* Радиусы */
+  --r-lg:16px;
+  --r-md:12px;
+  --r-sm:8px;
+
+  /* Шрифты: заголовки — Unbounded, текст — Golos Text (подгружаются из Google Fonts,
+     без сети подставляются системные) */
+  --display:"Unbounded","Arial Black","Segoe UI",system-ui,sans-serif;
+  --sans:"Golos Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif","Times New Roman",serif;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+
+  /* Узор фона — тонкие «аптечные» крестики */
+
+}
+
+/* ========================= База ========================= */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg);scroll-behavior:smooth}
+body{
+  margin:0;min-height:100vh;min-height:100dvh;overflow-x:hidden;
+  background-color:var(--bg);
+  color:var(--ink);
+  font:15px/1.45 var(--sans);
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+}
+body.is-locked{overflow:hidden}
+::selection{background:var(--green);color:var(--paper)}
+h1,h2,h3{font-family:var(--display)}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+
+
+/* =========================================================
+   ГЛАВНЫЙ ЭКРАН: шапка, карточки с обложками
+   ========================================================= */
+.rx-head{display:flex;align-items:center;gap:12px;margin:16px 2px 6px}
+
+/* Единый раскрывающийся пункт «По темам»: один пункт на главной, внутри — пять тем курса */
+/* Компактные входы во вторичные режимы */
+
+
+/* =========================================================
+   ГЛАВНЫЙ ЭКРАН «РЕЦЕПТЫ» — «аптечная упаковка»: бумага, контуры 2px,
+   жёсткие тени; обе темы идут от общих токенов (--paper, --card, --ink …)
+   ========================================================= */
+.rx-head{margin:22px 2px 0}
+.rx-sec{display:flex;align-items:center;gap:.8rem;margin:34px 2px 16px;font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--green)}.rx-sec::after{content:"";flex:1;border-top:2px solid var(--line)}.rx-brand{display:flex;align-items:center;gap:14px;margin-top:0}
+.rx-title{margin:0;font-family:var(--display);font-size:clamp(27px,8.4vw,35px);line-height:1.05;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
+.rx-r{color:var(--red)}
+.rx-rows{display:grid;gap:14px;padding:0 5px 5px 0}
+.rx-row{position:relative;display:flex;align-items:center;width:100%;min-height:58px;padding:0 0 0 18px;border:2px solid var(--edge);border-radius:var(--r-md);overflow:hidden;background:var(--card);color:var(--ink);text-align:left;font-family:var(--sans);font-size:16px;font-weight:600;line-height:1.25;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background .15s}
+@media (hover:hover){.rx-row:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}}
+.rx-row:active{transform:translate(3px,3px);box-shadow:none}
+.rx-no{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 12px 0 -4px;border:2px solid var(--edge);border-radius:50%;background:var(--paper);font-family:var(--display);font-size:12px;font-weight:800;color:var(--ink)}
+.rx-lbl{flex:1;min-width:0}
+.rx-pg{flex:none;margin:0 12px 0 8px;font-family:var(--display);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+.rx-i-cad{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
+.rx-i-book{-webkit-mask-size:54px 31px;mask-size:54px 31px;-webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
+.rx-i-scis{-webkit-mask-size:64px 49px;mask-size:64px 49px;-webkit-mask-image:url("icons/scis.svg");mask-image:url("icons/scis.svg")}
+.rx-i-search{-webkit-mask-size:41px 42px;mask-size:41px 42px;-webkit-mask-image:url("icons/search.svg");mask-image:url("icons/search.svg")}
+.rx-i-clip{-webkit-mask-size:43px 49px;mask-size:43px 49px;-webkit-mask-image:url("icons/clip.svg");mask-image:url("icons/clip.svg")}
+.rx-chev{flex:none;display:grid;place-items:center;width:18px;height:18px;margin-right:0;color:var(--ink);transition:transform .22s ease}
+.rx-chev svg{width:16px;height:16px;stroke-width:2.4}
+.rx-row[aria-expanded="true"] .rx-chev{transform:rotate(180deg)}
+.rx-acc{display:grid;gap:14px}
+.rx-sub{display:grid;gap:12px;padding:0 5px 5px 14px}
+.rx-subitem{display:flex;align-items:center;gap:10px}
+.rx-subitem .rx-row{min-height:50px;padding-left:14px;font-size:15px;background:var(--paper)}
+.rx-reset{flex:none;display:grid;place-items:center;width:38px;height:38px;padding:0;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.rx-reset:active{transform:translate(2px,2px);box-shadow:none}
+.rx-reset svg{width:17px;height:17px}
+@media (prefers-reduced-motion:reduce){.rx-chev{transition:none}}
+button,input{font:inherit;color:inherit;margin:0}
+button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{display:block;flex:none}
+[hidden]{display:none!important}
+
+/* ======================== Каркас ======================== */
+.app{max-width:480px;margin:0 auto;padding:0 16px calc(28px + var(--safe-b))}
+
+/* Верхняя панель на всех экранах: назад · название и позиция · звук; ниже — прогресс и счёт */
+.topbar{position:sticky;top:0;z-index:20;margin:0 -16px;padding:calc(8px + var(--safe-t)) 16px 10px;background:var(--topbar);border-bottom:2px solid var(--edge)}
+.topbar-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px}
+.topbar.is-empty{padding-top:var(--safe-t);padding-bottom:0;background:transparent;border-bottom:0}
+.topbar.is-empty .topbar-row{display:none}
+.btn-back{grid-column:1;justify-self:start;display:inline-flex;align-items:center;gap:2px;height:36px;padding:0 14px 0 8px;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.btn-back:active,.topbar .icon-btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn-back svg{width:18px;height:18px}
+.topbar-title{grid-column:2;display:flex;align-items:baseline;justify-content:center;min-width:0;font-family:var(--display);font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--green);text-align:center}
+.topbar-title span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-title b{flex:none;margin-left:6px;color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.top-actions{grid-column:3;width:34px;justify-self:end;display:flex;align-items:center;gap:8px}
+.topbar-sub{display:flex;align-items:center;gap:12px;margin-top:10px}
+.progress{flex:1;height:12px;border:2px solid var(--edge);border-radius:999px;background:var(--paper-2);overflow:hidden}
+.progress i{display:block;width:0;height:100%;border-radius:inherit;background:var(--progress);transition:width .4s cubic-bezier(.4,0,.2,1)}
+.score{display:inline-flex;gap:10px;font-family:var(--display);font-size:12px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.score-ok{color:var(--good)}
+.score-no{color:var(--bad)}
+@media (max-width:359px){.topbar-title span{display:none}.topbar-title b{margin-left:0}}
+
+/* Заголовки экранов */
+.page-head{margin:20px 2px 22px;padding-bottom:16px;border-bottom:2px dashed var(--line)}
+.page-head h1{margin:0;font-family:var(--display);font-size:clamp(20px,6vw,26px);line-height:1.15;font-weight:900;letter-spacing:-.01em;overflow-wrap:anywhere}
+.page-head p{margin:8px 0 0;color:var(--muted);font-size:14.5px}
+.section-title{display:flex;align-items:center;gap:.8rem;margin:28px 2px 14px;font-size:11.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.section-title::after{content:"";flex:1;border-top:2px solid var(--line)}
+
+/* Верхние заголовки-вкладки на первом экране и на экранах разделов */
+.tabs{display:flex;gap:10px;margin:0 0 16px;padding:0 6px 6px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;min-height:42px;padding:8px 14px;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);font-size:13.5px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background-color .15s,color .15s}
+.tab.is-active{background:var(--green);color:var(--on-btn)}
+.tab:active{transform:translate(2px,2px);box-shadow:none}
+
+/* ================= Списки: режимы и блоки ================= */
+.list{display:grid;gap:14px;padding:0 5px 5px 0}
+.tile-wrap{position:relative}
+.tile{display:flex;align-items:flex-start;gap:14px;width:100%;padding:16px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);text-align:left;transition:transform .15s,box-shadow .15s}
+.tile.has-reset{padding-right:60px}
+.tile-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border:2px solid var(--edge);border-radius:10px;background:var(--paper);color:var(--green);font-family:var(--display);font-size:15px;font-weight:800}
+.tile-icon svg{width:22px;height:22px}
+.tile-body{flex:1;min-width:0}
+.tile-title{display:block;font-size:16px;font-weight:700;line-height:1.3}
+.tile-desc{display:block;margin-top:3px;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.tile-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
+.tile-reset{position:absolute;top:12px;right:12px}
+.icon-btn{display:grid;place-items:center;width:36px;height:36px;padding:0;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--hardc);transition:transform .15s,box-shadow .15s}
+.icon-btn:active{transform:translate(2px,2px);box-shadow:none}
+.icon-btn svg{width:18px;height:18px}
+.chip{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:1px 10px;border:2px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.3}
+.chip.is-good{background:var(--green);color:var(--on-btn)}
+
+/* ===================== Карточка вопроса ===================== */
+.card{position:relative;margin-top:4px;padding:22px 18px 20px;border:2px solid var(--edge);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow)}
+.card[data-swipe]{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.card[data-swipe] input{-webkit-user-select:text;user-select:text}
+.card[data-swipe] input{touch-action:pan-y}
+.card-tag{display:flex;justify-content:center;margin:-4px 0 14px}
+.card-tag .chip{padding:5px 11px;border-radius:6px;background:var(--green);color:var(--on-btn);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;text-align:center}
+.drug{margin-bottom:18px;padding-bottom:16px;border-bottom:2px dashed var(--line);text-align:center}
+.drug-row{font-size:clamp(20px,6.4vw,25px);line-height:1.2}
+.drug-name{display:inline;margin:0;font-family:var(--display);font-size:inherit;font-weight:800;letter-spacing:-.01em;color:var(--accent);overflow-wrap:anywhere}
+.drug-latin{margin-top:6px;font-family:var(--serif);font-style:italic;font-size:16.5px;line-height:1.35;color:var(--muted)}
+.btn-info{display:inline-grid;place-items:center;width:32px;height:32px;margin-left:8px;padding:0 0 1px;border:2px solid var(--edge);border-radius:50%;background:var(--amber);color:#182721;font:italic 700 18px/1 var(--serif);vertical-align:middle;box-shadow:2px 2px 0 var(--hardc);transition:transform .15s,box-shadow .15s}
+.btn-info:active{transform:translate(2px,2px);box-shadow:none}
+
+.field{margin-bottom:18px}
+.label{display:block;margin:0 2px 8px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--bad)}
+.opts{display:grid;gap:8px}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:50px;padding:12px 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);color:var(--ink);text-align:left;font-size:15.5px;font-weight:600;line-height:1.35;transition:transform .15s,box-shadow .15s,background-color .15s,color .15s,opacity .15s}
+.opt::after{content:"";flex:none;width:20px;text-align:center;font-size:18px;font-weight:800;line-height:1}
+.opt.is-selected{background:var(--amber);color:#182721;transform:translate(-2px,-2px);box-shadow:var(--shadow-sm)}
+.opt.is-correct{background:var(--green);color:var(--on-btn)}
+.opt.is-wrong{background:var(--red);color:var(--on-red)}
+.opt.is-correct::after{content:"✓"}
+.opt:disabled:not(.is-correct):not(.is-wrong){opacity:.55}
+.opt.is-wrong::after{content:"✕"}
+
+.input{display:block;width:100%;min-height:50px;padding:12px 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);color:var(--ink);font-size:16px;-webkit-appearance:none;appearance:none;transition:box-shadow .15s}
+.input::placeholder{color:var(--muted);opacity:.75}
+.input:focus{outline:none;box-shadow:4px 4px 0 var(--accent)}
+.input:disabled{opacity:1;-webkit-text-fill-color:currentColor}
+.input.is-correct{border-color:var(--good);background:var(--good-soft)}
+.input.is-wrong{border-color:var(--bad);background:var(--bad-soft)}
+
+.verdict{display:flex;align-items:center;gap:10px;min-height:68px;margin:2px 0 16px;padding:10px 14px;border:2px solid var(--edge);border-radius:var(--r-md);font-size:14.5px;font-weight:700;line-height:1.35;box-shadow:var(--shadow-sm)}
+.verdict.is-blank{visibility:hidden}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.verdict.is-idle{border-style:dashed;border-color:var(--line);background:transparent;box-shadow:none;color:var(--muted);font-size:14px;font-weight:600}
+@media (max-width:340px){.verdict{min-height:88px}}
+.feedback svg{flex:none;width:22px;height:22px}
+.feedback.is-good{background:var(--green);color:var(--on-btn)}
+.feedback.is-bad{background:var(--red);color:var(--on-red)}
+
+/* Плавная смена после «Проверить»: класс .just-checked ставится один раз, сразу после проверки */
+@keyframes chkFromPaper{from{background-color:var(--paper);color:var(--ink)}}
+@keyframes chkDim{from{opacity:1}}
+@keyframes chkReveal{
+  from{background-color:var(--base,var(--paper));background-image:linear-gradient(var(--fill),var(--fill));background-repeat:no-repeat;background-position:left center;background-size:0% 100%;color:var(--txt0,var(--ink));transform:var(--t0,none);box-shadow:var(--s0,none)}
+  14%{color:var(--txt0,var(--ink))}
+  to{background-color:var(--base,var(--paper));background-image:linear-gradient(var(--fill),var(--fill));background-repeat:no-repeat;background-position:left center;background-size:100% 100%}
+}
+@keyframes chkMark{from{transform:scale(0)}}
+@keyframes chkBtn{from{background-color:var(--btn);color:var(--on-btn)}}
+@keyframes chkVerdict{from{background-color:transparent;color:var(--muted);border-color:var(--line);box-shadow:none;filter:blur(5px)}}
+@keyframes chkFade{from{opacity:0;transform:translateY(-3px)}}
+/* Единая скорость для всех элементов: --dur — длительность, --lag — сдвиг между шагами
+   (0 = всё проявляется одновременно; например .12s вернёт «по очереди») */
+.just-checked{--dur:.45s;--lag:0s;--out:cubic-bezier(.22,.8,.2,1)}
+.just-checked .opt.is-wrong{--fill:var(--red);--base:var(--amber);--txt0:#182721;--t0:translate(-2px,-2px);--s0:var(--shadow-sm);animation:chkReveal var(--dur) var(--out) backwards}
+.just-checked .opt.is-correct{--fill:var(--green);--base:var(--paper);--txt0:var(--ink);--t0:none;--s0:none;animation:chkReveal var(--dur) var(--lag) var(--out) backwards}
+.just-checked .opt.is-correct.was-sel{--base:var(--amber);--txt0:#182721;--t0:translate(-2px,-2px);--s0:var(--shadow-sm)}
+.just-checked .opt:disabled:not(.is-correct):not(.is-wrong){animation:chkDim var(--dur) var(--lag) var(--out) backwards}
+.just-checked .opt.is-wrong::after,.just-checked .opt.is-correct::after{animation:chkMark var(--dur) var(--out) backwards}
+.just-checked .input.is-wrong,.just-checked .input.is-correct{animation:chkFromPaper var(--dur) var(--out) backwards}
+.just-checked .feedback{animation:chkVerdict var(--dur) calc(var(--lag) * 2) var(--out) backwards}
+.just-checked #primary{animation:chkBtn var(--dur) calc(var(--lag) * 2) var(--out) backwards}
+
+/* ======================== Кнопки ======================== */
+.actions{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 16px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);color:var(--ink);font-size:15.5px;font-weight:700;line-height:1.2;text-align:center;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background-color .15s,color .15s,opacity .15s}
+.btn-primary{background:var(--btn);color:var(--on-btn);font-family:var(--display);font-size:13.5px;font-weight:800}
+.btn-primary[data-act="next"],.btn-primary[data-act="cardNext"]{background:var(--amber);color:#182721}
+.btn-primary:disabled{background:var(--paper-2);color:var(--muted);border-color:var(--line);box-shadow:none}
+.btn-secondary{background:var(--card);color:var(--ink)}
+.btn-secondary:disabled{opacity:.45;box-shadow:none}
+.btn-block{width:100%}
+.btn-danger{background:var(--btn-danger);color:#fff}
+.actions-even{grid-template-columns:1fr 1fr}
+.btn:active:not(:disabled),.opt:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+.tile:active{transform:translate(2px,2px);box-shadow:none}
+@media (hover:hover){
+  .btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:none}
+  .tile:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
+  .opt:hover:not(:disabled):not(.is-selected){transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--hardc);background:var(--lift)}
+  .btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
+  .btn-back:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
+  .icon-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--hardc)}
+  .btn-info:hover{background:var(--green);color:var(--on-btn)}
+  .row:hover{background:var(--inset)}
+  .mistake:hover{background:var(--red);color:var(--on-red)}
+}
+
+/* ============= Сведения о препарате (карточки и окно «i») ============= */
+.facts{display:grid;gap:0;margin:0 0 16px;padding:0 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper)}
+.fact{padding:11px 0;border-bottom:1px solid var(--line)}
+.fact:last-child{border-bottom:0}
+.fact dt{margin-bottom:3px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--bad)}
+.fact dd{margin:0;font-size:15px;line-height:1.5}
+.swipe-hint{margin:0 0 12px;text-align:center;font-size:12.5px;color:var(--muted)}
+
+/* ========================= Итоги ========================= */
+.summary-title{margin:2px 0 18px;text-align:center;font-family:var(--display);font-size:clamp(19px,5.6vw,23px);line-height:1.25;font-weight:900;letter-spacing:-.01em}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;padding:0 5px 5px 0}
+.stat{padding:14px 8px 12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);box-shadow:var(--shadow-sm);text-align:center}
+.stat b{display:block;font-family:var(--display);font-size:36px;line-height:1.1;font-weight:900;font-variant-numeric:tabular-nums}
+.stat span{display:block;margin-top:4px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.stat.is-good{background:var(--green);color:var(--on-btn)}
+.stat.is-bad{background:var(--red);color:var(--on-red)}
+.mistakes{display:flex;flex-wrap:wrap;gap:8px;max-height:260px;overflow:auto;margin:0 0 18px;padding:2px}
+.mistake{padding:5px 11px;border:2px solid var(--edge);border-radius:999px;background:var(--card);color:var(--bad);font-size:13.5px;font-weight:700;line-height:1.3;transition:background-color .15s,color .15s}
+.summary-note{margin:-4px 0 16px;text-align:center;color:var(--muted);font-size:14px}
+.after{margin-top:10px}
+.perfect{margin:0 0 18px;padding:12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--green);color:var(--on-btn);box-shadow:var(--shadow-sm);text-align:center;font-family:var(--display);font-size:13px;font-weight:800}
+
+/* ============ Нижнее окно: сведения о препарате и подтверждения ============ */
+.overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;background:var(--overlay);animation:fade .2s ease}
+.sheet{width:100%;max-width:480px;max-height:85vh;max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;padding:10px 18px calc(18px + var(--safe-b));border:2px solid var(--edge);border-bottom:0;border-radius:var(--r-lg) var(--r-lg) 0 0;background:var(--card);box-shadow:0 -6px 0 var(--hardc);animation:sheet .28s cubic-bezier(.2,.8,.2,1)}
+.sheet:focus{outline:none}
+.sheet-handle{width:48px;height:6px;margin:2px auto 16px;border-radius:6px;background:var(--edge);opacity:.4}
+.sheet .drug{margin-bottom:16px}
+.sheet .drug-name{font-size:23px;display:block}
+.sheet-title{margin:6px 0 12px;font-family:var(--display);font-size:18px;line-height:1.25;font-weight:900;letter-spacing:-.01em;text-align:center}
+.sheet-text{margin:0 auto 20px;max-width:34ch;color:var(--muted);text-align:center;font-size:15px;line-height:1.45}
+div.sheet-text{max-width:none;text-align:left;color:var(--ink)}
+div.sheet-text p{margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+div.sheet-text p:last-child{margin:0;padding:0;border:0;color:var(--muted);font-size:13.5px}
+div.sheet-text b{color:var(--ink)}
+div.sheet-text i{font-family:var(--serif);color:var(--green)}
+
+/* ============== Строки препаратов: ошибки и справочник ============== */
+.rows{border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden;margin:0 5px 5px 0}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 16px;border:0;background:none;text-align:left;transition:background-color .15s}
+.row+.row{border-top:1px solid var(--line)}
+.row::after{content:"";flex:none;width:7px;height:7px;margin:0 2px 0 4px;border-top:2px solid var(--ink);border-right:2px solid var(--ink);transform:rotate(45deg);opacity:.7}
+.row:active{background:var(--inset)}
+.row-main{flex:1;min-width:0}
+.row-title{display:block;font-size:15.5px;font-weight:600;line-height:1.3}
+.row-sub{display:block;margin-top:2px;font-size:13px;line-height:1.35;color:var(--muted)}
+.row-note{flex:none;font-family:var(--display);font-size:11px;font-weight:800;color:var(--bad)}
+.search{position:relative;margin:0 0 14px}
+.search svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search .input{padding-left:42px}
+.input[type=search]::-webkit-search-decoration{-webkit-appearance:none}
+.empty{display:grid;justify-items:center;gap:12px;padding:36px 24px;border:2px dashed var(--edge);border-radius:var(--r-lg);background:var(--card);text-align:center}
+.empty svg{width:40px;height:40px;color:var(--green)}
+.empty p{margin:0;max-width:30ch;color:var(--muted);font-size:15px;line-height:1.45}
+.empty-text{margin:24px 8px;text-align:center;color:var(--muted)}
+.list-end{margin-top:14px}
+
+/* ======================== Движение ======================== */
+@keyframes fade{from{opacity:0}}
+@keyframes sheet{from{opacity:0;transform:translateY(40px)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* =========================================================
+   КОМПАКТНЫЙ РЕЖИМ ДЛЯ ТЕЛЕФОНА: вопрос целиком на одном экране
+   ========================================================= */
+body{overscroll-behavior-y:none;-webkit-touch-callout:none}
+.topbar{padding:calc(6px + var(--safe-t)) 16px 8px}
+.topbar-row{min-height:34px}
+.btn-back{height:34px}
+.topbar-sub{margin-top:7px}
+.progress{height:10px}
+.card{margin-top:0;padding:14px 14px 12px}
+.card-tag{margin:-2px 0 8px}
+.drug{margin-bottom:10px;padding-bottom:8px}
+.drug-row{font-size:clamp(19px,5.8vw,22px);line-height:1.15}
+.drug-latin{margin-top:3px;font-size:14.5px;line-height:1.25}
+.btn-info{width:28px;height:28px;margin-left:6px;font-size:16px}
+.field{margin-bottom:10px}
+.label{margin:0 2px 5px;font-size:10.5px;letter-spacing:.12em}
+.opts{gap:5px}
+.opt{min-height:40px;padding:7px 12px;border-radius:10px;font-size:14.5px;line-height:1.25}
+.input{min-height:44px;padding:9px 12px}
+.verdict{min-height:42px;margin:0 0 10px;padding:6px 12px;font-size:13.5px}
+.feedback svg{width:20px;height:20px}
+.actions{gap:8px}
+.btn{min-height:46px;font-size:15px}
+.btn-primary{font-size:13px}
+.swipe-hint{margin:0 0 8px}
+.facts{margin-bottom:10px}
+.fact{padding:8px 0}
+/* кнопки всегда под рукой, даже если вопрос чуть длиннее экрана */
+.card .actions{position:sticky;bottom:calc(8px + var(--safe-b));z-index:5}
+@media (max-width:380px){
+  .app{padding-left:12px;padding-right:12px}
+  .topbar{margin:0 -12px;padding-left:12px;padding-right:12px}
+  .verdict{min-height:40px;font-size:13px}
+}
+@media (max-height:720px){
+  .card{padding:8px 12px 8px}
+  .drug{margin-bottom:7px;padding-bottom:6px}
+  .field{margin-bottom:7px}
+  .label{margin-bottom:3px}
+  .opts{gap:4px}
+  .opt{min-height:34px;padding:4px 12px;font-size:14px}
+  .verdict{min-height:36px;margin-bottom:7px}
+  .btn{min-height:42px}
+  .topbar-sub{margin-top:5px}
+}
+@media (max-height:620px){
+  .opt{min-height:33px;padding:4px 10px;font-size:13.5px}
+  .drug-latin{font-size:13px}
+  .verdict{min-height:34px}
+}
+
+/* ===== Экраны тестов: без верхней плашки; «Меню» сбоку от шкалы, номер вопроса — на карточке ===== */
+.topbar.is-session{position:static;display:flex;align-items:center;gap:10px;margin:0 -16px;padding:calc(8px + var(--safe-t)) 16px 8px;background:transparent;border-bottom:0}
+.topbar.is-session .topbar-row{display:contents}
+.topbar.is-session .topbar-title,.topbar.is-session .top-actions{display:none}
+.topbar.is-session .topbar-sub{flex:1;min-width:0;margin:0}
+@media (max-width:380px){.topbar.is-session{margin:0 -12px;padding-left:12px;padding-right:12px}}
+.drug{position:relative}
+.drug.wr-nolatin{padding-bottom:22px;margin-bottom:16px}
+.drug-count{position:absolute;right:0;top:3px;padding:3px 7px;border:2px solid var(--edge);border-radius:6px;background:var(--paper);color:var(--ink);font:800 11.5px/1.2 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ===== Правки по скриншоту: название слева, номер справа, плотнее на низких экранах ===== */
+.drug.has-count{text-align:left}
+.drug.has-count .drug-row{padding:0 54px 0 0}
+.drug.has-count .drug-name{font-size:clamp(16px,4.7vw,19px);letter-spacing:-.02em}
+.drug.has-count .drug-latin{margin-top:4px}
+.card .actions{padding:6px 0 2px;background:var(--card);box-shadow:0 -6px 0 var(--card)}
+@media (max-height:660px){
+  .topbar.is-session{padding-top:calc(5px + var(--safe-t));padding-bottom:6px}
+  .card{padding:7px 10px 8px}
+  .drug{margin-bottom:5px;padding-bottom:4px}
+  .drug.has-count .drug-name{font-size:clamp(15px,4.3vw,17px)}
+  .drug-latin{font-size:12.5px;margin-top:2px}
+  .btn-info{width:24px;height:24px;font-size:14px}
+  .drug-count{top:1px;padding:2px 6px;font-size:11px}
+  .field{margin-bottom:4px}
+  .label{margin:0 2px 2px;font-size:9.5px}
+  .opts{gap:3px}
+  .opt{min-height:30px;padding:3px 10px;font-size:13px;line-height:1.2;border-radius:8px}
+  .verdict{min-height:32px;margin-bottom:5px;padding:3px 10px;font-size:12.5px}
+  .btn{min-height:40px;font-size:14px}
+  .card .actions{padding-top:4px}
+}
+
+/* Варианты ответов растягиваются: высота подбирается скриптом (fitOpts) так, чтобы страницу можно было
+   прокрутить ровно на высоту самого большого названия препарата с полем вокруг него */
+.fit-opts .card .opt{min-height:var(--opt-h);padding-left:1em;padding-right:1em}
+/* варианты ответов крупнее в 1,2 раза (шрифт; высоту умножает fitOpts) */
+.fit-opts .card .opt > span{font-size:1.2em}
+
+/* ===== Фон с плавающими капсулами и бегущая строка на главном экране ===== */
+.app{position:relative;z-index:1}
+#ticker{display:none;position:relative;left:0;right:0;z-index:30;overflow:hidden;white-space:nowrap;
+  background:var(--paper-2);border-top:2px solid var(--edge);padding:9px 0 calc(9px + var(--safe-b));pointer-events:none}
+body.rx-home #ticker{display:block}
+body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}   /* строка ниже первого экрана: до неё надо листать */
+.ticker-track{display:inline-block;animation:tickerRun var(--tick-dur,90s) linear infinite;
+  font-family:var(--display);font-weight:600;font-size:11.5px;letter-spacing:.14em}
+.ticker-track span{margin:0 18px;color:var(--green)}
+.ticker-track span:nth-child(even){color:var(--red)}
+@keyframes tickerRun{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+
+.rx-go{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 8px 0 0;color:var(--ink)}
+.rx-go svg{width:20px;height:20px;stroke-width:2.6}
+.rx-row .rx-go:not(.rx-chev) svg{transform:rotate(-90deg)}
+.rx-chev.rx-go{width:30px;height:30px}
+.rx-chev.rx-go svg{width:20px;height:20px}
+
+/* Значок сброса прогресса раздела — на правом верхнем углу строки */
+.rx-wrap{position:relative}
+.rx-badge{position:absolute;top:-13px;right:-5px;z-index:3;display:grid;place-items:center;width:30px;height:30px;padding:0;border:2px solid var(--red);border-radius:50%;background:var(--card);color:var(--red);box-shadow:2px 2px 0 var(--hardc,#182721);transition:transform .15s,box-shadow .15s}
+.rx-badge::after{content:"";position:absolute;inset:-9px}
+.rx-badge:active{transform:translate(2px,2px);box-shadow:none}
+.rx-badge svg{width:15px;height:15px;stroke-width:2.4}
+
+/* Подвал главного экрана */
+.rx-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 10px;margin:38px 2px 6px;padding-top:16px;border-top:2px dashed var(--line);text-align:center;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.rx-foot a{padding:6px 2px;color:var(--green);font-weight:600;text-decoration:none;white-space:nowrap}
+.rx-foot a:active{opacity:.6}
+.rx-dot{color:var(--muted)}
+@media (hover:hover){.rx-foot a:hover{text-decoration:underline}}
+
+/* Плашка «Верно / Неверно» не перекрывается нижней панелью кнопок */
+.verdict{height:auto;flex:none;margin-bottom:16px !important}
+.card .actions{box-shadow:0 -3px 0 var(--card)}
+@media (max-height:720px){.verdict{margin-bottom:13px !important}}
+
+/* Кнопка «i» всегда остаётся на первой строке рядом с началом названия, даже если название длинное и переносится */
+.drug-row{display:flex;align-items:flex-start;justify-content:center;gap:6px}
+.drug.has-count .drug-row{justify-content:flex-start}
+.drug-row .drug-name{display:block;flex:0 1 auto;min-width:0}
+.drug-row .btn-info{flex:none;margin-left:0;margin-top:-3px;vertical-align:baseline}
+/* название препарата: чуть ниже от края карточки; поле названия всегда на две строки (длинное название не сдвигает остальное) */
+.drug.has-count .drug-row{margin-top:10px}
+.drug.has-count .drug-name{line-height:1.15;min-height:2.3em}   /* ровно две строки — самое длинное название («Бензилпенициллина натриевая соль») укладывается в две */
+.drug.wr-nolatin{padding-bottom:9px;margin-bottom:12px}
+/* название, «i» и счётчик — по центру поля названия по вертикали */
+.drug.has-count{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
+.drug.has-count .drug-count{position:static;grid-column:2;grid-row:1}
+.drug.has-count .drug-row{grid-column:1;grid-row:1;padding:0;align-items:center}
+.drug.has-count .drug-latin{grid-column:1 / -1;grid-row:2}
+.drug.has-count .drug-name{display:flex;align-items:center}
+.drug.has-count .drug-row .btn-info{margin-top:0}
+@media (max-height:720px){.drug.has-count .drug-row{margin-top:6px}}
+
+/* Латинское название: темнее и крупнее, чтобы читалось сразу */
+.drug-latin{color:var(--ink);font-weight:500;font-size:18px;line-height:1.25}
+@media (max-height:720px){.drug-latin{font-size:16.5px}}
+@media (max-height:660px){.drug-latin{font-size:15.5px}}
+
+/* ===== Экран «Как писать рецепты» ===== */
+.ht-step{margin:0 5px 18px 0;padding:16px 16px 14px;border:2px solid var(--edge);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-sm)}
+.ht-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.ht-no{flex:none;display:grid;place-items:center;width:30px;height:30px;border:2px solid var(--edge);border-radius:50%;background:var(--paper);font-family:var(--display);font-size:12px;font-weight:800}
+.ht-head h2{margin:0;font-family:var(--display);font-size:14.5px;line-height:1.25;font-weight:800;letter-spacing:-.01em}
+.ht-step p{margin:0 0 10px;font-size:15px;line-height:1.5}
+.ht-step p:last-child{margin-bottom:0}
+.ht-step b{color:var(--ink)}
+.ht-step i,.ht-lat{font-family:var(--serif);font-style:italic;font-weight:500;color:var(--green)}
+.ht-note{margin:0 0 12px;padding:9px 12px;border:2px dashed var(--line);border-radius:var(--r-md);background:var(--inset);color:var(--muted);font-size:13.5px;line-height:1.45}
+.ht-note b{color:var(--ink)}
+.ht-forms{margin:0 0 10px;padding:0;list-style:none;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);overflow:hidden}
+.ht-forms li{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 14px;font-size:14.5px}
+.ht-forms li+li{border-top:1px solid var(--line)}
+.ht-forms .ht-lat{font-size:16.5px}
+.ht-forms span:last-child{color:var(--muted);font-size:13.5px;text-align:right}
+.ht-key{display:grid;gap:0;margin:0 0 12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);overflow:hidden}
+.ht-key div{padding:9px 14px;font-size:14.5px;line-height:1.4}
+.ht-key div+div{border-top:1px solid var(--line)}
+.ht-key .ht-lat{display:block;font-size:16.5px}
+.htq{scroll-margin-top:72px}
+.htq-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+.htq-count{font-family:var(--display);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.htq-dots{display:flex;gap:5px}
+.htq-dot{width:18px;height:8px;border:2px solid var(--edge);border-radius:99px;background:var(--paper);transition:background .2s}
+.htq-dot.is-cur{background:var(--amber)}
+.htq-dot.is-ok{background:var(--good)}
+.htq-dot.is-no{background:var(--bad)}
+.ht-step .htq-t{margin:0 0 14px;font-size:17px;line-height:1.4;font-weight:700;outline:none}
+.htq-opts{display:grid;gap:10px}
+.htq .opt{min-height:56px;justify-content:flex-start;gap:12px;font-size:15px;font-weight:600}
+.htq .opt::after{margin-left:auto}
+.htq-ltr{flex:none;display:grid;place-items:center;width:28px;height:28px;border:2px solid currentColor;border-radius:50%;font-family:var(--display);font-size:12px;font-weight:800;line-height:1}
+.htq-txt{min-width:0;overflow-wrap:anywhere}
+.htq .opt:disabled{cursor:default}
+.htq-fb{margin:14px 0 0;padding:11px 14px;border:2px dashed var(--line);border-left:6px solid var(--line);border-radius:var(--r-md);background:var(--inset);font-size:14px;line-height:1.5;color:var(--ink)}
+.htq-fb.is-ok{border-left-color:var(--good)}
+.htq-fb.is-no{border-left-color:var(--bad)}
+.htq-next{margin-top:12px}
+.htq-big{margin:4px 0 2px;font-family:var(--display);font-size:52px;font-weight:900;line-height:1.1;color:var(--green)}
+.htq-big small{font-size:18px;font-weight:700;color:var(--muted)}
+.ht-step .htq-msg{margin:0 0 14px;font-weight:600}
+.ht-step .htq-sub{margin:0 0 8px;font-size:13.5px;font-weight:700;color:var(--muted)}
+.htq-miss{margin:0 0 14px;padding:0;list-style:none;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--paper);overflow:hidden}
+.htq-miss li{display:grid;gap:3px;padding:10px 14px;font-size:14px;line-height:1.4}
+.htq-miss li+li{border-top:1px solid var(--line)}
+.htq-ma{font-weight:700;color:var(--green)}
+/* Бланк рецепта: рукописный шрифт на линованной бумаге */
+.blank{position:relative;margin:2px 0 14px;padding:14px 14px 12px 16px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--lift);
+  background-image:repeating-linear-gradient(transparent 0 31px,rgba(14,91,69,.16) 31px 32px);background-position:0 8px;box-shadow:var(--shadow-sm);overflow-x:auto}
+.bl{display:block;min-height:32px;font:400 20px/32px "Marck Script","Segoe Script","Bradley Hand",cursive;color:#1f3a8a;white-space:nowrap}
+.bl.in1{padding-left:2.2em}.bl.in2{padding-left:4.4em}
+.bl .red{color:var(--red);font-size:16px}
+.blank.is-struck .bl{color:var(--red)}
+.blank .side{display:block;margin:0;padding:0;text-align:right;color:var(--red);font:400 18px/32px "Marck Script",cursive}
+
+/* ===== «Впиши сам»: латынь, концентрация, форма — и переворот карточки с эталонным рецептом ===== */
+.wr-label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 2px 7px;font-size:13.5px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ink)}
+.wr-sub{font-size:12px;font-weight:500;color:var(--muted)}
+.wr-field .input{min-height:54px}
+.wr-field{margin-bottom:38px}
+@media (max-height:720px){.wr-field{margin-bottom:24px}}
+.wr-inwrap{position:relative}
+.wr-inwrap .input{padding-right:158px}
+.wr-chips{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:flex;gap:4px;margin:0}
+.wr-chip{min-width:32px;min-height:38px;padding:0 7px;border:2px solid var(--edge);border-radius:999px;background:var(--card);color:var(--ink);font-size:14px;font-weight:700;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wr-chip:active{transform:translate(2px,2px)}
+.wr-fill{margin:2px 2px 12px;font-size:12.5px;line-height:1.35;color:var(--muted)}
+.input.wr-lat{font-family:var(--serif);font-style:italic;font-size:18px;font-weight:500}
+.input.wr-lat::placeholder{font-style:italic}
+.card.wr-flip-in{transform-origin:50% 50%;animation:wrFlipIn .5s cubic-bezier(.2,.8,.25,1) backwards}
+@keyframes wrFlipIn{from{transform:perspective(900px) rotateY(-90deg);opacity:.35}60%{opacity:1}to{transform:perspective(900px) rotateY(0)}}
+.rxd{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:.5em;align-items:baseline;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.rxd::-webkit-scrollbar{display:none}
+.rxd .bl{display:contents}
+.blank .rxd{font-size:16px;font-family:"IBM Plex Sans Condensed","Roboto Condensed","PT Sans Narrow","Arial Narrow",var(--sans);font-weight:500;font-stretch:condensed;font-size-adjust:.5;font-size-adjust:from-font}
+/* и латиница, и русский текст в Signa — один шрифт, один размер, один вес */
+.rxd .k,.rxd .v,.rxd .v.wrap{font-family:inherit;font-size:1em;font-weight:inherit;font-stretch:inherit;font-size-adjust:inherit;line-height:inherit}
+.blank .rxd .bl{font-size:inherit}
+.rxd .k,.rxd .v{white-space:nowrap}
+/* «Recipe:» / «Rp.:» — красная плашка с обводкой, как прежняя метка «Rp.» */
+.rxd .k:not(:empty){align-self:center;justify-self:start;padding:1px .55em;border:2px solid var(--edge);border-radius:6px;background:var(--red);color:var(--on-red);font:800 .72em/1.5 var(--display);letter-spacing:.06em}
+.rxd .v.wrap{white-space:normal;overflow-wrap:break-word}
+.rxd .bl.in2 .v{padding-left:1.6em}
+.rxd .ru{font-size:.96em}
+.wr-rx{margin:2px 0 10px;font:500 15px/26px var(--sans);color:var(--ink)}
+.wr-rx .bl{font:inherit;color:inherit}
+.wr-rx .gap{color:var(--red)}
+.wr-res{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start;margin:0 0 6px;padding:9px 12px;border:0;border-radius:var(--r-md);background:none}
+.wr-res.is-ok{background:none}
+.wr-res.is-no{background:none}
+.wr-mark{display:flex;align-items:center;justify-content:center;width:22px;height:22px;margin-top:1px;border-radius:50%;color:var(--on-btn)}
+.wr-mark svg{display:block;width:12px;height:12px}
+.is-ok .wr-mark{background:var(--good)}.is-no .wr-mark{background:var(--bad)}
+.wr-body{min-width:0;display:flex;flex-wrap:wrap;gap:1px 8px;align-items:baseline;font-size:14px;line-height:1.3}
+.wr-body b{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.wr-body span{font-weight:600;overflow-wrap:anywhere}
+.wr-body em{flex-basis:100%;font-style:normal;font-weight:700;font-size:13px;color:var(--good)}
+.wr-res.is-no .wr-body span{text-decoration:line-through;text-decoration-color:rgba(184,58,32,.5)}
+/* верный вариант — справа в строке с названием поля, ошибочный ответ — под ним */
+.wr-res.is-no .wr-body{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,58%);grid-template-rows:auto 1fr;column-gap:8px;row-gap:1px;align-items:start}
+.wr-res.is-no .wr-body b{grid-column:1;grid-row:1;white-space:nowrap}
+.wr-res.is-no .wr-body span{grid-column:1;grid-row:2}
+.wr-res.is-no .wr-body em{grid-column:2;grid-row:1 / span 2;text-align:right;overflow-wrap:anywhere}
+@media (max-height:720px){.wr-rx{line-height:24px}.wr-res{padding:7px 11px;margin-bottom:4px}}
+@media (prefers-reduced-motion:reduce){.card.wr-flip-in{animation:none}}
+
+/* Предупреждение о пропущенных вопросах в итогах */
+.skip-warn{margin:0 0 16px;padding:12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--amber);color:#182721;box-shadow:var(--shadow-sm)}
+.skip-warn b{display:block;font-family:var(--display);font-size:13.5px;font-weight:800}
+.skip-warn p{margin:6px 0 10px;font-size:13.5px;line-height:1.4}
+.skip-warn .mistakes{margin-bottom:10px;max-height:160px}
+.skip-warn .mistake.skipped{color:#182721}
+.skip-warn .btn{min-height:42px}
+
+/* Оборот «Впиши сам»: рецепт на бланке — Recipe: слева, остальные строки начинаются правее него */
+.blank.wr-blank{margin:2px 0 10px;padding:14px 12px 10px 14px;overflow:visible}
+.blank .wr-rx{margin:0;font-weight:500;line-height:32px}
+/* Рецепты в «Как писать рецепты» — тот же шрифт, что и в «Впиши сам» (IBM Plex Sans Condensed) */
+.blank .bl{font:500 16px/32px "IBM Plex Sans Condensed","Roboto Condensed","PT Sans Narrow","Arial Narrow",var(--sans);font-stretch:condensed;color:var(--ink)}
+.blank .rxd .bl{font:inherit;color:inherit}
+.blank .rxd{line-height:32px}
+/* В «Как писать рецепты» слово Recipe: / Rp.: — обычным текстом, без красной рамки (плашка остаётся только в «Впиши сам») */
+.blank:not(.wr-blank) .rxd .k:not(:empty){align-self:baseline;padding:0;border:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:normal}
+.blank .stamp{display:block;width:fit-content;max-width:100%;margin:6px 0 0 auto;padding:3px 9px;border:2px solid var(--red);border-radius:6px;background:var(--card);color:var(--red);font:800 13px/1.25 var(--display);transform:rotate(-1.5deg)}
+
+/* ===== Обучение для нового пользователя: подсвечена одна кнопка, остальные скрыты ===== */
+.tour-block{position:fixed;inset:0;z-index:1000;background:transparent;touch-action:none}
+.tour-card{position:fixed;left:12px;right:12px;bottom:calc(12px + var(--safe-b,0px));z-index:1001;max-width:520px;margin:0 auto;padding:16px 16px 14px;border:2px solid var(--edge);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow);animation:tourUp .3s cubic-bezier(.2,.8,.25,1) backwards}
+@keyframes tourUp{from{transform:translateY(24px);opacity:0}}
+.tour-card{touch-action:pan-y}
+.tour-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.tour-count{font-family:var(--display);font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-variant-numeric:tabular-nums}
+.tour-skip{margin:-8px -8px -8px 0;padding:10px 8px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:700;border-radius:10px}
+.tour-skip:active{background:var(--inset)}
+.tour-dots{display:flex;gap:4px;margin:0 0 14px}
+.tour-dots i{flex:1;height:6px;border-radius:99px;background:var(--line);transition:background .25s}
+.tour-dots i.on{background:var(--amber)}
+.tour-dots i.done{background:var(--green)}
+.tour-title{margin:0 0 6px;font-family:var(--display);font-size:17px;font-weight:800;line-height:1.25;color:var(--accent)}
+.tour-text{margin:0 0 16px;font-size:14.5px;line-height:1.5}
+.tour-hint{margin:-6px 0 14px;font-size:12.5px;color:var(--muted)}
+.tour-card.is-intro .tour-title{font-size:21px}
+.tour-card.is-intro .tour-text{font-size:15px}
+.tour-actions{display:flex;gap:10px}
+.tour-back{flex:0 0 34%}
+.tour-next{flex:1}
+body.tour-menu .app{padding-bottom:260px}
+.tour-card.at-top{top:calc(12px + var(--safe-t,0px));bottom:auto;animation-name:tourDown}
+@keyframes tourDown{from{transform:translateY(-24px);opacity:0}}
+body.tour-on .tour-dim{opacity:0 !important;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility .22s}
+body.tour-on .tour-focus{outline:3px solid var(--amber);outline-offset:5px;border-radius:14px;animation:tourPulse 1.4s ease-in-out infinite}
+@keyframes tourPulse{50%{outline-offset:8px;outline-color:var(--red)}}
+.rx-tourlink{display:flex;justify-content:center;margin:14px 0 4px}
+.rx-tourlink button{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 16px;border:2px solid var(--line);border-radius:99px;background:var(--card);color:var(--green);font-size:13.5px;font-weight:700}
+.rx-tourlink button::before{content:"?";display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--green);color:var(--on-btn);font-size:12px;font-weight:800}
+.rx-tourlink button:active{background:var(--inset)}
+@media (prefers-reduced-motion:reduce){body.tour-on .tour-focus,.tour-card{animation:none}}
+
+/* ===== «Мои рецепты»: список и редактор собственного рецепта ===== */
+.rx-i-pen{-webkit-mask-size:46px 46px;mask-size:46px 46px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>")}
+.my-new{margin:0 5px 20px 0;width:calc(100% - 5px)}
+.my-item{margin:0 5px 22px 0}
+.my-item h3{margin:0 0 8px 2px;font-family:var(--display);font-size:14px;line-height:1.25;font-weight:800;overflow-wrap:anywhere}
+.my-item .blank{margin-top:0}
+.my-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.my-acts .btn{min-height:42px;padding:0 6px;font-size:13.5px}
+.my-field{margin:0 0 14px}
+.my-field .label{text-transform:none;letter-spacing:0}
+.my-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.my-check{display:flex;align-items:center;gap:10px;margin:2px 2px 16px;font-size:14.5px;font-weight:600}
+.my-check input{width:22px;height:22px;margin:0;accent-color:var(--green)}
+.my-err{margin:0 0 12px;padding:10px 12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--red);color:var(--on-red);font-size:13.5px;font-weight:700;line-height:1.35}
+.my-prev{margin:0 5px 4px 0}
+.my-sug{margin:8px 0 0;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden}
+.my-sug-i{display:grid;gap:2px;width:100%;padding:10px 14px;border:0;border-bottom:1px dashed var(--line);background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+#myRouteSug{max-height:240px;overflow-y:auto}
+.my-sug-i:last-child{border-bottom:0}
+.my-sug-i:hover,.my-sug-i:focus-visible{background:var(--bg)}
+.my-sug-i b{font-size:15px;font-weight:800}
+.my-sug-i small{color:var(--muted);font-size:12.5px;font-style:italic;overflow-wrap:anywhere}
+.my-file-in{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+.my-ta{width:100%;min-height:140px;margin:0 0 14px;resize:vertical;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.my-own{margin:0 5px 22px 0}
+.my-own .label{margin:0 0 8px 2px;text-transform:none;letter-spacing:0}
+.my-acts2{grid-template-columns:1fr 1fr}
+.my-acts2 small{margin-left:6px;opacity:.7;font-weight:700}
+.my-meta{margin:8px 2px 10px;color:var(--muted);font-size:13px;font-weight:600}
+.my-meta.is-on{color:var(--green);font-weight:800}
+.my-tests{margin:0 0 8px;padding:0;border:0;min-width:0}
+.my-tests legend{padding:0;margin:0 0 10px}
+.my-tests .my-check{margin:0 2px 11px;line-height:1.3}
+.my-dd{position:relative;margin:0 0 8px}
+.my-dd-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;min-height:48px;font-weight:600}
+.my-dd-btn::-webkit-details-marker{display:none}
+.my-dd-btn>span:first-child{min-width:0;overflow-wrap:anywhere}
+.my-dd-arr{flex:none;display:inline-flex;width:20px;height:20px;transition:transform .15s}
+.my-dd-arr svg{width:20px;height:20px;stroke-width:2.6}
+.my-dd[open] .my-dd-arr{transform:rotate(180deg)}
+.my-dd-list{margin-top:8px;padding:14px 14px 4px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);box-shadow:var(--shadow-sm)}
+.my-dd-list .my-check{margin:0 0 12px}
+.my-hint{margin:2px 2px 14px;color:var(--muted);font-size:13px;line-height:1.4}
+
+/* ===== Импорт и экспорт ===== */
+.my-xfer{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 5px 20px 0}
+.my-xfer .btn{min-height:46px;padding:0 10px;font-size:14.5px}
+.my-xfer .btn svg{flex:none;width:20px;height:20px}
+.my-xfer small{opacity:.7;font-weight:700}
+.my-drop{display:grid;justify-items:center;gap:4px;padding:20px 16px;border:2px dashed var(--edge);border-radius:var(--r-md);background:var(--inset);text-align:center;cursor:pointer;transition:background-color .15s,box-shadow .15s}
+.my-drop>*{pointer-events:none}
+.my-drop svg{width:32px;height:32px;margin-bottom:4px;color:var(--green)}
+.my-drop b{font-size:15.5px;font-weight:800}
+.my-drop small{max-width:30ch;color:var(--muted);font-size:13px;line-height:1.4}
+.my-drop-dd{display:none}
+@media (hover:hover) and (pointer:fine){.my-drop-dd{display:inline}}
+.my-drop:hover,.my-drop.is-over{background:var(--good-soft);border-style:solid}
+.my-file-in:focus-visible+.my-drop{border-style:solid;box-shadow:4px 4px 0 var(--accent)}
+.my-or{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:var(--muted);font-size:13px;font-weight:600}
+.my-or::before,.my-or::after{content:"";flex:1;border-top:1px dashed var(--line)}
+.my-ta.is-short{min-height:92px;margin:0 0 6px}
+.my-linkbtn{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:0 0 10px;padding:0 2px;border:0;background:none;color:var(--green);font:inherit;font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.my-linkbtn svg{width:18px;height:18px}
+.my-linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.my-opts{display:grid;gap:12px;margin:0 4px 14px 0}
+.my-opt{justify-content:flex-start;gap:12px;min-height:64px;padding:10px 14px;text-align:left}
+.my-opt-ico{flex:none;display:grid;place-items:center;width:40px;height:40px;border:2px solid var(--edge);border-radius:50%;background:var(--amber);color:#182721}
+.my-opt-ico svg{width:22px;height:22px}
+.my-opt-tx{display:grid;gap:2px;min-width:0}
+.my-opt-tx b{font-size:15px;font-weight:800;overflow-wrap:anywhere}
+.my-opt-tx small{color:var(--muted);font-size:12.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.my-opt.is-done{border-color:var(--green);background:var(--good-soft)}
+.my-opt.is-done .my-opt-ico{background:var(--green);color:var(--on-btn)}
+.my-status{margin:0 0 12px;padding:10px 12px;border:2px solid var(--green);border-radius:var(--r-md);background:var(--good-soft);font-size:13.5px;font-weight:600;line-height:1.4}
+.my-status.is-bad{border-color:var(--bad);background:var(--bad-soft)}
+.my-sum{margin:0 0 8px;text-align:center;font-family:var(--display);font-size:14px;font-weight:800}
+.my-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:0 0 12px}
+.my-stat{display:inline-flex;align-items:center;min-height:26px;padding:1px 10px;border:2px solid var(--edge);border-radius:999px;background:var(--paper);font-size:12.5px;font-weight:700}
+.my-stat.is-new{background:var(--green);color:var(--on-btn)}
+.my-stat.is-bad{background:var(--red);color:var(--on-red)}
+.my-plan{list-style:none;margin:0 0 12px;padding:0;max-height:min(260px,36dvh);overflow-y:auto;overscroll-behavior:contain;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card)}
+.my-plan-i{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:9px 12px;border-bottom:1px dashed var(--line)}
+.my-plan-i:last-child{border-bottom:0}
+.my-plan-m{font-weight:900;text-align:center;line-height:1.35}
+.my-plan-t{display:grid;gap:1px;min-width:0}
+.my-plan-t b{font-size:14.5px;font-weight:800;overflow-wrap:anywhere}
+.my-plan-t small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.my-plan-i.is-new .my-plan-m{color:var(--green)}
+.my-plan-i.is-cut .my-plan-m{color:#9A6A12}
+.my-plan-i.is-bad .my-plan-m{color:var(--bad)}
+.my-plan-i.is-dup .my-plan-t{opacity:.65}
+.my-warn{margin:0 0 12px;padding:10px 12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--amber);color:#182721;font-size:13.5px;font-weight:600;line-height:1.4}
+.my-res{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;margin:0 5px 18px 0;padding:12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);box-shadow:var(--shadow-sm)}
+.my-res.is-warn{background:var(--amber);color:#182721}
+.my-res-ico svg{display:block;width:24px;height:24px;color:var(--green)}
+.my-res.is-warn .my-res-ico svg{color:#182721}
+.my-res b{display:block;font-size:14.5px;font-weight:800;line-height:1.3}
+.my-res ul{margin:4px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.45}
+.my-res-x{display:grid;place-items:center;width:32px;height:32px;margin:-4px -4px 0 0;border:0;border-radius:8px;background:none;color:inherit;font-size:15px;cursor:pointer}
+.my-res-x:focus-visible{outline:2px solid var(--accent)}
+
+/* ===== Группы ===== */
+.my-groups{margin:0 5px 22px 0}
+.my-grp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.my-grp-head h2{margin:0 0 0 2px;font-family:var(--display);font-size:14px;font-weight:800}
+.my-grp-head .my-linkbtn{margin:0}
+.my-grp{display:flex;align-items:center;gap:6px;margin:0 0 8px;padding:6px 6px 6px 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card)}
+.my-grp-t{flex:1;display:grid;gap:1px;min-width:0}
+.my-grp-t b{font-size:15px;font-weight:800;overflow-wrap:anywhere}
+.my-grp-t small{color:var(--muted);font-size:12.5px;font-weight:600}
+.my-grp-b{flex:none;display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:var(--r-sm);background:none;color:var(--ink);cursor:pointer}
+.my-grp-b:hover{background:var(--inset)}
+.my-grp-b:focus-visible{outline:2px solid var(--accent)}
+.my-grp-b svg{width:20px;height:20px}
+.my-tabs{margin-bottom:12px;flex-wrap:wrap;overflow:visible;gap:8px}
+.my-tabs .tab{flex:0 1 auto;min-height:38px;padding:6px 12px}
