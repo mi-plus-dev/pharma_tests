@@ -6,7 +6,6 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#F4EDDD",
   "theme_color": "#F4EDDD",
   "lang": "ru",
@@ -27,5 +26,9 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "categories": [
+    "education",
+    "medical"
   ]
 }

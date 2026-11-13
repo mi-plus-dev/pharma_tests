@@ -1,4 +1,5 @@
 'use strict';
+Object.setPrototypeOf(INFO, null);   // название препарата вроде «constructor» не должно находить служебные свойства
 
 
 
@@ -54,12 +55,13 @@ const allGroups = [...new Set(DB.map(d=>d[3]))];
 // Вторая (и далее) группа препарата — необязательный 6-й элемент строки DB: ["группа", …]
 const grpExtra = d => d[5] || [];
 const grpText = d => [d[3], ...grpExtra(d)].join(' / ');
-const DB_INDEX = new Map(DB.map((d,i)=>[d,i]));
+const DB_INDEX = new Map(DB.map((d,i)=>[d,i]));   // только для разметки текущего экрана; в хранилище препараты записываются по НАЗВАНИЮ
+const DB_BY_NAME = new Map(DB.map(d=>[d[0],d]));
 
 /* ---- Фон: бегущая строка с латинскими названиями препаратов ---- */
 (function(){
   const names = DB.filter((_,i) => i % 9 === 0).map(d => d[4].split('(')[0].trim().toUpperCase());
-  const half = names.map(t => `<span>✚ ${t}</span>`).join('');
+  const half = names.map(t => `<span>✚ ${t.replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';')}</span>`).join('');
   const track = document.getElementById('tickerTrack');
   track.innerHTML = half + half;
   track.style.setProperty('--tick-dur', Math.round(names.join('').length * 0.32) + 's');
@@ -139,7 +141,7 @@ function objOf(v){ return v && typeof v==='object' && !Array.isArray(v) ? v : {}
 const store = {
   gen: 0,   // «поколение» хранилища: растёт при любой записи, по нему кешируются дорогие производные (значки сброса)
   get(k){ try{ const v = localStorage.getItem(k); return v===null ? null : JSON.parse(v); }catch{ return null; } },
-  set(k,v){ this.gen++; try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+  set(k,v){ this.gen++; try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch{ return false; } },   // false — память заполнена или недоступна
   del(k){ this.gen++; try{ localStorage.removeItem(k); }catch{} },
   has(k){ try{ return localStorage.getItem(k)!==null; }catch{ return false; } }
 };
@@ -296,7 +298,7 @@ function doseVariants(correct){
   }
   return out;
 }
-// Строгое сравнение дозы: числа/концентрации должны совпасть ТОЧНО (0,5 ≠ 0,05 ≠ 0,03); форма (таб., капс., мл)
+// Строгое сравнение дозы: ВСЕ числа/концентрации должны совпасть ТОЧНО (0,5 ≠ 0,05 ≠ 0,03; «1% 5 мл» → «1 5»); форма (таб., капс., мл)
 // и знак % необязательны и не проверяются. Запятая/точка равнозначны, «500 000» = «500000», МЕ = ЕД.
 function doseCanon(s){
   return String(s||'').toLowerCase().replace(/ё/g,'е')
@@ -308,12 +310,21 @@ function doseCanon(s){
     .replace(/(^|\s)ме(?=[\s/]|$)/g,'$1ед')
     .replace(/\s+/g,' ').trim();
 }
+// Числа строки: «№10» (число в упаковке) не считается, слова и знак % тоже
+const doseNums = x => (doseCanon(x).replace(/№\s*\d+/g,' ').match(/\d+(?:\.\d+)?/g) || []).map(Number);
+// Один и тот же ввод читается по-разному: «1 500» — это 1500 или 1 и 500; «500.000» — 500000 или 500; «0, 5» — 0,5 или 0 и 5.
+// Берутся все прочтения: ответ верен, если подходит любое из них.
+function doseReadings(user){
+  const t = String(user||'').replace(/№\s*\d+/g,' ').normalize('NFKC');   // «№10» убирается до NFKC: он превращает «№» в «No»; полноширинные цифры → обычные
+  const space = x => x.replace(/(^|[^\d.,])([1-9]\d{0,2})(?:[\s\u00a0\u202f]\d{3})+(?!\d)/g, m => m.replace(/(?<=\d)[\s\u00a0\u202f]+(?=\d)/g, ''));   // 1 500 → 1500
+  const sep   = x => x.replace(/(^|[^\d.,])([1-9]\d{0,2})(?:[.,’'`´]\d{3})+(?!\d)/g, m => m.replace(/(?<=\d)[.,’'`´](?=\d)/g, ''));            // 500.000 → 500000
+  const dec   = x => x.replace(/(\d)\s*,\s*(\d)/g, '$1.$2');                                                                                   // 0, 5 → 0.5
+  return [t, space(t), sep(t), dec(t), dec(sep(space(t)))].map(doseNums);
+}
 function doseMatchOne(user, correct){
-  // сравниваются только числа (даже слитные с буквами: «100ед», «10мл»), слова и знак % не проверяются
-  const nums = x => (doseCanon(x).match(/\d+(?:\.\d+)?/g) || []).map(Number);
-  const u = nums(user), c = nums(correct);
-  if(!u.length || u.length > c.length) return false;
-  return u.every((w,i) => w === c[i]);
+  // нужны ВСЕ числа: и концентрация, и объём; форма (таб., мл) и знак % не проверяются
+  const c = doseNums(correct);
+  return c.length>0 && doseReadings(user).some(u => u.length===c.length && u.every((w,i) => w === c[i]));
 }
 // Слово после запятой с пробелом («0,00025 г/доза, аэрозоль») — второй допустимый ответ (напр. форма «аэрозоль»).
 function doseAltVariants(correct){
@@ -325,58 +336,50 @@ function doseAltVariants(correct){
 }
 function doseAltMatch(user, alt){
   const ucanon = doseCanon(user);
-  if(/\d/.test(ucanon)) return doseMatchOne(user, alt);      // с числом — как обычная доза
-  const uw = ucanon.split(' ').filter(w => w.length>=3);
+  const uw = ucanon.split(' ').filter(w => w.length>=3 && !/\d/.test(w));
   const aw = doseCanon(alt).split(' ').filter(w => w.length>=3 && !/\d/.test(w));
   if(!uw.length || !aw.length) return false;
-  return uw.every(w => aw.some(x => w===x || (Math.min(w.length,x.length)>=4 && (w.startsWith(x)||x.startsWith(w))) || (Math.min(w.length,x.length)>=3 && levenshtein(w,x)<=1)));
+  const wordsOk = uw.every(w => aw.some(x => w===x || (Math.min(w.length,x.length)>=4 && (w.startsWith(x)||x.startsWith(w))) || (Math.min(w.length,x.length)>=3 && levenshtein(w,x)<=1)));
+  // слово формы («аэрозоль») — ответ само по себе; с числом нужно и слово: одно число «15» — лишь часть дозы
+  return wordsOk && (!/\d/.test(ucanon) || doseMatchOne(user, alt));
 }
 function isCloseMatch(user, correct, isDose){
   if(isDose) return doseVariants(correct).some(v => doseMatchOne(user, v)) || doseAltVariants(correct).some(v => doseAltMatch(user, v));
   return isCloseMatchOne(user, correct);
 }
-// Название группы сравнивается ПО СЛОВАМ: каждое значимое слово ответа должно найтись среди слов правильного
-// названия — с допуском на опечатки и окончания (гипогликимический ≈ гипогликемические). Слова вроде «средства»,
-// «препараты» не считаются. Слово должно совпасть минимум по первым 3 буквам, поэтому «наркотические» ≠ «ненаркотические»,
-// «альфа» ≠ «бета».
+// Название группы вписывается целиком: пользователь печатает как хочет, а подсказка (grpSuggest) предлагает точное написание.
+// Сравнение — без регистра, ё=е и лишних пробелов; нечёткого угадывания по отдельным словам нет.
+const groupKey = s => normalizeAnswer(s).replace(/[,;.\-–—()]/g,' ').replace(/\s+/g,' ').trim();   // знаки препинания не важны
+// Название через запятую («Ненаркотические анальгетики, НПВС») — это несколько групп сразу: подходит и целиком, и любая часть,
+// но часть должна быть осмысленной (не «для», не «и», не «средства»)
 const GROUP_STOP = new Set(['и','для','средства','средство','препараты','препарат','группа','лекарственные']);
-function groupWords(s){
-  return normalizeAnswer(s).split(/[\s,;\-–—/()]+/).filter(w => w && !GROUP_STOP.has(w));
-}
-function groupWordOk(a,b){
-  if(a===b) return true;
-  if(a.length<4 || b.length<4) return false;
-  if(a.slice(0,3)!==b.slice(0,3)) return false;
-  let k=0; while(k<a.length && k<b.length && a[k]===b[k]) k++;
-  if(k>=8 && k>=0.7*Math.min(a.length,b.length)) return true; // усечённое слово: противоэпилептик
-  return levenshtein(a,b) <= Math.max(1, Math.floor(Math.max(a.length,b.length)*0.2));
-}
-// Слова всех групп считаются один раз, а не при каждой проверке
-const GROUP_INDEX = allGroups.map(g => ({norm: normalizeAnswer(g), words: groupWords(g)}));
 function isCloseMatchOne(user, correct){
-  const u = groupWords(user), c = groupWords(correct);
-  if(!u.length || !c.length) return false;
-  if(!u.every(w => c.some(x => groupWordOk(w,x)))) return false;
-  // Неполный ответ допустим («НПВС»), НО не если он целиком совпадает с названием ДРУГОЙ группы:
-  // «альфа-адреномиметики» — это отдельная группа, а не ответ для «Альфа- и бета-адреномиметики».
-  // Название через запятую («Иммуномодуляторы, противовирусные») — это ДВЕ группы сразу: подходит любая из частей.
-  for(const part of String(correct).split(',')){
-    const pw = groupWords(part);
-    if(pw.length && pw.every(x => u.some(w => groupWordOk(w,x))) && u.every(w => pw.some(x => groupWordOk(w,x)))) return true;
+  const u = groupKey(user);
+  if(!u) return false;
+  if(u === groupKey(correct)) return true;
+  return String(correct).split(',').map(groupKey).some(part => part.length>=4 && !GROUP_STOP.has(part) && u === part);
+}
+// Все названия групп, включая вторые группы препаратов: из них строится подсказка
+const GROUP_LIST = [...new Set(DB.flatMap(d => [d[3], ...grpExtra(d)]))].sort((a, b) => a.localeCompare(b, 'ru'));
+const GROUP_TOK = GROUP_LIST.map(g => ({g, n: normalizeAnswer(g), words: normalizeAnswer(g).split(/[\s,;\-–—/()]+/).filter(Boolean)}));
+// Подсказка по набранному: каждое слово запроса — начало какого-то слова группы (с допуском на одну опечатку от 5 букв)
+function groupHits(q){
+  const qw = normalizeAnswer(q).split(/[\s,;\-–—/()]+/).filter(Boolean);
+  if(!qw.length) return [];
+  const n = normalizeAnswer(q), out = [];
+  for(const t of GROUP_TOK){
+    const ok = qw.every(w => t.words.some(x => x.startsWith(w) || (w.length>=5 && levenshtein(w, x.slice(0, w.length)) <= 1)));
+    if(ok) out.push([t.n.startsWith(n) ? 0 : 1, t.g]);
   }
-  const cn = normalizeAnswer(correct);
-  for(const {norm, words: gw} of GROUP_INDEX){
-    if(norm === cn) continue;
-    if(gw.length && gw.every(x => u.some(w => groupWordOk(w,x))) && u.every(w => gw.some(x => groupWordOk(w,x)))) return false;
-  }
-  return true;
+  return out.sort((a, b) => a[0]-b[0] || a[1].localeCompare(b[1], 'ru')).map(x => x[1]);
 }
 // Сохранённые вердикты пересчитываются по ТЕКУЩИМ правилам проверки
 // (иначе ответ, проверенный в старой версии, навсегда остаётся с прежним «неверно»).
 function reevalWrite(st, entry){
   // ответы старого формата («доза + группа») не пересчитываются — остаётся прежний вердикт
   if(st.checked && entry && st.v===3 && (st.typed.latin.trim() || st.typed.dose.trim() || st.typed.group.trim())){
-    st.latinOk = latinOk(st.typed.latin, entry[4]);
+    const lm = latinMatch(st.typed.latin, entry[4], entry[0]);
+    st.latinOk = lm > 0; st.latinTypo = lm === 2;
     st.doseOk = isCloseMatch(st.typed.dose, entry[1], true);
     st.groupOk = [entry[3], ...grpExtra(entry)].some(g => isCloseMatch(st.typed.group, g, false));
     st.correct = st.latinOk && st.doseOk && st.groupOk;
@@ -388,12 +391,20 @@ function reevalWrite(st, entry){
    «ВПИШИ САМ»: латинское название, концентрация, форма выпуска
    и эталонный рецепт на обороте карточки
    ========================================================= */
+// Кириллические буквы, неотличимые от латинских: при наборе с русской раскладки их легко вписать вместо латинских
+const LAT_LOOK_UP = {'А':'A','В':'B','Е':'E','К':'K','М':'M','Н':'H','О':'O','Р':'P','С':'C','Т':'T','Х':'X','У':'Y','І':'I','Ј':'J','Ѕ':'S'};
+const LAT_LOOK_LO = {'а':'a','е':'e','о':'o','р':'p','с':'c','х':'x','у':'y','к':'k','м':'m','т':'t','і':'i','ј':'j','ѕ':'s'};
 function latinNorm(s){
-  return String(s||'').toLowerCase().replace(/æ/g,'ae').replace(/[«»"'.,:;()]/g,' ')
-    .replace(/[-–—]/g,' ').replace(/\s+/g,' ').trim();
+  return String(s||'')
+    .normalize('NFKD').replace(/[\u0300-\u036f\u00ad\u200b-\u200d\u2060\ufeff]/g,'')   // диакритика (İ → I), мягкий перенос, невидимые символы
+    .replace(/[АВЕКМНОРСТХУІЈЅ]/g, c => LAT_LOOK_UP[c])
+    .toLowerCase().replace(/æ/g,'ae').replace(/œ/g,'oe')
+    .replace(/[аеорсхукмтіјѕ]/g, c => LAT_LOOK_LO[c])
+    .replace(/[«»"'`´“”„‘’‚‹›.,:;()]/g,' ')
+    .replace(/[-‐‑‒–—―−]/g,' ').replace(/\s+/g,' ').trim();
 }
 // В поле «латынь» иногда пишут сразу с формой («Tab. Labetaloli») — форму отбрасываем
-const LAT_FORM_WORDS = /^(?:recipe|rp|tab|tabulettas?|tabulettae|sol|solutionis|solutio|caps|capsulas?|capsulae|supp|suppositoria|tinct|tincturae|tinctura|aerosoli|pulveris|pulvis|ung|unguenti|sirupi|et)(?:\s+|$)/;
+const LAT_FORM_WORDS = /^(?:recipe|rp|tab|tabulettas?|tabulettae|sol|solutionis|solutio|caps|capsulas?|capsulae|supp|suppositoria|tinct|tincturae|tinctura|aerosoli|aerosolum|ampullas?|ampullae|guttas?|guttae|pulveris|pulvis|ung|unguenti|sirupi|et)(?:\s+|$)/;
 function latinStrip(s){
   let x = latinNorm(s), prev;
   do { prev = x; x = x.replace(LAT_FORM_WORDS, '').trim(); } while(x !== prev);
@@ -406,10 +417,39 @@ function latinOptions(latin){
   if(m) opts.push(latinNorm(latin));            // можно вписать и целиком, как в справочнике
   return opts;
 }
-function latinOk(user, latin){
-  const u = latinStrip(user);
-  return !!u && latinOptions(latin).includes(u);
+// Пробелы и дефисы в латинском названии не важны: «Co-trimoxazoli» = «Co trimoxazoli» = «Cotrimoxazoli»
+const latinKey = x => x.replace(/ /g, '');
+// Название из заголовка эталонного рецепта на обороте карточки («Tabulettas Metamizoli sodii 0,5» → «metamizoli sodii»)
+// тоже верно: иначе ученик, написавший как на карточке, получил бы «неверно»
+const RX_LAT_CACHE = new Map();
+function recipeLatinOptions(name){
+  if(!name || !RX_DATA[name]) return [];
+  if(!RX_LAT_CACHE.has(name)){
+    const head = String(RX_DATA[name][0] && RX_DATA[name][0][0] || '').replace(/^\s*(?:recipe|rp)\s*:\s*/i, '');
+    const typed = head.replace(/\s+\d[\d\s,.]*\s*(?:%|ED|ME|ml|мл)?.*$/i, '').replace(/\s*[—–-]\s*$/, '');
+    const o = latinStrip(typed);
+    RX_LAT_CACHE.set(name, o ? [o] : []);
+  }
+  return RX_LAT_CACHE.get(name);
 }
+// Ровно одна опечатка: лишняя, пропущенная или заменённая буква, либо две соседние буквы местами
+function oneTypo(a, b){
+  if(a === b) return true;
+  const la = a.length, lb = b.length;
+  if(Math.abs(la-lb) > 1) return false;
+  let i = 0; while(i<la && i<lb && a[i]===b[i]) i++;
+  if(la === lb) return a.slice(i+1) === b.slice(i+1) || (a[i]===b[i+1] && a[i+1]===b[i] && a.slice(i+2) === b.slice(i+2));
+  return la > lb ? a.slice(i+1) === b.slice(i) : b.slice(i+1) === a.slice(i);
+}
+// 0 — неверно, 1 — верно, 2 — верно, но с опечаткой (допускается только в длинных названиях — от 9 букв, чтобы короткие не путались)
+function latinMatch(user, latin, name){
+  const u = latinKey(latinStrip(user));
+  if(!u) return 0;
+  const opts = [...latinOptions(latin), ...recipeLatinOptions(name)].map(latinKey).filter(Boolean);
+  if(opts.includes(u)) return 1;
+  return opts.some(o => o.length >= 9 && oneTypo(u, o)) ? 2 : 0;   // длина считается по эталону: в 9-буквенном названии пропущенная буква — тоже одна опечатка
+}
+const latinOk = (user, latin, name) => latinMatch(user, latin, name) > 0;
 
 // Дозировка может состоять из нескольких вариантов («0,005 таб.; 0,5% 2 мл»)
 function rxSegments(dose){
@@ -533,6 +573,7 @@ function rxBuild(d){
 /* Эталонные рецепты — из файла «Рецепты 2023» (метопролол, атенолол, изосорбида динитрат и ко-тримоксазол — из файла с рецептами на экзамен) */
 const RX_DATA = {"Ламотриджин":[["Recipe: Tabulettas Lamotrigini 0,1",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 3 р. в день","in1"]],"Суматриптан":[["Recipe: Tabulettas Sumatriptani 0,1",""],["Da tales doses numero 2","in1"],["Signa: По 1 таб 2 р. в день","in1"]],"Нимесулид":[["Recipe: Tabulettas Nimesulidi 0,1",""],["Da tales doses numero 20","in1"],["Signa: внутрь, по 1 таблетке 2 раза в сутки","in1"]],"Пентоксифиллин":[["Recipe: Tabulettas Pentoxyfillini 0,1",""],["Da tales doses numero 60","in1"],["Signa: По 1 таб 3 р. в день, сразу после еды","in1"]],"Амантадин":[["Recipe: Tabulettas Amantadini 0,1",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р. в день","in1"]],"Лабеталол":[["Recipe: Tabulettas Labetaloli 0,1",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р. в день","in1"]],"Этимизол":[["Recipe: Tabulettas Aethymizoli 0,1",""],["Da tales doses numero 50","in1"],["Signa: по 2 таблетке 2-3 р/д","in1"]],"Умифеновир":[["Recipe: Tabulettas Umifenoviri 0,1",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 3 р. в день","in1"]],"Тетрациклин":[["Recipe: Tabulettas Tetracyclini 0,1",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 4 р. в день, после еды","in1"]],"Целекоксиб":[["Recipe: Tabulettas Celecoxibi 0,2",""],["Da tales doses numero 20","in1"],["Signa: Внутрь, по 1 таб 2 р. в день","in1"]],"Эналаприл":[["Recipe: Tabulettas Enalaprili 0,01",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 2 р. в день","in1"]],"Кодеина фосфат":[["Recipe: Tabulettas Codeini phosphatis 0,01",""],["Da tales doses numero 6","in1"],["Signa: По 1 таб 2-3 р. в день","in1"]],"Домперидон":[["Recipe: Tabulettas Domperidoni 0,01",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р. в день, за 15-30 мин до еды","in1"]],"Метоклопрамид":[["Recipe: Tabulettas Metoclopramidi 0,01",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р. в день, после еды","in1"]],"Нифедипин":[["Recipe: Tabulettas Nifedipini 0,01",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р. в день, после еды","in1"]],"Рибофлавин":[["Recipe: Tabulettas Riboflavini 0,01",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 1 р. в день","in1"]],"Афобазол":[["Recipe: Tabulettas «Aphobazolum» 0,01",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 2 р. в день","in1"]],"Кларитин":[["Recipe: Tabulettas Claritini 0,01",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 1 р. в день","in1"]],"Бисопролол":[["Recipe: Tabulettas Bisoprololi 0,01",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 1 р. в день, утром натощак или во время завтрака","in1"]],"Розувастатин":[["Recipe: Tabulettas Rosuvastatini 0,01",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 1 р. в день","in1"]],"Кеторолак":[["Recipe: Tabulettas Ketorolaci 0,01",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 2 р. в день","in1"]],"Анаприлин":[["Recipe: Tabulettas Anaprilini 0,01",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3-4 р. в день","in1"]],"Имудон":[["Recipe: Tabulettas «Imudon» 0,01",""],["Da tales doses numero 40","in1"],["Signa: рассасывать таблетку в полости рта с интервалом 1-2 часа по 8 таблеток в сутки","in1"]],"Торасемид":[["Recipe: Tabulettas Torasemidi 0,01",""],["Da tales doses numero 20","in1"],["Signa: по 1 таблетке 1р/д для лечения ХСН","in1"]],"Лизиноприл":[["Recipe: Tabulettas Lisinoprili 0,01",""],["Da tales doses numero 30","in1"],["Signa: Внутрь, по 1 таб 3 р. в день","in1"]],"Феназепам":[["Recipe: Tabulettas Phenazepami 0,001",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб на ночь","in1"]],"Левамизол":[["Recipe: Tabulettas Levamisoli 0,15",""],["Da tales doses numero 3","in1"],["Signa: По 1 таб 1 р/д, повтор курс через 2 недели","in1"]],"Галоперидол":[["Recipe: Tabulettas Haloperidoli 0,0015",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3р/д, через 30 мин после еды","in1"]],"Мексидол":[["Recipe: Tabulettas Mexidoli 0,125",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3р/д","in1"]],"Карведилол":[["Recipe: Tabulettas Carvediloli 0,0125",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Лозартан":[["Recipe: Tabulettas Losartani 0,0125",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Дифенин":[["Recipe: Tabulettas Diphenini 0,117",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 2-3 р/д","in1"]],"Пирацетам":[["Recipe: Tabulettas Pyracetami 0,2",""],["Da tales doses numero 60","in1"],["Signa: По 2 таб 3-4 р/д","in1"]],"Рибоксин":[["Recipe: Tabulettas Riboxini 0,2",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Актовегин":[["Recipe: Tabulettas Actovegini 0,2",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Флуконазол":[["Recipe: Fluconazoli 0,2",""],["Da tales doses numero 20 in\xa0capsulis","in1"],["Signa: По 1 капс 1 р/д","in1"]],"Ибупрофен":[["Recipe: Tabulettas Ibuprofeni 0,2",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Ацетилцистеин":[["Recipe: Tabulettas Acetylcysteini 0,2",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Симвастатин":[["Recipe: Tabulettas Simvastatini 0,02",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 1 р/д","in1"]],"Триметазидин":[["Recipe: Tabulettas Trimetazidini 0,02",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Фамотидин":[["Recipe: Tabulettas Famotidini 0,02",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Сальбутамол":[["Recipe: Tabulettas Salbutamoli 0,002",""],["Da tales doses numero","in1"],["Signa: По 1 таб 1-2 р/д","in1"]],"Эритромицин":[["Recipe: Tabulettas Erythromycini 0,25",""],["Da tales doses numero 10","in1"],["Signa: По 2 таб 4 р/д","in1"]],"Ампициллин":[["Recipe: Tabulettas Ampicillini 0,25",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Леводопа":[["Recipe: Tabulettas Levodopae 0,25",""],["Da tales doses numero 20","in1"],["Signa: Внутрь, при лечении паркинсонизма","in1"]],"Метронидазол":[["Recipe: Tabulettas Metronidazoli 0,25",""],["Da tales doses numero 20","in1"],["Signa: По 2 таб 2 р/д","in1"]],"Амитриптилин":[["Recipe: Tabulettas Amitriptylini 0,025",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Пирензепин":[["Recipe: Tabulettas Pirenzepini 0,025",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 4 р/д","in1"]],"Спиронолактон":[["Recipe: Tabulettas Spironolactoni 0,025",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб утром, независимо от приема пищи","in1"]],"Каптоприл":[["Recipe: Tabulettas Captoprili 0,025",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 2 р/д, за час до еды","in1"]],"Курантил":[["Recipe: Tabulettas Curantyli 0,025",""],["Da tales doses numero 120","in1"],["Signa: По 1 таб 3 р/д, натощак, запивая небольшим количеством воды.","in1"]],"Гидрохлоротиазид":[["Recipe: Tabulettas Hydrochlorothiazidi 0,025",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб утром натощак","in1"]],"Метотрексат":[["Recipe: Tabulettas Methotrexati 0,0025",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р с интервалом в 12 часов 1 раз в неделю","in1"]],"Варфарин":[["Recipe: Tabulettas Warfarini 0,0025",""],["Da tales doses numero 50","in1"],["Signa: Внутрь, 1 р в сутки, в одно и то же время, независимо от приема пищи","in1"]],"Дигоксин":[["Recipe: Tabulettas Digoxini 0,00025",""],["Da tales doses numero 50","in1"],["Signa: Внутрь, по ½ таб 2 р/д","in1"]],"Амброксол":[["Recipe: Tabulettas Ambroxoli 0,03",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Мелатонин":[["Recipe: Tabulettas Melatonini 0,003",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб в сутки, за 30 мин перед сном","in1"]],"Бисептол":[["Recipe: Tabulettas «Biseptol» 0,48",""],["Da tales doses numero 20","in1"],["Signa: По 2 таб 2 р/д","in1"]],"Немозол":[["Recipe: Tabulettas «Nemozol» 0,4",""],["Da tales doses numero 1","in1"],["Signa: однократно","in1"]],"Верапамил":[["Recipe: Tabulettas Verapamili 0,04",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 1 р/д, после еды","in1"]],"Дротаверин":[["Recipe: Tabulettas Drotaverini 0,04",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р/д, независимо от приема пищи","in1"]],"Фуросемид":[["Recipe: Tabulettas Furosemidi 0,04",""],["Da tales doses numero 50","in1"],["Signa: Внутрь, по 1 таб натощак","in1"]],"Папаверин":[["Recipe: Tabulettas Papaverini hydrochloridi 0,04",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 3-4 р/д","in1"]],"Парацетамол":[["Recipe: Tabulettas Paracetamoli 0,5",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 4 р/д, при высокой температуре","in1"]],"Ацетилсалициловая кислота":[["Recipe: Tabulettas Acidi acetylsalicylici 0,5",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 3-4 р в сутки, после еды","in1"]],"Левомицетин":[["Recipe: Tabulettas Laevomycetini 0,5",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 4 р/д, за 30 мин до приема еды","in1"]],"Азитромицин":[["Recipe: Tabulettas Azithromycini 0,5",""],["Da tales doses numero 3","in1"],["Signa: По 1 таб 1 р/д, за час до еды","in1"]],"Уросульфан":[["Recipe: Tabulettas Urosulfani 0,5",""],["Da tales doses numero 12","in1"],["Signa: По 1 таб 4 р/д","in1"]],"Вальпроат натрия":[["Recipe: Tabulettas Natrii valproatis 0,5",""],["Da tales doses numero 100","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Транексам":[["Recipe: Tabulettas «Tranexam» 0,5",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Метамизол натрия (Анальгин)":[["Recipe: Tabulettas Metamizoli sodii 0,5",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Левофлоксацин":[["Recipe: Tabulettas Levofloxacini 0,5",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 1 р/д","in1"]],"Амоксициллин":[["Recipe: Tabulettas Amoxicillini 0,5",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 3 р/д, до или после приема пищи","in1"]],"Метформин":[["Recipe: Tabulettas «Metformin» 0,5",""],["Da tales doses numero 60","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Трамадол":[["Recipe: Tabulettas Tramadoli 0,05",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб 2 р/д","in1"]],"Дифенгидрамин (Димедрол)":[["Recipe: Tabulettas Diphenhydramini 0,05",""],["Da tales doses numero 40","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Фуразолидон":[["Recipe: Tabulettas Furazolidoni 0,05",""],["Da tales doses numero 10","in1"],["Signa: По 2 таб 4 р/д","in1"]],"Фурадонин (Нитрофурантоин)":[["Recipe: Tabulettas Furadonini 0,05",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 3 р/д, после еды","in1"]],"Аскорбиновая кислота":[["Recipe: Tabulettas Acidi ascorbinici 0,05",""],["Da tales doses numero 50","in1"],["Signa: По 2 таб 3 р/д","in1"]],"Мукалтин":[["Recipe: Tabulettas Mucaltini 0,05",""],["Da tales doses numero 20","in1"],["Signa: По 1-2 таб 3 р/д","in1"]],"Мерказолил":[["Recipe: Tabulettas «Mercazolil» 0,005",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 3 р/д, после еды","in1"]],"Винпоцетин (Кавинтон)":[["Recipe: Tabulettas Vinpocetini 0,005",""],["Da tales doses numero 50","in1"],["Signa: По 1 таб 3 р/д","in1"]],"Дезлоратадин":[["Recipe: Tabulettas Desloratadini 0,005",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 1 р/д","in1"]],"Бисакодил":[["Recipe: Tabulettas Bisacodyli 0,005",""],["Da tales doses numero 30","in1"],["Signa: Внутрь, вечером перед сном, взрослым в начальной дозе 5 мг, при отсутствии эффекта 10-15 мг.","in1"]],"Преднизолон":[["Recipe: Tabulettas Prednisoloni 0,005",""],["Da tales doses numero 30","in1"],["Signa: Внутрь, 3 таб в 7 часов, 2 таб в 11 часов, 1 табл в 13 ч, независимо от приема пищи","in1"]],"Амлодипин":[["Recipe: Tabulettas Amlodipini 0,005",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 1 р/д","in1"]],"Дексаметазон":[["Recipe: Tabulettas Dexamethasoni 0,0005",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб 1 р/д, во время или после еды","in1"]],"Нитроглицерин":[["Recipe: Tabulettas Nitroglycerini 0,0005",""],["Da tales doses numero 20","in1"],["Signa: Сублингвально, по 1 таб, независимо от приема пищи","in1"]],"Валидол":[["Recipe: Tabulettas Validoli 0,06",""],["Da tales doses numero 10","in1"],["Signa: По 1 таб 2-3 р/д, держать под языком до полного рассасывания","in1"]],"Бромгексин":[["Recipe: Tabulettas Bromhexini 0,008",""],["Da tales doses numero 20","in1"],["Signa: Внутрь, по 1 таб 4 р/д","in1"]],"Нистатин":[["Recipe: Tabulettas Nystatini 500 000 ED",""],["Da tales doses numero 20","in1"],["Signa: Внутрь, по 1 таб 3 р/д","in1"]],"Цианокобаламин":[["Recipe: Solutionis Cyanocobalamini 0,02% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: в/м 1 р/д","in1"]],"Налоксон":[["Recipe: Solutionis Naloxoni hydrochloridi 0,4% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: По 1 мл в/в 1 р/д","in1"]],"Прозерин":[["Recipe: Solutionis Proserini 0,05% — 1 ml",""],["Da tales doses numero 6 in ampullis","in1"],["Signa: п/к по 1 мл 1-2 р/д","in1"]],"Коргликон":[["Recipe: Solutionis Corglyconi 0,06% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: Вводить в/в по 1 мл в 20 мл 20% глюкозы","in1"]],"Атропина сульфат":[["Recipe: Solutionis Atropini sulfatis 0,1% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: в/м и в/в для устранения брадикардии, премедикация, при отравлениях м-холиномиметиками и антихолинэстеразными","in1"]],"Адреналина гидрохлорид":[["Recipe: Solutionis Adrenalini hydrochloridi 0,1% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: по 1 мл подкожно, 1 р/д","in1"]],"Платифиллина гидротартрат":[["Recipe: Solutionis Platyphyllini hydrotartratis 0,2% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: Подкожно, по 1 мл 2 р/д","in1"]],"Прогестерон":[["Recipe: Solutionis Progesteroni 0,5% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: По 1 мл в/м","in1"]],"Морфина гидрохлорид":[["Recipe: Solutionis Morphini hydrochloridi 1% — 1 ml",""],["Da tales doses numero 1 in ampullis","in1"],["Signa: Вводить подкожно, по 1 мл","in1"]],"Мезатон":[["Recipe: Solutionis Mesatoni 1% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: под кожу или в/м 0,3-1 мл","in1"]],"Викасол":[["Recipe: Solutionis Vicasoli 1% — 1 ml",""],["Da tales doses numero 4 in ampullis","in1"],["Signa: в/м по 1 мл в течение 4 дней","in1"]],"Никотиновая кислота":[["Recipe: Solutionis Acidi nicotinici 1% — 1 ml",""],["Da tales doses numero 20 in ampullis","in1"],["Signa: вводить в/м по 1 мл 1 р/д","in1"]],"Промедол":[["Recipe: Solutionis Promedoli 2% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: Вводить в/м по 1 мл, при болевом синдроме","in1"]],"Супрастин":[["Recipe: Solutionis Suprastini 2% — 1 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: в/м по 1 мл","in1"]],"Тиамина бромид":[["Recipe: Solutionis Thiamini bromidi 3% — 1 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: По 1 мл, в/м глубоко","in1"]],"Пентамин":[["Recipe: Solutionis Pentamini 5% — 1 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: в/м 1 мл 2 р/д","in1"]],"Ретаболил":[["Recipe: Solutionis Retabolili 5% — 1 ml",""],["Da tales doses numero 1 in ampullis","in1"],["Signa: в/м, по 1 мл 1 р/3 нед","in1"]],"Кофеин бензоат натрия":[["Recipe: Solutionis Coffeini natrii benzoatis 10% — 1 ml",""],["Da tales doses numero 6 in ampullis","in1"],["Signa: По 1 мл 2 р/д, подкожно","in1"]],"Эноксапарин натрия (Клексан)":[["Recipe: Solutionis Enoxaparini natrii 10% — 1 ml",""],["Da tales doses numero 1 in ampullis","in1"],["Signa: Подкожно в переднелатеральную область брюшной стенки 4 р/д","in1"]],"Окситоцин":[["Recipe: Solutionis Oxytocini 1 ml (5 ED)",""],["Da tales doses numero 1 in ampullis","in1"],["Signa: в/в по 1 мл, разведенный в 500 мл 5% р-ра глюкозы","in1"]],"Мелоксикам":[["Recipe: Solutionis Meloxicami 1% — 1,5 ml",""],["Da tales doses numero 3 in ampullis","in1"],["Signa: в/м по 1,5 мл 1 р/д","in1"]],"Диазепам":[["Recipe: Solutionis Diazepami 0,5% — 2 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: По 1 мл 1р/д, в/м","in1"]],"Аминазин":[["Recipe: Solutionis Aminazini 2,5% — 2 ml",""],["Da tales doses numero 6 in ampullis","in1"],["Signa: в/в по 1-2 мл, предварительно развести в 20 мл 5% р-ра глюкозы для купирования психомоторного возбуждения","in1"]],"Гентамицин":[["Recipe: Solutionis Gentamycini sulfatis 4% — 2 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: в/м по 2 мл 2 р/д","in1"]],"Лидокаин":[["Recipe: Solutionis Lidocaini hydrochloridi 10% — 2 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: для инфильтрационной анестезии","in1"]],"Камфора":[["Recipe: Camphorae oleosae 20% — 2 ml",""],["Da tales doses numero 6 in ampullis","in1"],["Signa: По 2 мл подкожно","in1"]],"Кордиамин":[["Recipe: Solutionis Cordiamini 25% — 2 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: в/м, 2 р/д","in1"]],"Диклофенак":[["Recipe: Solutionis Diclofenaci 2,5% — 3 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: в/м по 3 мл в день","in1"]],"Амиодарон":[["Recipe: Solutionis Amiodaroni 5% — 3 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: По 3 мл в/в, медленно, на 20 мл физ р-ре, однократно","in1"]],"Ново-рапид":[["Recipe: Solutionis «Novorapid» 100 ED/ml — 3 ml",""],["Da. Signa: п/к, по 1 мл 1 р/д, перед приемом пищи","in1"]],"Новокаин":[["Recipe: Solutionis Novocaini 0,5% — 5 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: для инфильтративной анестезии 0,5% р-р","in1"]],"Дибазол":[["Recipe: Solutionis Dibasoli 1% — 5 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: в/м по 5 мл 2 р/д","in1"]],"Изониазид":[["Recipe: Solutionis Isoniazidi 10% — 5 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: в/м по 5 мл 1 р/д","in1"]],"Баралгин":[["Recipe: Solutionis Baralgini 50% — 5 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: при выраженном болевом синдроме и лихорадке в/в или в/м","in1"]],"Гепарин":[["Recipe: Solutionis Heparini 5 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: п/к по 1 мл в переднелатеральн обл брюшн стенки 4 р/д","in1"]],"Нафазолин":[["Recipe: Solutionis Naphazolini 0,1% — 10 ml",""],["Da. Signa: Интраназально, по 1-2 капли 3 р/д","in1"]],"Ксилометазолин":[["Recipe: Solutionis Xylometazolini 0,1% — 10 ml",""],["Da. Signa: По 2-3 капли в кажд половину носа 2 р/д 5-7 дней","in1"]],"Левосимендан":[["Recipe: Solutionis Levosimendani 0,25% — 10 ml",""],["Da tales doses numero 1 in ampullis","in1"],["Signa: в/в","in1"]],"Бемегрид":[["Recipe: Solutionis Bemegridi 0,5% — 10 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: По 10 мл в/в","in1"]],"Пилокарпина гидрохлорид":[["Recipe: Solutionis Pilocarpini hydrochloridi 1% — 10 ml",""],["Da. Signa: Закапывать в конъюнктивальный мешок по 1 капл 3р/д","in1"]],"Эуфиллин":[["Recipe: Solutionis Euphyllini 2,4% — 10 ml",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: в/в при приступах бронхиальной астмы","in1"]],"Ретинола ацетат":[["Recipe: Solutionis Retinoli acetatis oleosae 3,44% — 10 ml",""],["Da. Signa: по 2-3 капли 4 р/д","in1"]],"Натрия оксибутират":[["Recipe: Solutionis Natrii oxybutyratis 20% — 10 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: По 10 мл в/м однократно","in1"]],"Сульфацил натрия (Альбуцид)":[["Recipe: Solutionis Sulfacyli natrii 20% — 10 ml",""],["Da. Signa: По 2 капли 4 р/д","in1"]],"Лантус":[["Recipe: Solutionis Lantusi 100 ED/ml — 10 ml",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: п/к доза назначается эндокринологом","in1"]],"Добутамин":[["Recipe: Solutionis Dobutamini 1,25% — 20 ml",""],["Da tales doses numero 1","in1"],["Signa: в/в капельно в теч 2 ч, развести в 10 мл растворителя","in1"]],"Аминокапроновая кислота":[["Recipe: Solutionis Acidi aminocapronici 5% — 100 ml",""],["Da. Signa: в/в капельно по 100мл","in1"]],"Калия йодид":[["Recipe: Solutionis Kalii iodidi 3% — 200 ml",""],["Da. Signa: По 1 столовой ложке 3-5 р/д (запивают теплой водой)","in1"]],"Глюкоза":[["Recipe: Solutionis Glucosae 5% — 400 ml",""],["Da. Signa: в/в капельно, медленно 1-2 р/д","in1"]],"Лидаза":[["Recipe: Solutionis Lydazi 1280 ME",""],["Da tales doses numero 10 in ampullis","in1"],["Signa: п/к 1 р/д","in1"]],"Кокарбоксилаза":[["Recipe: Solutionis Cocarboxylazi 0,05",""],["Da tales doses numero 5 in ampullis","in1"],["Signa: в/в струйно развести в 5 мл воды для инъекций","in1"]],"Реополиглюкин":[["Recipe: Solutionis Rheopolyglucini 10% — 200 ml",""],["Da tales doses numero 1","in1"],["Signa: Содержимое флакона вводить в/в капельно","in1"]],"Полиоксидоний":[["Recipe: Polyoxidonii 0,006",""],["Da tales doses numero 5","in1"],["Signa: в/в в течение дней предварительно развести в 2 мл флакона в воде для инъекций","in1"]],"Цефтриаксон":[["Recipe: Ceftriaxoni 1,0",""],["Da tales doses numero 10","in1"],["Signa: Содержимое флакона растворить в 10 мл стерильной воды для инъекции, вводить в/в струйно медленно в течении 2-4 мин 1 р/д","in1"]],"Тиопентал натрия":[["Recipe: Thiopentali natrii 1,0",""],["Da tales doses numero 5","in1"],["Signa: Содержимое флакона растворить в физ р-ре до получения 2,5% р-ра. Вводить в/в, для введения в общ анастезию","in1"]],"Лонгидаза":[["Recipe: Longidazae 1500 ED",""],["Da tales doses numero 5","in1"],["Signa: Содержимое флакона растворить в 2 мл физ р-ра, в/м, 1 р в 3 дня","in1"]],"Бензилпенициллина натриевая соль":[["Recipe: Benzylpenicillini-natrii 500 000 ED",""],["Da tales doses numero 12","in1"],["Signa: Содержимое флакона вводить в/м 4 р/д. Предварительно развести его в 2 мл физ р-ра","in1"]],"Пироксикам":[["Recipe: Piroxicami 0,02",""],["Da tales doses numero 20 in capsulis","in1"],["Signa: Принимать внутрь по 1 капс 1 р/д","in1"]],"Ирунин":[["Recipe: Irunini 0,1",""],["Da tales doses numero 14 in capsulis","in1"],["Signa: По 1 капс 1 р/д","in1"]],"Рифампицин":[["Recipe: Rifampicini 0,15",""],["Da tales doses numero 30 in capsulis","in1"],["Signa: Внутрь, по 1 капс 3 р/д за 30-60 мин до еды","in1"]],"Этосуксимид":[["Recipe: Aethosuximidi 0,25",""],["Da tales doses numero 100 in capsulis","in1"],["Signa: Внутрь, по 1 капс 3 р/д во время еды","in1"]],"Тамсулозин":[["Recipe: Tamsulosini 0,0004",""],["Da tales doses numero 10 in capsulis","in1"],["Signa: По 1 капс 1 р/д","in1"]],"Виферон":[["Recipe: Suppositoria «Viferon» 500 000 ME",""],["Da tales doses numero 10","in1"],["Signa: по 1 свече ректально 2р/д","in1"]],"Ипратропия бромид":[["Recipe: Aerosolum Ipratropii bromidi 15,0",""],["Da. Signa: по 2 вдоха 4р/д при ХОБЛ, бронхиальной астме и бронхоспазме","in1"]],"Беклометазон":[["Recipe: Aerosolum Beclomethasoni dipropionatis",""],["Da. Signa: по 2 ингаляции 2 р/д","in1"]],"Бутамират (Синекод)":[["Recipe: Sirupi Butamirati 0,15% — 100 ml",""],["Da. Signa: Внутрь, по 15 мл (3 чайные или дозировочные ложки) 3 р/д, перед едой","in1"]],"Валериана":[["Recipe: Tincturae Valerianae 25 ml",""],["Da. Signa: по 25 капель на прием 3-4 р/д","in1"]],"Метопролол":[["Recipe: Tabulettas Metoprololi 0,1",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб. 2 раза в день","in1"]],"Атенолол":[["Recipe: Tabulettas Atenololi 0,025",""],["Da tales doses numero 30","in1"],["Signa: По 1 таб. 2 р/д","in1"]],"Изосорбида динитрат":[["Recipe: Tabulettas Isosorbidi dinitratis 0,01",""],["Da tales doses numero 20","in1"],["Signa: По 1 таб. 3 р/д","in1"]],"Ко-тримоксазол":[["Recipe: Tabulettas Co-trimoxazoli 0,48",""],["Da tales doses numero 20","in1"],["Signa: По 2 таблетки 2 раза в день. При остром бронхите бактериальной природы","in1"]]};
 Object.assign(RX_DATA, {"Гидроксизин (Атарах)": [["Recipe: Tabulettas Hydroxyzini 0,025 № 25", ""], ["Da. Signa: По 1 таблетке 2 раза в день.", "in1"]], "Тофизопам (Грандаксин)": [["Recipe: Tabulettas Tofisopami 0,05 № 20", ""], ["Da. Signa: По 1 таблетке 2 раза в день.", "in1"]], "Фенобарбитал": [["Recipe: Phenobarbitali 0,1", ""], ["Da tales doses numero 10 in tabulettis", "in1"], ["Signa: По 1 таблетке на ночь.", "in1"]], "Золпидем": [["Recipe: Tabulettas Zolpidemi 0,01 № 10", ""], ["Da. Signa: По 1 таблетке непосредственно перед сном.", "in1"]], "Фентоламин": [["Recipe: Solutionis Phentolamini 0,5% — 1 ml", ""], ["Da tales doses numero 10 in ampullis", "in1"], ["Signa: Для инъекций.", "in1"]], "Норадреналин": [["Recipe: Solutionis Noradrenalini hydrotartratis 0,2% — 1 ml", ""], ["Da tales doses numero 10 in ampullis", "in1"], ["Signa: Для внутривенного капельного введения после разведения.", "in1"]], "Пустырник": [["Recipe: Tincturae Leonuri 25 ml", ""], ["Da. Signa: По 30 капель 3 раза в день.", "in1"]], "Активированный уголь": [["Recipe: Tabulettas Carbonis activati 0,25 № 10", ""], ["Da. Signa: По 1 таблетке 3 раза в день.", "in1"]]});
+Object.setPrototypeOf(RX_DATA, null);
 RX_DATA["Сальбутамол"][1][0] += " " + GAP;   // в файле число доз не указано
 
 /* =========================================================
@@ -585,7 +626,7 @@ const LISTS = {
 };
 // Куда ведёт «Назад»; всё, чего здесь нет, возвращает в меню
 const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
-  semQuiz:'menu', semWrite:'menu',
+  semQuiz:'semMenu', semWrite:'semMenu',
   quiz:'examQuiz', write:'examWrite', studyList:'examQuiz', writeBlockList:'examWrite', examQuiz:'exam', examWrite:'exam',
   myrx:'menu', myrxEdit:'myrx', myQuiz:'myrx', myWrite:'myrx', myGroup:'menu', grpQuiz:'myGroup', grpWrite:'myGroup'};
 // Куда ведёт «назад» с карточек: из тем — в темы, из семестра — в семестр
@@ -654,13 +695,14 @@ const KIND = {
     ready: st => st.sel.dose!==null && st.sel.route!==null && st.sel.group!==null
   },
   write: {
-    blank: () => ({v:3, typed:{latin:'', dose:'', group:''}, checked:false, correct:false, latinOk:false, doseOk:false, groupOk:false}),
+    blank: () => ({v:3, typed:{latin:'', dose:'', group:''}, checked:false, correct:false, latinOk:false, latinTypo:false, doseOk:false, groupOk:false}),
     restore: (st, d) => reevalWrite({
       v: st?.v===3 ? 3 : 1,                       // 1 — прежние форматы: их вердикт не пересчитывается
       typed: {latin: String(st?.typed?.latin ?? ''), dose: String(st?.typed?.dose ?? ''), group: String(st?.typed?.group ?? '')},
       checked: !!st?.checked,
       correct: !!st?.correct,
       latinOk: !!st?.latinOk,
+      latinTypo: !!st?.latinTypo,
       doseOk: !!st?.doseOk,
       groupOk: !!st?.groupOk
     }, d),
@@ -696,19 +738,20 @@ function semRead(m){
   if(Array.isArray(raw.order) && Number.isInteger(raw.sem)) return {[raw.sem]: raw};
   return raw;
 }
+function semDropMode(m, i){
+  const all = semRead(m); delete all[i];
+  if(Object.keys(all).length) store.set(KEYS[m], all); else store.del(KEYS[m]);
+}
 function semDrop(i){
-  for(const m of ['semQuiz','semWrite']){
-    const all = semRead(m); delete all[i];
-    if(Object.keys(all).length) store.set(KEYS[m], all); else store.del(KEYS[m]);
-  }
+  for(const m of ['semQuiz','semWrite']) semDropMode(m, i);
 }
 function loadSession(mode, block){
   const cfg = SESSION[mode];
   const sv = objOf(cfg.sem ? semRead(mode)[semIdx] : cfg.block ? readAll(KEYS[mode])[block] : store.get(KEYS[mode]));
   const n = Array.isArray(sv.order) ? sv.order.length : 0;
   if(!n || !Array.isArray(sv.state) || sv.state.length!==n) return null;
-  if(!sv.order.every(i => Number.isInteger(i) && i>=0 && i<DB.length)) return null;
-  const order = sv.order.map(i => DB[i]);
+  if(!sv.order.every(x => typeof x==='string' && DB_BY_NAME.has(x))) return null;
+  const order = sv.order.map(x => DB_BY_NAME.get(x));
   if(new Set(order).size!==n) return null;
   if(!cfg.dynamic){
     const items = itemsOf(mode, block);
@@ -730,7 +773,7 @@ function newSession(mode, block){
 let saveTimer = 0, pendingSave = null;
 function saveSession(S){
   clearTimeout(saveTimer); pendingSave = null;
-  const order = S.order.map(d => DB_INDEX.get(d));
+  const order = S.order.map(d => d[0]);
   if(SESSION[S.mode].sem){                       // зачёт по семестру: ключ + номер семестра
     const all = semRead(S.mode);
     all[S.sem] = {order, idx:S.pos, furthest:S.furthest, state:S.state};
@@ -783,13 +826,13 @@ let mistakes = {};
 const mistakeCount = () => Object.keys(mistakes).length;
 function saveMistakes(){ store.set(KEYS.mistakes, mistakes); }
 function mistakeItems(){
-  return Object.keys(mistakes).map(Number)
-    .sort((a,b) => (mistakes[b].t - mistakes[a].t) || DB[a][0].localeCompare(DB[b][0], 'ru'))
-    .map(i => DB[i]);
+  return Object.keys(mistakes)
+    .sort((a,b) => (mistakes[b].t - mistakes[a].t) || a.localeCompare(b, 'ru'))
+    .map(name => DB_BY_NAME.get(name));
 }
 function dropMistakeSessions(){ for(const m of MISTAKE_MODES){ store.del(KEYS[m]); delete sess[m]; } }
 function noteAnswer(d, ok){
-  const i = DB_INDEX.get(d);
+  const i = d[0];
   if(ok){
     if(!(i in mistakes)) return;
     delete mistakes[i];
@@ -804,9 +847,8 @@ function initMistakes(){
   const v = store.get(KEYS.mistakes);
   if(v && typeof v==='object' && !Array.isArray(v)){
     for(const [k, m] of Object.entries(v)){
-      const i = Number(k);
-      if(Number.isInteger(i) && i>=0 && i<DB.length){
-        mistakes[i] = {n: Number.isInteger(m?.n) && m.n>0 ? m.n : 1, t: Number.isFinite(m?.t) ? m.t : 0};
+      if(DB_BY_NAME.has(k)){   // препарата больше нет в базе (например, удалён свой рецепт) — запись отбрасывается
+        mistakes[k] = {n: Number.isInteger(m?.n) && m.n>0 ? m.n : 1, t: Number.isFinite(m?.t) ? m.t : 0};
       }
     }
     return;
@@ -816,12 +858,21 @@ function initMistakes(){
   for(const m of ['study', 'writeBlock']) BLOCKS.forEach((_,i) => { const S = loadSession(m, i); if(S) found.push(S); });
   for(const S of found) S.state.forEach((st,i) => {
     if(st.checked && !st.correct){
-      const k = DB_INDEX.get(S.order[i]);
+      const k = S.order[i][0];
       mistakes[k] = {n: (mistakes[k]?.n || 0) + 1, t: 0};
     }
   });
   saveMistakes();
 }
+
+/* Формат хранения: препараты записываются по названию (раньше — по номеру в базе, который сдвигался при правках базы
+   и удалении своих рецептов). Прогресс и список ошибок старого формата сбрасываются один раз. */
+(function(){
+  const FMT_KEY = 'pharma_store_fmt';
+  if(store.get(FMT_KEY) === 2) return;
+  for(const k of ['quiz','write','study','writeBlock','semQuiz','semWrite','mistakesQuiz','mistakesWrite','mistakes','myQuiz','myWrite','grpQuiz','grpWrite']) store.del(KEYS[k]);
+  store.set(FMT_KEY, 2);
+})();
 
 /* ========================= Состояние ========================= */
 const sess = {quiz: loadSession('quiz') || newSession('quiz'), write: loadSession('write') || newSession('write')};
@@ -875,7 +926,7 @@ function restoreView(){
   for(const k of OLD_BLOCK_KEYS) if(store.has(k)){ store.del(k); migrated = true; }
   if(migrated && LISTS[PARENT[m]]) m = PARENT[m];
   if(m==='semQuiz' || m==='semWrite'){ const S = loadSession(m); if(S){ semSess = S; mode = m; } }
-  else if(m==='quiz' || m==='write' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || LISTS[m]) mode = m;
+  else if(m==='quiz' || m==='write' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
   else if(m==='myGroup'){ if(myGrpOk()) mode = m; }
   else if(SESSION[m]?.grp){ if(myGrpOk()) openBlock(m, curGrp, true); }
   else if(m==='groupCards' || SESSION[m]?.block) openBlock(m, lastBlock[m], true);
@@ -894,11 +945,12 @@ function openBlock(target, i, silent){
   if(!silent) render();
 }
 // Зачёт по семестру: отдельная сессия и отдельный прогресс для каждого семестра
-function startSemTest(i){
+const semName = i => (i ? 'II' : 'I') + ' семестр';
+function startSemTest(i, m = 'semQuiz'){
   flushSave();
   semIdx = i;
-  semSess = loadSession('semQuiz') || newSession('semQuiz');
-  mode = 'semQuiz';
+  semSess = loadSession(m) || newSession(m);
+  mode = m;
   render();
 }
 function openMistakes(m, silent){
@@ -912,12 +964,14 @@ function askReset(m, i){
   const cfg = SESSION[m] || {};
   const text = m==='groupCards' ? `Карточки блока ${i+1} начнутся с первой.`
     : cfg.grp ? 'Ответы в этой группе удалятся, и она начнётся заново. Список ошибок не изменится.'
+    : cfg.sem ? `Ответы в режиме «${m==='semQuiz' ? 'Тест' : 'Впиши сам'}» по ${semName(i)}у удалятся, и он начнётся заново. Список ошибок не изменится.`
     : cfg.block ? `Ответы в блоке ${i+1} удалятся, и он начнётся заново. Список ошибок не изменится.`
     : cfg.dynamic ? 'Повторение начнётся заново — по текущему списку ошибок.'
     : `Ответы в режиме «${cfg.title}» удалятся, и начнётся новый круг. Список ошибок не изменится.`;
   askConfirm('Сбросить прогресс?', text, 'Сбросить', () => {
     dropPending();
     if(m==='groupCards' || cfg.block) clearSaved(m, i);
+    else if(cfg.sem){ semDropMode(m, i); if(semSess && semSess.mode===m && semSess.sem===i) semSess = null; }
     else if(cfg.dynamic){ store.del(KEYS[m]); delete sess[m]; }
     else { sess[m] = newSession(m); saveSession(sess[m]); }
     render();
@@ -931,7 +985,7 @@ function savedHasProgress(m, sv){
   if(!n) return false;
   if((sv.pos ?? sv.idx ?? 0) > 0 || (sv.furthest ?? 0) > 0) return true;
   try{
-    const K = KIND[SESSION[m].kind], d = DB[sv.order[0]];
+    const K = KIND[SESSION[m].kind], d = DB_BY_NAME.get(sv.order[0]);
     return !!(d && Array.isArray(sv.state) && K.touched(K.restore(sv.state[0], d)));   // ответ на первом вопросе без «Далее»
   }catch{ return false; }
 }
@@ -940,13 +994,13 @@ const modesHaveProgress = modes => modes.some(m => {
   return raw.some(sv => savedHasProgress(m, sv));
 });
 const cardsHaveProgress = () => Object.values(readAll(KEYS.groupCards)).some(p => Number.isInteger(p) && p>0);
-const semHasProgress = i => ['semQuiz','semWrite'].some(m => { const sv = objOf(semRead(m)[i]); return savedHasProgress(m, sv); });
+const semHasProgress = i => ['semQuiz','semWrite'].some(m => savedHasProgress(m, objOf(semRead(m)[i])));
 const EXAM_MODES = ['quiz','write','study','writeBlock'];
 // Разделы главного экрана: есть ли прогресс, подпись и что именно удалять
 const RESET_SECTIONS = {
-  sem0:    {has: () => semHasProgress(0), title:'I семестр', text:'Ответы в зачёте по I семестру удалятся, и он начнётся заново.',
+  sem0:    {has: () => semHasProgress(0), title:'I семестр', text:'Ответы в тесте и в «Впиши сам» по I семестру удалятся, и зачёт начнётся заново.',
             run(){ semDrop(0); semSess = null; }},
-  sem1:    {has: () => semHasProgress(1), title:'II семестр', text:'Ответы в зачёте по II семестру удалятся, и он начнётся заново.',
+  sem1:    {has: () => semHasProgress(1), title:'II семестр', text:'Ответы в тесте и в «Впиши сам» по II семестру удалятся, и зачёт начнётся заново.',
             run(){ semDrop(1); semSess = null; }},
   exam:    {has: () => modesHaveProgress(EXAM_MODES), title:'Экзамен', text:'Ответы в тесте и в «Впиши сам» удалятся — и по всем рецептам, и по блокам. Список ошибок сохранится.',
             run(){ for(const m of ['study','writeBlock']) store.del(KEYS[m]); blockSess = null; sess.quiz = newSession('quiz'); sess.write = newSession('write'); store.del(KEYS.quiz); store.del(KEYS.write); }},
@@ -1016,7 +1070,8 @@ function check(){
     st.correct = st.sel.dose===dose && st.sel.route===route && st.sel.group===group;
   } else {
     st.v = 3;
-    st.latinOk = latinOk(st.typed.latin, dd[4]);
+    const lm = latinMatch(st.typed.latin, dd[4], dd[0]);
+    st.latinOk = lm > 0; st.latinTypo = lm === 2;
     st.doseOk = isCloseMatch(st.typed.dose, dose, true);
     st.groupOk = [group, ...grpExtra(dd)].some(g => isCloseMatch(st.typed.group, g, false));
     st.correct = st.latinOk && st.doseOk && st.groupOk;
@@ -1196,6 +1251,8 @@ function drugRow(d, note){
 let semIdx = 0;
 // Раскрыт ли единый пункт «По темам» на главном экране
 let topicsOpen = false;
+// Вышла новая версия приложения: на главном экране появляется кнопка «Обновить»
+let updateReady = false;
 
 
 // «Как писать рецепты» — краткая схема оформления (учебная)
@@ -1376,10 +1433,12 @@ function viewMenu(){
     return `<div class="rx-subitem">${row(`data-act="openTopic" data-mode="groupCards" data-i="${i}"`, b.num, esc(b.title), '', pg)}${reset}</div>`;
   }).join('');
 
+  const upd = updateReady ? `<div class="upd-banner" role="status"><span>Вышла новая версия приложения.</span><button class="btn btn-primary" type="button" data-act="reloadApp">Обновить</button></div>` : '';
   return `
     <header class="rx-head">
       <div class="rx-brand"><h1 class="rx-title"><span class="rx-r">Р</span>ецепты</h1></div>
     </header>
+    ${upd}
     <h2 class="rx-sec">Зачёты</h2>
     <div class="rx-rows">${exams}</div>
     ${myGrpMenuHtml()}
@@ -1415,6 +1474,20 @@ function footerHtml(){
   return parts.length ? `<footer class="rx-foot">${parts.join('<span class="rx-dot" aria-hidden="true">·</span>')}</footer>` : '';
 }
 // «Экзамен»: сначала формат — тест или «Впиши сам»
+// Зачёт по семестру: тот же выбор формата, что и в экзамене
+function viewSemMenu(){
+  const name = semName(semIdx), sem = SEMESTERS[semIdx] || SEMESTERS[0], n = semItems().length;
+  setTop({back:'Меню', title:name});
+  const one = (m, icon, title, desc) => {
+    const p = progressOf(loadSession(m));
+    return tile({m, act:'openSem', i:semIdx, icon, title, desc, meta:chip(p), reset: p && 'Сбросить прогресс'});
+  };
+  return `<header class="page-head"><h1>${name}</h1><p>${sem.short}: ${esc(sem.desc)}. В зачёте ${n} ${plural(n,'рецепт','рецепта','рецептов')}.</p></header>
+    <div class="list">${
+      one('semQuiz', ICON.choice, 'Тест', 'Выбираете дозу, путь введения и группу из трёх вариантов.')}${
+      one('semWrite', ICON.pen, 'Впиши сам', 'Видно только название — латынь, концентрацию и группу вписываете сами. Карточка переворачивается и показывает рецепт.')}
+    </div>`;
+}
 function viewExam(){
   setTop({back:'Меню', title:'Экзамен'});
   return `<header class="page-head"><h1>Экзамен</h1><p>Выберите формат подготовки.</p></header>
@@ -1439,7 +1512,7 @@ function viewExamScope(){
 }
 function viewList(){
   const L = LISTS[mode];
-  setTop({back: L.target==='groupCards' ? 'Меню' : 'Экзамен'});
+  setTop({back: L.target==='groupCards' ? 'Меню' : mode==='studyList' ? 'Тест' : 'Впиши сам'});
   const rows = BLOCKS.map((b,i) => {
     let p = null;
     if(L.target==='groupCards'){ const pos = cardsPos(i); if(pos>0) p = {pos:pos+1, n:b.items.length, what:'Карточка'}; }
@@ -1470,7 +1543,7 @@ function viewMistakes(){
     </div>
     <h2 class="section-title">${count(items.length)} в списке</h2>
     <div class="rows">${items.map(d => {
-      const n = mistakes[DB_INDEX.get(d)].n;
+      const n = mistakes[d[0]].n;
       return drugRow(d, n>1 ? `${n} ${plural(n,'ошибка','ошибки','ошибок')}` : '');
     }).join('')}</div>
     <button class="btn btn-secondary btn-block list-end" type="button" data-act="clearMistakes">Очистить список</button>`;
@@ -1522,23 +1595,23 @@ function choiceFields(st, right){
     </div>`).join('');
 }
 // Быстрые вставки для поля дозировки: не нужно переключать клавиатуру на телефоне
-const DOSE_CHIPS = ['%', 'мл', 'г', 'ЕД'];
+const DOSE_CHIPS = ['%', 'мл', 'МЕ', 'гр'];
 function wrFillText(st){
   const n = ['latin', 'dose', 'group'].filter(k => String(st.typed[k] || '').trim()).length;
   return n === 3 ? 'Всё заполнено — можно проверять' : `Заполнено ${n} из 3 — кнопка «Проверить» включится, когда будут все три`;
 }
 function writeFields(st){
-  const field = (key, label, sub, ph, enter, cls, extra) => `
+  const field = (key, label, sub, ph, enter, cls, extra, after) => `
     <div class="field wr-field">
       <label class="label wr-label" for="f-${key}"><span class="wr-lab">${label}</span>${sub ? `<span class="wr-sub">${sub}</span>` : ''}</label>
       <div class="${extra ? 'wr-inwrap' : ''}"><input class="input${cls ? ' ' + cls : ''}" id="f-${key}" data-field="${key}" type="text"
         value="${esc(st.typed[key])}" placeholder="${ph}"${key==='latin' ? ' lang="la"' : ''}
-        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${enter}">${extra || ''}</div>
+        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${enter}">${extra || ''}</div>${after || ''}
     </div>`;
   const chips = `<div class="wr-chips" role="group" aria-label="Быстрая вставка">${DOSE_CHIPS.map(c => `<button class="wr-chip" type="button" data-act="ins" data-ins="${c}" aria-label="Вставить ${c}">${c}</button>`).join('')}</div>`;
   return field('latin', 'Латинское название', 'род. падеж', 'Например: Labetaloli', 'next', 'wr-lat')
        + field('dose', 'Концентрация / дозировка', '', 'Напр.: 1% 5 мл', 'next', '', chips)
-       + field('group', 'Фармакологическая группа', '', 'Например: НПВС', 'done')
+       + field('group', 'Фармакологическая группа', '', 'Начните печатать…', 'done', '', '', '<div class="my-sug" id="grpSug" role="listbox" hidden></div>')
        + `<p class="wr-fill" id="wrFill" aria-live="polite">${wrFillText(st)}</p>`;
 }
 // Оборот карточки: эталонный рецепт и разбор трёх ответов
@@ -1547,16 +1620,25 @@ function wrMarkSvg(ok){
     ? '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4l2.4 2.4 4.6-5.2"/></svg>'
     : '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>';
 }
-function wrRes(label, ok, typed, right){
+function wrRes(label, ok, typed, right, note){
   return `<div class="wr-res ${ok ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(ok)}</span>
-    <div class="wr-body"><b>${label}</b><span>${esc(String(typed).trim() || '—')}</span>${ok ? '' : `<em>${esc(String(right))}</em>`}</div></div>`;
+    <div class="wr-body"><b>${label}</b><span>${esc(String(typed).trim() || '—')}</span>${ok ? '' : `<em>${esc(String(right))}</em>`}${note ? `<small class="wr-note">${esc(note)}</small>` : ''}</div></div>`;
+}
+// Концентрацию всегда пишут в граммах: если вписали миллиграммы или микрограммы — подсказка с пересчётом
+function doseUnitNote(typed){
+  const m = /(\d+(?:[.,]\d+)?)\s*(мкг|мг|mcg|µg|μg|mg)(?![а-яёa-z])/i.exec(String(typed||''));
+  if(!m) return '';
+  const n = parseFloat(m[1].replace(',', '.')), micro = /^(мкг|mcg|µg|μg)$/i.test(m[2]);
+  const g = (n / (micro ? 1e6 : 1e3)).toFixed(12).replace(/0+$/, '').replace(/\.$/, '');   // без «5e-7»
+  return `Концентрацию всегда пишут в граммах: ${m[1]} ${m[2]} = ${g.replace('.', ',')} г`;
 }
 function viewWriteBack(d, st, counter, actions){
-  const rxLines = RX_DATA[d[0]] || rxBuild(d).lines;
+  const mine = MY_SET.has(d) && MY_ACTIVE.find(m => m.d===d);
+  const rxLines = mine ? myrxLines(mine.r) : (RX_DATA[d[0]] || rxBuild(d).lines);   // свои рецепты — с экранированием
   const legacy = st.v !== 3;
   const rows = legacy
     ? `<div class="wr-res ${st.correct ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(st.correct)}</span><div class="wr-body"><b>Ответ</b><span>${st.correct ? 'Верно' : 'Есть неточности'}</span></div></div>`
-    : wrRes('Латынь', st.latinOk, st.typed.latin, d[4]) + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1]) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d));
+    : wrRes('Латынь', st.latinOk, st.typed.latin, d[4], st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1], doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d));
   return `<article class="card wr-back" data-swipe>
     ${drugHead(d[0], d[4], true, counter)}
     <div class="blank wr-blank"><div class="rxd wr-rx" data-short="${esc(rxDoc(rxShort(rxLines)))}">${rxDoc(rxLines)}</div><span class="stamp">${esc(grpText(d))}</span></div>
@@ -1569,9 +1651,9 @@ function verdict(st, kind){
     return '<div class="verdict is-idle" aria-hidden="true"></div>';   // пустая рамка: место под результат
   }
   const ok = st.correct;
-  if(!ok && kind==='choice') return '<div class="verdict is-idle is-blank"></div><div class="sr-only" role="status">Неверно — верные варианты отмечены</div>';   // неверный выбор: плашки нет, место сохраняем
+  if(!ok && kind==='choice') return '<div class="verdict is-idle is-blank"></div><div class="sr-only" data-say="Неверно — верные варианты отмечены">Неверно — верные варианты отмечены</div>';   // неверный выбор: плашки нет, место сохраняем
   const text = ok ? 'Верно!' : kind==='choice' ? 'Неверно — верное отмечено зелёным' : 'Есть неточности — правильный ответ под полем';
-  return `<div class="verdict feedback ${ok ? 'is-good' : 'is-bad'}" role="status">${ok ? ICON.ok : ICON.no}<span>${text}</span></div>`;
+  return `<div class="verdict feedback ${ok ? 'is-good' : 'is-bad'}" data-say="${text}">${ok ? ICON.ok : ICON.no}<span>${text}</span></div>`;
 }
 
 function viewSummary(S, cfg, t){
@@ -1595,7 +1677,7 @@ function viewSummary(S, cfg, t){
     primary = `<button class="btn btn-primary" type="button" data-act="restart">${cfg.block ? 'Пройти заново' : 'Новый круг'}</button>`;
     if(nm) after = '<button class="btn btn-secondary btn-block after" type="button" data-act="go" data-mode="mistakes">Работа над ошибками</button>';
   }
-  setTop({back: cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? 'Меню' : cfg.own ? 'Мои рецепты' : 'Экзамен', compact:true, score:t, progress:1});
+  setTop({back: cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? semName(S.sem) : cfg.own ? 'Мои рецепты' : mode==='quiz' ? 'Тест' : 'Впиши сам', compact:true, score:t, progress:1});
   return `<article class="card" data-swipe>
     <h2 class="summary-title">${heading}</h2>
     <div class="stats">
@@ -1619,7 +1701,7 @@ function viewSession(){
   const S = cur(), cfg = SESSION[S.mode], n = S.order.length, t = totals(S);
   if(S.pos >= n) return viewSummary(S, cfg, t);
   if(cfg.kind==='choice') ensureOpts(S);
-  const backLabel = cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? 'Меню' : cfg.own ? 'Мои рецепты' : 'Экзамен';
+  const backLabel = cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? semName(S.sem) : cfg.own ? 'Мои рецепты' : mode==='quiz' ? 'Тест' : 'Впиши сам';
   setTop({back: backLabel, compact:true, score:t, progress:S.pos/n});
   const d = S.order[S.pos], [name, , , , latin] = d;
   const st = S.state[S.pos];
@@ -1761,7 +1843,26 @@ function myrxLoad(){
   const v = store.get(MYRX_KEY);
   return Array.isArray(v) ? v.filter(x => x && typeof x==='object' && x.id).map(x => ({...myrxBlankDraft(), ...x, tests: Array.isArray(x.tests) ? x.tests.filter(t => MYRX_TEST_ID.test(t)) : []})) : [];
 }
+const MYRX_MAX = 1000;   // предел числа своих рецептов
 const myrxStore = list => store.set(MYRX_KEY, list);
+function myrxStorageFail(){
+  openSheet(`<h2 class="sheet-title" id="sheetTitle">Не удалось сохранить</h2>
+    <p class="sheet-text">Память устройства для приложения заполнена или недоступна, изменения не записаны. Удалите ненужные рецепты или освободите место и повторите. Экспорт сохранит ваши рецепты в файл.</p>${CLOSE_BTN}`);
+}
+// Есть ли незаконченный прогресс в этих тестах (id как в «Добавить в тесты»)
+function myrxHasProgress(ts){
+  const sv = (m, key) => key==null ? store.get(KEYS[m]) : SESSION[m].sem ? semRead(m)[key] : readAll(KEYS[m])[key];
+  for(const t of ts){
+    let list = [];
+    if(t==='exam') list = [['quiz'], ['write']];
+    else if(t==='own') list = [['myQuiz'], ['myWrite']];
+    else if(/^s\d$/.test(t)) list = [['semQuiz', +t[1]], ['semWrite', +t[1]]];
+    else if(/^b\d$/.test(t)) list = [['study', +t[1]], ['writeBlock', +t[1]]];
+    else if(t.startsWith('g_')) list = [['grpQuiz', t.slice(2)], ['grpWrite', t.slice(2)]];
+    if(list.some(([m, k]) => savedHasProgress(m, sv(m, k)))) return true;
+  }
+  return false;
+}
 
 // Строки рецепта; пустые поля показываются красным многоточием
 function myrxLines(r, plain){
@@ -1880,7 +1981,8 @@ function myrxSaveFile(){
 function myrxSanitize(x){
   if(!x || typeof x!=='object' || Array.isArray(x)) return null;
   const r = {...myrxBlankDraft(), form: MYRX_FORMS.some(f => f.id===x.form) ? x.form : 'tab'};
-  for(const k of ['drug', 'latin', 'dose', 'vol', 'num', 'signa', 'group', 'route']) r[k] = String(x[k] ?? '').trim().slice(0, 300);
+  for(const k of ['drug', 'latin', 'dose', 'vol', 'num', 'signa', 'group', 'route'])
+    r[k] = (typeof x[k]==='string' || (typeof x[k]==='number' && isFinite(x[k]))) ? String(x[k]).trim().slice(0, 300) : '';   // объекты, списки и т. п. — пусто
   r.tests = Array.isArray(x.tests) ? [...new Set(x.tests.filter(t => typeof t==='string' && MYRX_TEST_ID.test(t)))] : [];
   r.abbr = x.abbr===true;
   return r;
@@ -1989,11 +2091,15 @@ function myrxPlan(text){
     try{ data = m ? JSON.parse(m[0]) : null; }catch(__){ data = null; }
     if(data===null) return {error:'Это не похоже на рецепты. Нужен файл или текст, созданный кнопкой «Экспорт».'};
   }
+  if(data && !Array.isArray(data) && typeof data==='object'){
+    if(data.app!==undefined && data.app!=='pharma-recipes') return {error:'Этот файл создан другим приложением.'};
+    if(typeof data.version==='number' && data.version > 1) return {error:'Файл создан более новой версией приложения. Обновите приложение и повторите.'};
+  }
   const src = Array.isArray(data) ? data : (data && Array.isArray(data.recipes) ? data.recipes : null);
   if(!src) return {error:'В файле нет списка рецептов.'};
   if(!src.length) return {error:'Список рецептов пуст.'};
   // группы из файла: совпавшие по id или названию привязываем к своим, остальные создадим
-  const gl = myGrpLoad(), gmap = new Map(), groups = [];
+  const gl = myGrpLoad(), gmap = new Map(), groups = []; let groupsCut = 0;
   if(!Array.isArray(data) && Array.isArray(data.groups)) for(const x of data.groups.slice(0, 30)){
     if(!x || typeof x!=='object') continue;
     const id = String(x.id || ''), name = String(x.name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
@@ -2001,22 +2107,33 @@ function myrxPlan(text){
     const same = gl.find(g => g.id===id) || gl.find(g => g.name.toLowerCase()===name.toLowerCase())
       || groups.find(g => g.id===id || g.name.toLowerCase()===name.toLowerCase());
     if(same){ gmap.set(id, same.id); continue; }
-    if(gl.length + groups.length >= 30) continue;
+    if(gl.length + groups.length >= 30){ groupsCut++; continue; }
     groups.push({id, name}); gmap.set(id, id);
   }
-  const list = myrxLoad(), seen = new Set(list.map(myrxKey)), names = new Set();
-  const p = {items:[], fresh:[], groups, tests:new Set(), dup:0, bad:0, cut:0, over:Math.max(0, src.length - 500)};
+  const list = myrxLoad(), seen = new Set(list.map(myrxKey)), names = new Set(), localByKey = new Map(list.map(x => [myrxKey(x), x]));
+  const room = Math.max(0, MYRX_MAX - list.length);
+  const p = {items:[], fresh:[], merge:[], groups, groupsCut, tests:new Set(), dup:0, bad:0, cut:0, over:Math.max(0, src.length - 500)};
   for(const raw of src.slice(0, 500)){
     const r = myrxSanitize(raw);
     if(!r){ p.bad++; p.items.push({st:'bad', name:'Запись без названия', why:'Это не рецепт'}); continue; }
     r.tests = [...new Set(r.tests.map(t => t.startsWith('g_') ? (gmap.has(t.slice(2)) ? 'g_' + gmap.get(t.slice(2)) : '') : t).filter(Boolean))];
     const name = r.drug || r.latin || 'Без названия';
-    if(seen.has(myrxKey(r))){ p.dup++; p.items.push({st:'dup', name, why:'Уже есть в вашем списке — будет пропущен'}); continue; }
+    if(seen.has(myrxKey(r))){
+      // такой рецепт уже есть: пропускаем, но если в файле он состоит в группах — добавляем его в эти группы
+      const ex = localByKey.get(myrxKey(r));
+      const add = ex ? r.tests.filter(t => t.startsWith('g_') && !ex.tests.includes(t)) : [];
+      if(add.length && !myrxError({...ex, tests:[...ex.tests, ...add]})){
+        p.merge.push({id:ex.id, add}); add.forEach(t => p.tests.add(t));
+        p.items.push({st:'dup', name, why:'Уже есть — будет добавлен в группу из файла'});
+      } else p.items.push({st:'dup', name, why:'Уже есть в вашем списке — будет пропущен'});
+      p.dup++; continue;
+    }
     let err = myrxError(r), cut = false;
     if(err && r.tests.length){ r.tests = []; cut = true; err = myrxError(r); }   // для тестов не подошёл — сохраняем только в разделе
     const nm = r.drug.toLowerCase();
     if(!err && r.tests.length && names.has(nm)){ r.tests = []; cut = true; }
     if(err){ p.bad++; p.items.push({st:'bad', name, why:err}); continue; }
+    if(p.fresh.length >= room){ p.bad++; p.items.push({st:'bad', name, why:'Достигнут предел: не больше ' + MYRX_MAX + ' рецептов'}); continue; }
     if(cut) p.cut++;
     if(r.tests.length) names.add(nm);
     seen.add(myrxKey(r)); p.fresh.push(r);
@@ -2024,46 +2141,57 @@ function myrxPlan(text){
     p.items.push(cut ? {st:'cut', name, why:'Добавится только в этот раздел: название, группа или путь введения не подходят для тестов'}
                      : {st:'new', name, why:'Будет добавлен'});
   }
+  // новые группы создаём только если ими что-то пользуется
+  const used = new Set([...p.fresh.flatMap(r => r.tests), ...p.merge.flatMap(m => m.add)]);
+  p.groups = p.groups.filter(g => used.has('g_' + g.id));
   return p;
 }
 function myrxImpHtml2(p){
-  const n = p.fresh.length, total = p.items.length;
+  const n = p.fresh.length, total = p.items.length, act = n + p.merge.length;
   const MARK = {new:'+', cut:'~', dup:'=', bad:'✕'};
   const stat = (cls, t) => `<span class="my-stat ${cls}">${t}</span>`;
   const stats = [
     n ? stat('is-new', 'Новых: ' + n) : '',
     p.dup ? stat('', 'Уже есть: ' + p.dup) : '',
-    n && p.groups.length ? stat('', 'Новых групп: ' + p.groups.length) : '',
+    p.merge.length ? stat('is-new', 'В группы: ' + p.merge.length) : '',
+    p.groups.length ? stat('', 'Новых групп: ' + p.groups.length) : '',
     p.bad ? stat('is-bad', 'Не прошли проверку: ' + p.bad) : ''
   ].join('');
   myrxSheet(`<h2 class="sheet-title" id="sheetTitle">Проверьте перед добавлением</h2>
     <p class="my-sum">В файле ${myrxRecipes(total)}</p>
     <div class="my-stats">${stats}</div>
+    ${p.groupsCut ? `<p class="my-warn">Можно иметь не больше 30 групп. Не создано групп: ${p.groupsCut}, их рецепты войдут без группы.</p>` : ''}
     ${p.over ? `<p class="my-warn">За один раз добавляется не больше 500 рецептов. Остальные (${p.over}) не учтены.</p>` : ''}
     <ul class="my-plan" aria-label="Список рецептов из файла">${p.items.map(it => `<li class="my-plan-i is-${it.st}">
       <span class="my-plan-m" aria-hidden="true">${MARK[it.st]}</span>
       <span class="my-plan-t"><b>${esc(it.name)}</b><small>${esc(it.why)}</small></span></li>`).join('')}</ul>
     ${p.tests.size ? `<p class="my-warn">Часть рецептов войдёт в тесты. Прогресс тестов, куда входят ваши рецепты, будет сброшен, а страница обновится.</p>` : ''}
-    ${n ? '' : '<p class="my-hint">Добавлять нечего: все рецепты уже есть или не прошли проверку.</p>'}
+    ${act ? '' : '<p class="my-hint">Добавлять нечего: все рецепты уже есть или не прошли проверку.</p>'}
+    <p class="my-err" id="myrxImpErr" role="alert" hidden></p>
     <div class="actions actions-even">
       <button class="btn btn-secondary" type="button" data-act="myrxImpBack">Назад</button>
-      <button class="btn btn-primary" type="button" data-act="myrxImpGo"${n ? '' : ' disabled'}>${n ? 'Добавить ' + n : 'Добавить'}</button>
+      <button class="btn btn-primary" type="button" data-act="myrxImpGo"${act ? '' : ' disabled'}>${n ? 'Добавить ' + n : act ? 'Применить' : 'Добавить'}</button>
     </div>`);
 }
 function myrxImportCommit(){
   const p = myrxPlanCur;
-  if(!p || !p.fresh.length) return;
+  if(!p || (!p.fresh.length && !p.merge.length)) return;
   const base = Date.now();
   const fresh = p.fresh.map((r, i) => ({...r, id: base.toString(36) + Math.random().toString(36).slice(2, 6) + i, t: base}));
-  myrxStore([...fresh, ...myrxLoad()]);
-  if(p.groups.length) store.set(MYGRP_KEY, [...myGrpLoad(), ...p.groups]);
+  const before = myrxLoad(), oldGroups = myGrpLoad();
+  const cur = before.map(x => { const m = p.merge.find(q => q.id===x.id); return m ? {...x, tests:[...new Set([...x.tests, ...m.add])]} : x; });
+  const fail = () => { myrxImpErr('Не удалось сохранить: память устройства заполнена. Освободите место и повторите.'); };
+  if(!myrxStore([...fresh, ...cur])){ fail(); return; }
+  if(p.groups.length && !store.set(MYGRP_KEY, [...oldGroups, ...p.groups])){ myrxStore(before); fail(); return; }   // откат: рецепты без групп не оставляем
   const lines = [];
   if(p.groups.length) lines.push('Создано групп: ' + p.groups.length);
-  if(p.dup) lines.push('Уже были, пропущены: ' + p.dup);
+  if(p.merge.length) lines.push('Уже были, добавлены в группы: ' + p.merge.length);
+  if(p.dup - p.merge.length > 0) lines.push('Уже были, пропущены: ' + (p.dup - p.merge.length));
+  if(p.groupsCut) lines.push('Групп сверх лимита в 30, не создано: ' + p.groupsCut);
   if(p.cut) lines.push('Добавлены без участия в тестах: ' + p.cut);
   if(p.bad) lines.push('Не прошли проверку: ' + p.bad);
   if(p.over) lines.push('Сверх лимита в 500, не учтены: ' + p.over);
-  const note = {kind: lines.length ? 'warn' : 'ok', title: 'Добавлено: ' + myrxRecipes(fresh.length), lines};
+  const note = {kind: lines.length ? 'warn' : 'ok', title: fresh.length ? 'Добавлено: ' + myrxRecipes(fresh.length) : 'Рецепты добавлены в группы', lines};
   try{ sessionStorage.setItem(MYRX_NOTE, JSON.stringify(note)); }catch(_){}
   myrxPlanCur = null; myrxLastText = '';
   closeSheet(true);
@@ -2146,7 +2274,7 @@ function myGrpSave(){
   if(bad){ err.textContent = bad; err.hidden = false; inp.focus(); return; }
   const g = myGrpEditId ? list.find(x => x.id===myGrpEditId) : null;
   if(g) g.name = name; else list.push({id:myGrpNewId(), name});
-  store.set(MYGRP_KEY, list);
+  if(!store.set(MYGRP_KEY, list)){ err.textContent = 'Не удалось сохранить: память устройства заполнена.'; err.hidden = false; return; }
   myGrpEditId = '';
   render();
 }
@@ -2154,10 +2282,12 @@ function myGrpDelete(id){
   const g = myGrpLoad().find(x => x.id===id); if(!g) return;
   const had = myrxLoad().some(r => r.tests.includes('g_' + id));
   askConfirm('Удалить группу?', `Группа «${esc(g.name)}» пропадёт с главного экрана. Рецепты останутся, но выйдут из неё.${had ? ' Прогресс тестов, куда входят ваши рецепты, будет сброшен.' : ''}`, 'Удалить', () => {
-    store.set(MYGRP_KEY, myGrpLoad().filter(x => x.id!==id));
+    const oldGroups = myGrpLoad(), oldRx = myrxLoad();
+    if(!store.set(MYGRP_KEY, oldGroups.filter(x => x.id!==id))){ myrxStorageFail(); return; }
+    if(had && !myrxStore(oldRx.map(r => ({...r, tests:r.tests.filter(t => t!=='g_' + id)})))){ store.set(MYGRP_KEY, oldGroups); myrxStorageFail(); return; }   // откат
     for(const m of ['grpQuiz', 'grpWrite']) clearSaved(m, id);
     if(curGrp===id) curGrp = '';
-    if(had){ myrxStore(myrxLoad().map(r => ({...r, tests:r.tests.filter(t => t!=='g_' + id)}))); myrxApplied(undefined, true, []); }
+    if(had) myrxApplied(undefined, true, []);
     else render();
   });
 }
@@ -2195,8 +2325,11 @@ function viewMyEdit(){
   setTop({back:'Мои рецепты', title: r.id ? 'Изменить рецепт' : 'Новый рецепт'});
   const field = (key, label, ph, attrs='', cls='', after='') => `<div class="my-field ${cls}">
       <label class="label wr-label" for="my-${key}"><span class="wr-lab">${label}</span></label>
-      <input class="input${key==='latin' ? ' wr-lat' : ''}" id="my-${key}" data-my="${key}" type="text" value="${esc(r[key])}" placeholder="${esc(ph)}"
-        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${attrs}>${after}</div>`;
+      ${key==='signa'
+        ? `<textarea class="input my-area" id="my-${key}" data-my="${key}" rows="2" maxlength="300" placeholder="${esc(ph)}" enterkeyhint="done"
+        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${attrs}>${esc(r[key])}</textarea>`
+        : `<input class="input${key==='latin' ? ' wr-lat' : ''}" id="my-${key}" data-my="${key}" type="text" maxlength="300" value="${esc(r[key])}" placeholder="${esc(ph)}"
+        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${attrs}>`}${after}</div>`;
   const row2 = [
     F.vol ? field('vol', 'Объём, мл', 'Например: 5', 'inputmode="decimal"') : '',
     F.num ? field('num', 'Число доз', 'Например: 10', 'inputmode="numeric"') : ''
@@ -2207,7 +2340,7 @@ function viewMyEdit(){
     <div class="my-prev" id="myrxPreview">${myrxBlank(r, r.abbr)}</div>
     <div class="my-field">
       <label class="label wr-label" for="my-drug"><span class="wr-lab">Препарат</span><span class="wr-sub">из справочника или своё название</span></label>
-      <input class="input" id="my-drug" data-my="drug" type="text" value="${esc(r.drug)}" placeholder="Начните вводить название"
+      <input class="input" id="my-drug" data-my="drug" type="text" maxlength="300" value="${esc(r.drug)}" placeholder="Начните вводить название"
         role="combobox" aria-expanded="false" aria-controls="mySug" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div class="my-sug" id="mySug" role="listbox" hidden></div>
     </div>
@@ -2236,8 +2369,8 @@ function viewMyEdit(){
 // незаконченные прохождения тестов со своими рецептами (в них сдвигаются номера) и перезагружаем страницу
 function myrxApplied(was, now, newTests){
   if(!was && !now){ go('myrx'); return; }
-  const targets = new Set(newTests);
-  for(const m of MY_ACTIVE) m.tests.forEach(t => targets.add(t));
+  const targets = new Set(newTests);          // сбрасываем только тесты, где рецепт был или будет
+  if(was) was.tests.forEach(t => targets.add(t));
   dropPending();
   for(const t of targets){
     if(t==='exam'){ store.del(KEYS.quiz); store.del(KEYS.write); }
@@ -2246,11 +2379,7 @@ function myrxApplied(was, now, newTests){
     else if(/^b\d$/.test(t)) for(const m of ['study', 'writeBlock', 'groupCards']) clearSaved(m, +t[1]);
     else if(t.startsWith('g_')) for(const m of ['grpQuiz', 'grpWrite']) clearSaved(m, t.slice(2));
   }
-  const mk = store.get(KEYS.mistakes);                      // ошибки по своим рецептам привязаны к номерам — убираем
-  if(mk && typeof mk==='object' && !Array.isArray(mk)){
-    for(const k of Object.keys(mk)) if(Number(k) >= BASE_LEN) delete mk[k];
-    store.set(KEYS.mistakes, mk);
-  }
+  // ошибки хранятся по названию: записи удалённых рецептов отбрасываются при следующей загрузке (initMistakes)
   dropMistakeSessions();
   delete sess.myQuiz; delete sess.myWrite;
   mode = 'myrx';
@@ -2296,6 +2425,24 @@ function myrxRouteSuggest(q){
   }, 300);
   if(inp) inp.setAttribute('aria-expanded', String(!!hits.length));
 }
+// «Впиши сам»: подсказка названий групп под полем; выбор пункта подставляет точное написание
+function grpSuggest(q){
+  const box = $id('grpSug'), inp = $id('f-group');
+  if(!box) return;
+  let hits = groupHits(q).slice(0, 8);
+  if(hits.length===1 && groupKey(hits[0])===groupKey(q)) hits = [];   // название уже набрано целиком
+  box.innerHTML = hits.map(g => `<button class="my-sug-i" type="button" role="option" data-act="grpPick" data-v="${esc(g)}"><b>${esc(g)}</b></button>`).join('');
+  box.hidden = !hits.length;
+  if(inp) inp.setAttribute('aria-expanded', String(!!hits.length));
+  if(hits.length) setTimeout(() => {          // список должен быть виден на экране телефона
+    const r = box.getBoundingClientRect(), over = Math.min(r.bottom, r.top + 220) - innerHeight + 16;
+    if(over > 0) scrollBy(0, over);
+  }, 300);
+}
+function grpSuggestHide(){
+  const box = $id('grpSug'); if(box) box.hidden = true;
+  const inp = $id('f-group'); if(inp) inp.setAttribute('aria-expanded', 'false');
+}
 function myrxSuggestHide(){
   const rb = $id('myRouteSug'); if(rb) rb.hidden = true;
   const ri = $id('my-route'); if(ri) ri.setAttribute('aria-expanded', 'false');
@@ -2317,7 +2464,7 @@ function myrxCopyText(text){
   });
 }
 
-const VIEWS = {myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
+const VIEWS = {semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
   howto: viewHowTo};
 
 // Плавный подъём к началу страницы (около полсекунды, с замедлением к концу)
@@ -2342,6 +2489,86 @@ function glideToTop(){
   glideRaf = requestAnimationFrame(step);
 }
 let drawnKey = '';
+/* ---- Доступность: постоянная область для озвучивания, заголовок страницы, фокус ---- */
+const liveBox = $id('liveRegion');
+let liveTimer = 0, lastScreenId = '', lastKey = '', lastSay = '';
+function announce(text){
+  if(!liveBox || !text) return;
+  liveBox.textContent = '';
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => { liveBox.textContent = text; }, 60);   // пауза нужна, чтобы повтор той же фразы тоже озвучивался
+}
+const SESS_TITLE = {quiz:'Тест, все рецепты', write:'Впиши сам, все рецепты', study:'Тест по блоку', writeBlock:'Впиши сам по блоку',
+  mistakesQuiz:'Повторение ошибок: тест', mistakesWrite:'Повторение ошибок: впиши сам', myQuiz:'Мои рецепты: тест', myWrite:'Мои рецепты: впиши сам'};
+function screenName(S){
+  const top = ($id('topTitle').textContent || '').trim();
+  if(top) return top;
+  if(S){
+    if(S.sem!==undefined) return semName(S.sem) + (mode==='semQuiz' ? ': тест' : ': впиши сам');
+    if(mode==='grpQuiz' || mode==='grpWrite') return myGrpName(S.block) + (mode==='grpQuiz' ? ': тест' : ': впиши сам');
+    const base = SESS_TITLE[mode] || 'Тест';
+    return (mode==='study' || mode==='writeBlock') ? base + ' ' + (S.block + 1) : base;
+  }
+  return 'Рецепты';
+}
+// Какой элемент был в фокусе до перерисовки (чтобы вернуть фокус на «тот же» после неё)
+function focusSignature(){
+  const ae = document.activeElement;
+  if(!ae || ae===document.body || !view.contains(ae) || ae.disabled) return null;
+  const d = ae.dataset || {};
+  if(ae.id) return {sel:'#' + CSS.escape(ae.id), input: /^(INPUT|TEXTAREA)$/.test(ae.tagName)};
+  if(ae.tagName==='BUTTON' && d.act){
+    let sel = `button[data-act="${CSS.escape(d.act)}"]`;
+    for(const k of ['cat','i','mode','f','m']) if(d[k]!==undefined) sel += `[data-${k}="${CSS.escape(d[k])}"]`;
+    return {sel, input:false};
+  }
+  return null;
+}
+function restoreFocus(sig){
+  if(!sig || tour) return;
+  const el = view.querySelector(sig.sel);
+  if(!el || el.disabled){
+    // прежнего элемента нет или он пока отключён (например, «Проверить» на новом вопросе) — фокус на заголовок карточки, а не в никуда
+    const hd = view.querySelector('.card h2, .card h3, h1');
+    if(hd){ hd.setAttribute('tabindex', '-1'); try{ hd.focus({preventScroll:true}); }catch{} }
+    return;
+  }
+  try{ el.focus({preventScroll:true}); if(sig.input && el.setSelectionRange && /^(text|search|textarea)$/.test(el.type)){ const n = el.value.length; el.setSelectionRange(n, n); } }catch{}
+}
+function afterDraw(sig, firstDraw){
+  const S = cur();
+  const screenId = [mode, S ? (S.block ?? S.sem) : cards.block].join('|');
+  const key = [screenId, S ? S.pos : cards.pos].join('|');
+  const screenChanged = screenId !== lastScreenId;
+  // у экранов-сессий нет видимого заголовка страницы: добавляем скрытый, чтобы у экрана был <h1>
+  let h1 = view.querySelector('h1');
+  const name = screenName(S);
+  if(!h1){ view.insertAdjacentHTML('afterbegin', `<h1 class="sr-only" tabindex="-1">${esc(name)}</h1>`); h1 = view.querySelector('h1'); }
+  const pageName = (h1.textContent || name).trim();
+  document.title = mode==='menu' ? 'Тест по фармакологии' : pageName + ' — Тест по фармакологии';
+  if(screenChanged){
+    lastSay = '';
+    if(!firstDraw && !tour){
+      h1.setAttribute('tabindex', '-1'); try{ h1.focus({preventScroll:true}); }catch{}   // экранный диктор прочтёт название нового экрана
+      if(S && S.pos < S.order.length) announce(`${S.order[S.pos][0]}, вопрос ${S.pos + 1} из ${S.order.length}`);
+    }
+  } else {
+    restoreFocus(sig);
+    if(key !== lastKey){
+      lastSay = '';
+      if(S && S.pos < S.order.length) announce(`${S.order[S.pos][0]}, вопрос ${S.pos + 1} из ${S.order.length}`);
+      else if(S) announce(((view.querySelector('.summary-title') || {}).textContent || '').trim());
+      else if(mode==='groupCards'){ const n = BLOCKS[cards.block].items.length; announce(`Карточка ${cards.pos + 1} из ${n}`); }
+    }
+  }
+  // результат проверки ответа
+  const say = view.querySelector('[data-say]');
+  if(say && !screenChanged){
+    const t = say.getAttribute('data-say');
+    if(t && t !== lastSay && key === lastKey){ lastSay = t; announce(t); }
+  }
+  lastScreenId = screenId; lastKey = key;
+}
 function draw(){
   if(ORPHAN_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
   if(SESSION[mode] && !cur()) mode = parentOf(mode);   // сессия не найдена — на уровень выше
@@ -2349,6 +2576,8 @@ function draw(){
   saveView();
   closeSheet(true);
   const keepY = scrollY;                 // положение прокрутки до перерисовки
+  const focusSig = focusSignature();
+  const firstDraw = lastScreenId === '';
   view.innerHTML = (VIEWS[mode] || (LISTS[mode] ? viewList : viewSession))();
   document.body.classList.toggle('rx-home', mode==='menu');
   fitOpts();
@@ -2367,6 +2596,8 @@ function draw(){
   else if(Math.abs(scrollY - keepY) > 1) scrollTo({top:keepY, behavior:'instant'});   // тот же вопрос (например, после «Проверить») — экран не двигаем
   enterScreen();
   fitRx();
+  view.querySelectorAll('textarea[data-my]').forEach(autosizeArea);
+  afterDraw(focusSig, firstDraw);
   tourRefresh();
   if(enterDir){
     const el = view.querySelector('.card');
@@ -2387,11 +2618,18 @@ function enterScreen(){
   const dir = depthOf(mode) >= depthOf(from) ? 1 : -1;
   view.animate([{transform:`translateX(${dir*34}px)`, opacity:0}, {transform:'none', opacity:1}], {duration:230, easing:'cubic-bezier(.2,.8,.25,1)'});
 }
-const NAV_ACTS = new Set(['up','go','howWrite','openSemTest','open','openTopic','openMistakes','myGrpOpen','myGrpTest']);
+const NAV_ACTS = new Set(['up','go','howWrite','openSemTest','openSem','open','openTopic','openMistakes','myGrpOpen','myGrpTest']);
 
 /* ===================== Нижнее окно: сведения и подтверждения ===================== */
 const sheetRoot = $id('sheetRoot');
 let sheetOpener = null, onConfirm = null;
+// Пока открыто окно или идёт обучение, остальная страница недоступна ни касанием, ни клавишей Tab, ни скринридеру
+const inertState = {sheet:false, tour:false};
+function setInert(key, on){
+  inertState[key] = on;
+  const app = document.querySelector('.app');
+  if(app) app.inert = inertState.sheet || inertState.tour;
+}
 function openSheet(inner){
   onConfirm = null;
   sheetOpener = document.activeElement;
@@ -2399,6 +2637,7 @@ function openSheet(inner){
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1"><div class="sheet-handle"></div>${inner}</div>
   </div>`;
   document.body.classList.add('is-locked');
+  setInert('sheet', true);
   sheetRoot.querySelector('.sheet').focus({preventScroll:true});
 }
 function closeSheet(silent){
@@ -2406,6 +2645,7 @@ function closeSheet(silent){
   sheetRoot.innerHTML = '';
   onConfirm = null;
   document.body.classList.remove('is-locked');
+  setInert('sheet', false);
   if(!silent && sheetOpener && sheetOpener.isConnected) sheetOpener.focus({preventScroll:true});
   sheetOpener = null;
   return true;
@@ -2446,6 +2686,13 @@ const ACTIONS = {
     inp.setRangeText(pre + add, a, b, 'end');
     inp.dispatchEvent(new Event('input', {bubbles:true}));
   },
+  grpPick: el => {                                       // выбор группы из подсказки
+    const inp = $id('f-group'); if(!inp) return;
+    inp.value = el.dataset.v;
+    inp.dispatchEvent(new Event('input', {bubbles:true}));
+    grpSuggestHide();
+    inp.focus({preventScroll:true});
+  },
   htqStart: el => {                                      // тест открывается по кнопке (и перезапускается ею же)
     const root = el.closest('.htq'); if(!root) return;
     root.dataset.i = '0'; root.dataset.res = '';
@@ -2477,7 +2724,9 @@ const ACTIONS = {
     root.dataset.i = String(+root.dataset.i + 1);
     htqRender(root); htqScroll(root);
   },
-  openSemTest: el => { semIdx = +el.dataset.i || 0; startSemTest(semIdx); },
+  reloadApp: () => { flushSave(); location.reload(); },
+  openSemTest: el => { semIdx = +el.dataset.i || 0; go('semMenu'); },
+  openSem: el => startSemTest(+el.dataset.i || 0, el.dataset.mode==='semWrite' ? 'semWrite' : 'semQuiz'),
   open: el => { if(el.dataset.mode==='groupCards') cardsBack = mode; openBlock(el.dataset.mode, +el.dataset.i); },
   openTopic: el => { cardsBack = 'menu'; openBlock('groupCards', +el.dataset.i); },
   openMistakes: el => openMistakes(el.dataset.mode),
@@ -2564,17 +2813,29 @@ const ACTIONS = {
     if(err){ const e = $id('myrxErr'); if(e){ e.textContent = err; e.hidden = false; try{ e.scrollIntoView({block:'center', behavior:'smooth'}); }catch(_){} } return; }
     const list = myrxLoad(), item = {...r, drug: r.drug.trim(), latin: r.latin.trim(), t: Date.now()};
     const i = item.id ? list.findIndex(x => x.id===item.id) : -1;
+    if(i < 0 && list.length >= MYRX_MAX){
+      const e = $id('myrxErr'); if(e){ e.textContent = 'Можно хранить не больше ' + MYRX_MAX + ' рецептов. Удалите ненужные.'; e.hidden = false; }
+      return;
+    }
     if(i >= 0) list[i] = item;
     else { item.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); list.unshift(item); }
     const was = MY_ACTIVE.find(m => m.id===item.id);      // участвовал ли рецепт в тестах при загрузке
-    myrxStore(list); rxDraft = null;
-    myrxApplied(was, item.tests.length > 0, item.tests);
+    const commit = () => {
+      if(!myrxStore(list)){ myrxStorageFail(); return; }  // рецепт не записан — черновик остаётся
+      rxDraft = null;
+      myrxApplied(was, item.tests.length > 0, item.tests);
+    };
+    const ts = new Set([...item.tests, ...(was ? [...was.tests] : [])]);
+    if(ts.size && myrxHasProgress(ts)) askConfirm('Сохранить рецепт?', 'Прогресс тестов, куда входит этот рецепт, будет сброшен, а страница обновится. Список ошибок сохранится.', 'Сохранить', commit);
+    else commit();
   },
   myrxDel: el => {
     const id = el.dataset.id;
-    askConfirm('Удалить рецепт?', 'Рецепт будет удалён с этого устройства без возможности восстановления.', 'Удалить', () => {
-      myrxStore(myrxLoad().filter(x => x.id!==id));
-      myrxApplied(MY_ACTIVE.find(m => m.id===id), false, []);
+    const was = MY_ACTIVE.find(m => m.id===id);
+    const warn = was && myrxHasProgress(was.tests) ? ' Прогресс тестов, куда входил рецепт, будет сброшен.' : '';
+    askConfirm('Удалить рецепт?', 'Рецепт будет удалён с этого устройства без возможности восстановления.' + warn, 'Удалить', () => {
+      if(!myrxStore(myrxLoad().filter(x => x.id!==id))){ myrxStorageFail(); return; }
+      myrxApplied(was, false, []);
     });
   },
   myrxCopy: el => {
@@ -2618,6 +2879,8 @@ document.addEventListener('click', e => {
   }
   fn(el, e);
 });
+function autosizeArea(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 4 + 'px'; }
+document.addEventListener('keydown', e => { if(e.key==='Enter' && e.target && e.target.tagName==='TEXTAREA' && e.target.dataset.my){ e.preventDefault(); e.target.blur(); } });   // Signa — одна строка текста, без переводов строки
 document.addEventListener('input', e => {
   const t = e.target;
   if(t.id==='refQuery'){ $id('refList').innerHTML = refRows(t.value); return; }
@@ -2631,6 +2894,7 @@ document.addEventListener('input', e => {
     return;
   }
   if(t.dataset && t.dataset.my){
+    if(t.tagName==='TEXTAREA'){ const v = t.value.replace(/[\r\n]+/g, ' '); if(v!==t.value) t.value = v; autosizeArea(t); }
     if(!rxDraft) return;
     rxDraft[t.dataset.my] = t.type==='checkbox' ? t.checked : t.value;
     myrxPreviewUpdate();
@@ -2646,6 +2910,7 @@ document.addEventListener('input', e => {
   st.typed[key] = t.value;
   saveSoon(S);
   syncPrimary(S);
+  if(key==='group') grpSuggest(t.value);
   const fill = $id('wrFill'); if(fill) fill.textContent = wrFillText(st);
 });
 document.addEventListener('click', e => {
@@ -2670,15 +2935,19 @@ document.addEventListener('drop', e => {
 });
 // Подсказки закрываются при уходе из поля и по Esc; выбор пункта идёт через pointerdown, чтобы поле не теряло фокус раньше времени
 document.addEventListener('pointerdown', e => { if(e.target.closest && e.target.closest('.my-sug-i')) e.preventDefault(); });
-document.addEventListener('focusout', e => { if(e.target && (e.target.id==='my-drug' || e.target.id==='my-route')) setTimeout(myrxSuggestHide, 120); });
+document.addEventListener('focusout', e => {
+  if(e.target && (e.target.id==='my-drug' || e.target.id==='my-route')) setTimeout(myrxSuggestHide, 120);
+  if(e.target && e.target.id==='f-group') setTimeout(grpSuggestHide, 120);
+});
 document.addEventListener('focusin', e => {
   if(!e.target) return;
   if(e.target.id==='my-drug' && e.target.value) myrxSuggest(e.target.value);
   if(e.target.id==='my-route') myrxRouteSuggest(e.target.value);
+  if(e.target.id==='f-group' && e.target.value) grpSuggest(e.target.value);
 });
 document.addEventListener('keydown', e => {
-  const open = ['mySug', 'myRouteSug'].some(id => $id(id) && !$id(id).hidden);
-  if(e.key==='Escape' && open){ myrxSuggestHide(); e.stopPropagation(); }
+  const open = ['mySug', 'myRouteSug', 'grpSug'].some(id => $id(id) && !$id(id).hidden);
+  if(e.key==='Escape' && open){ myrxSuggestHide(); grpSuggestHide(); e.stopPropagation(); }
 }, true);
 // Клавиатура: Enter — «Проверить» / «Далее», стрелки — соседний вопрос или карточка, Esc — закрыть окно
 document.addEventListener('keydown', e => {
@@ -2688,6 +2957,10 @@ document.addEventListener('keydown', e => {
   if(field){
     if(e.key!=='Enter') return;
     e.preventDefault();
+    if(field==='group'){
+      const first = document.querySelector('#grpSug:not([hidden]) .my-sug-i');
+      if(first){ ACTIONS.grpPick(first); return; }
+    }
     const nextId = field==='latin' ? 'f-dose' : field==='dose' ? 'f-group' : '';
     if(nextId){ const g = $id(nextId); if(g) g.focus(); }
     else check();
@@ -2879,7 +3152,7 @@ const SESSION_TOUR_STEPS = (first, fields, primary) => [
 const TOURS = {
   menu: {key:'pharma_tour_v1', scope:'.rx-rows > *, .rx-tourlink', steps:[
     {t:'Добро пожаловать!', x:'«Рецепты» — тренажёр по фармакологии: дозы, пути введения, группы и латинские названия препаратов, а ещё оформление рецептов. За минуту покажу кнопки главного экрана.'},
-    {sel:'[data-act="openSemTest"]', t:'I и II семестр', x:'Зачёты по семестрам. I — вегетативная и центральная нервная система, анестезиология. II — кровообращение, противомикробные средства, дыхание, пищеварение, гормоны.'},
+    {sel:'[data-act="openSemTest"]', t:'I и II семестр', x:'Зачёты по семестрам, в каждом — «Тест» и «Впиши сам». I — вегетативная и центральная нервная система, анестезиология. II — кровообращение, противомикробные средства, дыхание, пищеварение, гормоны.'},
     {sel:'[data-act="go"][data-mode="exam"]', t:'Экзамен', x:'Весь курс сразу. Выберите «Тест» (три варианта ответа) или «Впиши сам»: вписываете латынь, концентрацию и группу, и карточка переворачивается с готовым рецептом.'},
     {sel:'#topicsToggle', t:'По темам', x:'Нажмите — раскроются пять тем курса. Внутри карточки для заучивания.'},
     {sel:'[data-act="go"][data-mode="mistakes"]', t:'Работа над ошибками', x:'Сюда попадают препараты, в которых вы ошиблись. Повторяйте, пока список не опустеет.'},
@@ -2976,12 +3249,21 @@ function tourApply(){
     // карточка обучения — на свободной половине экрана, не поверх выделенного
     const r = first && first.getBoundingClientRect();
     card.classList.toggle('at-top', !!r && r.top + r.height/2 > innerHeight/2);
+    // если карточка всё равно закрывает выделенное — сдвигаем страницу, чтобы цель оказалась на свободной части экрана
+    if(first){
+      const cr = card.getBoundingClientRect(), tr = first.getBoundingClientRect();
+      if(tr.bottom > cr.top && tr.top < cr.bottom){
+        const dy = card.classList.contains('at-top') ? tr.top - (cr.bottom + 8) : tr.bottom - (cr.top - 8);
+        scrollBy({top:dy, behavior:'instant'});
+      }
+    }
   }
 }
 function startTour(id, force, chain){
   if(id === 'menu' && mode !== 'menu'){ if(!force) return; go('menu'); }
   if(sheetRoot.childElementCount) closeSheet(true);
   tour = {id, i:0, chain: !!chain};
+  setInert('tour', true);
   document.body.classList.add('tour-on');
   document.body.classList.toggle('tour-menu', id === 'menu');
   tourEnsureUi();
@@ -2992,6 +3274,7 @@ function endTour(skipAll){
   if(!tour) return;
   const id = tour.id, chained = tour.chain;
   tour = null;
+  setInert('tour', false);
   tourMark(id);
   if(skipAll || chained) Object.keys(TOURS).forEach(tourMark);      // «Пропустить» — других обучений не показываем
   document.body.classList.remove('tour-on', 'tour-menu');
@@ -3080,5 +3363,17 @@ tourAutostart();
 
 /* Работа без интернета: service worker кэширует страницу, данные, иконки и шрифты */
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
-  addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(!hadController || updateReady) return;   // первая установка — не обновление
+    updateReady = true;
+    if(mode==='menu') render();
+  });
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // шрифты — в кэш для работы без интернета (один раз, не мешая запуску)
+    navigator.serviceWorker.ready.then(r => { if(r.active) setTimeout(() => r.active.postMessage('precache-fonts'), 3000); }).catch(() => {});
+  });
 }
+// Просим браузер не удалять сохранённые рецепты и прогресс при нехватке места (Chrome разрешает молча, Safari — для установленного приложения)
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); }catch{}
