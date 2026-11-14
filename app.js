@@ -361,6 +361,7 @@ function isCloseMatchOne(user, correct){
 }
 // Все названия групп, включая вторые группы препаратов: из них строится подсказка
 const GROUP_LIST = [...new Set(DB.flatMap(d => [d[3], ...grpExtra(d)]))].sort((a, b) => a.localeCompare(b, 'ru'));
+if(window.RecipeBot && RecipeBot.setGroups) RecipeBot.setGroups(GROUP_LIST);   // Recipe-бот ищет группу в вставленном тексте по этому списку
 const GROUP_TOK = GROUP_LIST.map(g => ({g, n: normalizeAnswer(g), words: normalizeAnswer(g).split(/[\s,;\-–—/()]+/).filter(Boolean)}));
 // Подсказка по набранному: каждое слово запроса — начало какого-то слова группы (с допуском на одну опечатку от 5 букв)
 function groupHits(q){
@@ -1332,7 +1333,7 @@ function viewHowTo(){
       <p>Каждый рецепт начинается со слова <i>Recipe:</i> (то есть «Возьми:»). Иногда сокращают как <i>Rp.:</i></p>
       <p class="ht-note"><b>Уточните у преподавателя,</b> можно ли использовать сокращения. На экзамене сокращать крайне нежелательно.</p>
       <p><b>Под</b> <i>Rp.</i> / <i>Recipe</i> нельзя ничего писать на всём протяжении рецепта.</p>
-      ${blank([['Recipe:',''],['<span class="red">////////</span>',''],['<span class="red">здесь ничего не писать</span>','']], '', 'is-struck')}`)}
+      <div class="blank is-struck"><div class="ban"><span class="bl">Recipe:</span><span class="ban-x" role="img" aria-label="Под словом Recipe писать нельзя"></span></div></div>`)}
 
     ${step(2, 'Лекарственная форма', `
       <p>После двоеточия обычно следует название лекарственной формы — на латыни, в винительном падеже:</p>
@@ -1989,6 +1990,7 @@ function myrxSanitize(x){
 }
 const myrxKey = r => [r.form, r.drug, r.latin, r.dose, r.vol, r.num, r.signa].map(v => String(v).trim().toLowerCase()).join('|');
 const MYRX_ICO = {
+  paste: svgIcon('<rect x="6" y="5" width="12" height="15.5" rx="2"/><path d="M9.5 5V4h5v1"/><path d="M9 11h6M9 14.5h4"/>'),
   down:  svgIcon('<path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>'),
   up:    svgIcon('<path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M5 19.5h14"/>'),
   copy:  svgIcon('<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/>'),
@@ -2198,6 +2200,95 @@ function myrxImportCommit(){
   // рецепты с тестами меняют наборы вопросов: сбрасываем затронутые прохождения и перезагружаем
   myrxApplied(undefined, p.tests.size > 0, [...p.tests]);
 }
+/* ---------- «Вставить»: текст из буфера → Recipe-бот → сохранённые рецепты ---------- */
+const MYRX_EXAMPLE = 'Recipe: Solutionis Adrenalini hydrochloridi 0,1% — 1 ml\n    Da tales doses numero 10 in ampullis\n    Signa: по 1 мл подкожно, 1 р/д\n(Альфа- и бета-адреномиметики)';
+const MYRX_PASTE_SKIP = /нет строки Da tales doses|не указана форма в строке Da tales doses|нет единицы измерения/;   // для таблеток, настоек и т. п. это нормально
+// Один рецепт в шаблоне бота → поля рецепта приложения
+function myrxFromBot(block){
+  let head = '', dtd = '', signa = '', group = '', m;
+  for(const l of block.split('\n').map(s => s.trim()).filter(Boolean)){
+    if((m = /^Recipe:\s*(.*)$/i.exec(l))) head = m[1];
+    else if(/^Da tales doses/i.test(l)) dtd = l;
+    else if((m = /^Signa:\s*(.*)$/i.exec(l))) signa = m[1].trim();
+    else if(l.charAt(0)==='(') group = l.replace(/^\(\s*/, '').replace(/\s*\)$/, '').trim();
+  }
+  const r = myrxBlankDraft();
+  m = /^(Tabulettas|Solutionis|Suppositoria|Tincturae|Aerosolum)\s+/i.exec(head);
+  const pre = m ? m[1].toLowerCase() : '';
+  if(m) head = head.slice(m[0].length);
+  const im = /(?<![A-Za-zА-Яа-яЁё\d])\d/.exec(head);
+  r.latin = (im ? head.slice(0, im.index) : head).replace(/[\s—–,:-]+$/, '').trim();
+  r.latin = r.latin.charAt(0).toUpperCase() + r.latin.slice(1);
+  let dose = im ? head.slice(im.index).trim() : '';
+  const nm = /numero\s+(\d+)/i.exec(dtd); r.num = nm ? nm[1] : '';
+  const fw = ((/\bin\s+([a-z]+)/i.exec(dtd) || [])[1] || '').toLowerCase();
+  let form;
+  if(/^amp/.test(fw)) form = 'amp'; else if(/^tab/.test(fw)) form = 'tab'; else if(/^caps/.test(fw)) form = 'caps';
+  else if(/^supp/.test(fw)) form = 'supp'; else if(/^(flac|pulv)/.test(fw)) form = 'powder';
+  else if(pre==='tabulettas') form = 'tab'; else if(pre==='suppositoria') form = 'supp';
+  else if(pre==='tincturae') form = 'tinct'; else if(pre==='aerosolum') form = 'aerosol';
+  else if(pre==='solutionis' || /ml$/i.test(dose)) form = r.num ? 'amp' : 'flac';
+  else form = 'tab';
+  r.form = form;
+  if(form==='amp' || form==='flac' || form==='tinct'){
+    const vm = /^(.*?)\s*(?:[—–-]\s*)?(\d+(?:,\d+)?)\s*ml$/i.exec(dose);
+    if(vm){ dose = vm[1].replace(/[\s—–-]+$/, ''); r.vol = vm[2]; }
+  }
+  r.dose = form==='tinct' ? '' : dose;
+  if(form!=='amp' && form!=='caps' && form!=='supp' && form!=='powder' && form!=='tab') r.num = '';
+  r.signa = signa; r.group = group;
+  return r;
+}
+function myrxPasteHtml(msg, text, example){
+  return `<h2 class="sheet-title" id="sheetTitle">Вставить рецепт</h2>
+    ${msg ? `<p class="my-err" role="alert">${esc(msg)}</p>` : '<p class="sheet-text">Вставьте текст рецепта: приложение приведёт его к шаблону и сохранит.</p>'}
+    ${example ? `<p class="my-hint">Ожидаемый вид:</p><pre class="my-hint" style="white-space:pre-wrap;margin-top:0">${esc(MYRX_EXAMPLE)}</pre>` : ''}
+    <textarea class="input my-ta is-short" id="myrxPasteText" rows="5" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Текст рецепта" placeholder="Recipe: …">${esc(text)}</textarea>
+    <div class="actions actions-even">
+      <button class="btn btn-secondary" type="button" data-act="close">Отмена</button>
+      <button class="btn btn-primary" type="button" data-act="myrxPasteGo">Добавить</button>
+    </div>`;
+}
+function myrxPasteRun(text){
+  text = String(text || '');
+  if(!window.RecipeBot){ myrxSheet(myrxPasteHtml('Модуль разбора рецептов не загрузился. Обновите приложение.', text)); return; }
+  if(!text.trim()){ myrxSheet(myrxPasteHtml('Буфер обмена пуст. Скопируйте текст рецепта и повторите.', '')); return; }
+  const res = RecipeBot.format(text.replace(/\bDa\.\s*(?=Signa)/gi, ''));   // «Da. Signa» (так копирует приложение для настоек и растворов) → «Signa»
+  if(res.error || !res.text){
+    myrxSheet(myrxPasteHtml(res.error ? res.error.title + '. ' + res.error.detail : 'В тексте не найден рецепт.', text, true));
+    return;
+  }
+  const list = myrxLoad(), seen = new Set(list.map(myrxKey)), fresh = [], lines = [], base = Date.now();
+  const parsed = res.text.split(/\n{2,}/).map(blk => myrxFromBot(blk));
+  // «рецепт» без названия, Signa и дозы — это просто лишняя строка перед настоящим рецептом (например, группа, которой нет в словаре): молча пропускаем
+  const junk = new Set(parsed.map((r, i) => (!r.latin && !r.signa && !r.dose) ? i + 1 : 0).filter(Boolean));
+  const ofJunk = s => { const m = /^Рецепт (\d+):/.exec(s); return !!m && junk.has(+m[1]); };
+  res.fixes.filter(x => !ofJunk(x)).forEach(x => lines.push('Исправлено: ' + x));
+  res.warnings.filter(w => !MYRX_PASTE_SKIP.test(w) && !ofJunk(w)).forEach(w => lines.push(w));
+  parsed.forEach((r, i) => {
+    if(junk.has(i + 1)) return;
+    const pfx = 'Рецепт ' + (i + 1) + ': ';
+    if(r.group){                              // группа из текста → точное написание из имеющихся групп, если оно одно
+      const h = groupHits(r.group);
+      if(h.length===1 && h[0]!==r.group){ lines.push(pfx + 'группа «' + r.group + '» → «' + h[0] + '»'); r.group = h[0]; }
+    }
+    const err = myrxError(r);
+    if(err){ lines.push(pfx + 'не сохранён. ' + err); return; }
+    if(seen.has(myrxKey(r))){ lines.push(pfx + 'такой рецепт уже есть, пропущен'); return; }
+    if(list.length + fresh.length >= MYRX_MAX){ lines.push(pfx + 'не сохранён: предел ' + MYRX_MAX + ' рецептов'); return; }
+    seen.add(myrxKey(r));
+    fresh.push({...r, id: base.toString(36) + Math.random().toString(36).slice(2, 6) + fresh.length, t: base});
+  });
+  if(!fresh.length){
+    myrxSheet(myrxPasteHtml('Ни один рецепт не сохранён. ' + lines.filter(l => !/^Исправлено/.test(l)).join(' '), text));
+    return;
+  }
+  if(!myrxStore([...fresh, ...list])){ myrxStorageFail(); return; }
+  const note = {kind: lines.length ? 'warn' : 'ok', title: 'Добавлено: ' + myrxRecipes(fresh.length), lines};
+  try{ sessionStorage.setItem(MYRX_NOTE, JSON.stringify(note)); }catch(_){}
+  closeSheet(true);
+  go('myrx');   // у вставленных рецептов нет тестов, перезагрузка страницы не нужна
+}
 function myrxNoteHtml(raw){
   if(!raw) return '';
   let n; try{ n = JSON.parse(raw); }catch(_){ n = null; }
@@ -2299,6 +2390,7 @@ function viewMyList(){
   const head = `<header class="page-head"><h1>Мои рецепты</h1><p>Составляйте собственные рецепты на бланке и сохраняйте их на этом устройстве.</p></header>
     <button class="btn btn-primary my-new" type="button" data-act="myrxNew">+ Новый рецепт</button>
     <div class="my-xfer">
+      <button class="btn btn-secondary" type="button" data-act="myrxPaste">${MYRX_ICO.paste}Вставить</button>
       <button class="btn btn-secondary" type="button" data-act="myrxImportOpen">${MYRX_ICO.down}Импорт</button>
       <button class="btn btn-secondary" type="button" data-act="myrxExportOpen">${MYRX_ICO.up}Экспорт${list.length ? ` <small>${list.length}</small>` : ''}</button>
     </div>
@@ -2348,7 +2440,7 @@ function viewMyEdit(){
     ${F.nodose ? '' : field('dose', F.conc ? 'Концентрация' : 'Дозировка', F.ph || '')}
     ${row2.length ? `<div class="my-row2">${row2.join('')}</div>` : ''}
     ${field('signa', 'Signa — инструкция для пациента', 'внутрь, по 1 таблетке 3 раза в день')}
-    ${field('group', 'Фармакологическая группа', 'нужна для тестов')}
+    ${field('group', 'Фармакологическая группа', 'нужна для тестов', 'role="combobox" aria-expanded="false" aria-controls="myGrpSug"', '', '<div class="my-sug" id="myGrpSug" role="listbox" hidden></div>')}
     ${field('route', 'Путь введения', 'внутрь, в/в, в/м…', 'role="combobox" aria-expanded="false" aria-controls="myRouteSug"', '', '<div class="my-sug" id="myRouteSug" role="listbox" hidden></div>')}
     <fieldset class="my-tests">
       <legend class="label wr-label"><span class="wr-lab">Добавить в тесты</span><span class="wr-sub">необязательно — отметьте, где рецепт должен встречаться</span></legend>
@@ -2425,6 +2517,20 @@ function myrxRouteSuggest(q){
   }, 300);
   if(inp) inp.setAttribute('aria-expanded', String(!!hits.length));
 }
+// Группа рецепта: подсказка из всех групп, что уже есть в приложении (справочник и свои рецепты)
+function myrxGroupSuggest(q){
+  const box = $id('myGrpSug'), inp = $id('my-group');
+  if(!box) return;
+  let hits = groupHits(q).slice(0, 8);
+  if(hits.length===1 && groupKey(hits[0])===groupKey(q)) hits = [];   // название уже набрано целиком
+  box.innerHTML = hits.map(g => `<button class="my-sug-i" type="button" role="option" data-act="myrxPickGroup" data-v="${esc(g)}"><b>${esc(g)}</b></button>`).join('');
+  box.hidden = !hits.length;
+  if(inp) inp.setAttribute('aria-expanded', String(!!hits.length));
+  if(hits.length) setTimeout(() => {
+    const r = box.getBoundingClientRect(), over = Math.min(r.bottom, r.top + 220) - innerHeight + 16;
+    if(over > 0) scrollBy(0, over);
+  }, 300);
+}
 // «Впиши сам»: подсказка названий групп под полем; выбор пункта подставляет точное написание
 function grpSuggest(q){
   const box = $id('grpSug'), inp = $id('f-group');
@@ -2444,6 +2550,8 @@ function grpSuggestHide(){
   const inp = $id('f-group'); if(inp) inp.setAttribute('aria-expanded', 'false');
 }
 function myrxSuggestHide(){
+  const gb = $id('myGrpSug'); if(gb) gb.hidden = true;
+  const gi = $id('my-group'); if(gi) gi.setAttribute('aria-expanded', 'false');
   const rb = $id('myRouteSug'); if(rb) rb.hidden = true;
   const ri = $id('my-route'); if(ri) ri.setAttribute('aria-expanded', 'false');
   const box = $id('mySug'); if(box) box.hidden = true;
@@ -2535,6 +2643,16 @@ function restoreFocus(sig){
   }
   try{ el.focus({preventScroll:true}); if(sig.input && el.setSelectionRange && /^(text|search|textarea)$/.test(el.type)){ const n = el.value.length; el.setSelectionRange(n, n); } }catch{}
 }
+// Браузер хранит заголовок для каждой записи истории. Если заголовок сменился до history.go(-1), после перехода вкладка
+// показывает старый заголовок той записи, а document.title уже «верный» и повторная запись того же текста ничего не меняет.
+// Поэтому после перехода по истории заголовок обновляем принудительно (через промежуточное значение).
+let docTitle = '';
+function setDocTitle(t){ docTitle = t; document.title = t; }
+function refreshDocTitle(){
+  if(!docTitle) return;
+  document.title = docTitle + '\u200B';
+  document.title = docTitle;
+}
 function afterDraw(sig, firstDraw){
   const S = cur();
   const screenId = [mode, S ? (S.block ?? S.sem) : cards.block].join('|');
@@ -2545,7 +2663,7 @@ function afterDraw(sig, firstDraw){
   const name = screenName(S);
   if(!h1){ view.insertAdjacentHTML('afterbegin', `<h1 class="sr-only" tabindex="-1">${esc(name)}</h1>`); h1 = view.querySelector('h1'); }
   const pageName = (h1.textContent || name).trim();
-  document.title = mode==='menu' ? 'Тест по фармакологии' : pageName + ' — Тест по фармакологии';
+  setDocTitle(mode==='menu' ? 'Тест по фармакологии' : pageName + ' — Тест по фармакологии');
   if(screenChanged){
     lastSay = '';
     if(!firstDraw && !tour){
@@ -2766,6 +2884,12 @@ const ACTIONS = {
     myrxFill(rxDraft, d);       // латынь, дозировка, число доз, Signa, группа и путь — из справочника
     render();
   },
+  myrxPickGroup: el => {
+    const inp = $id('my-group');
+    if(!rxDraft || !inp) return;
+    rxDraft.group = el.dataset.v; inp.value = el.dataset.v;
+    myrxPreviewUpdate(); myrxSuggestHide();
+  },
   myrxPickRoute: el => {
     const inp = $id('my-route');
     if(!rxDraft || !inp) return;
@@ -2796,6 +2920,13 @@ const ACTIONS = {
       });
   },
   myrxImpText: () => { const t = $id('myrxText'); myrxLastText = t ? t.value : ''; myrxImpRun(myrxLastText); },
+  myrxPaste: async () => {
+    let t = '';
+    try{ t = await navigator.clipboard.readText(); }
+    catch(_){ openSheet(myrxPasteHtml('Браузер не дал прочитать буфер. Вставьте текст в поле: долгое нажатие → «Вставить».', '')); return; }
+    myrxPasteRun(t);
+  },
+  myrxPasteGo: () => { const t = $id('myrxPasteText'); myrxPasteRun(t ? t.value : ''); },
   myrxImpBack: () => myrxSheet(myrxImpHtml1()),
   myrxImpGo: () => myrxImportCommit(),
   myrxPasteClip: async () => {
@@ -2900,6 +3031,7 @@ document.addEventListener('input', e => {
     myrxPreviewUpdate();
     if(t.dataset.my==='drug') myrxSuggest(t.value);
     if(t.dataset.my==='route') myrxRouteSuggest(t.value);
+    if(t.dataset.my==='group') myrxGroupSuggest(t.value);
     return;
   }
   const key = t.dataset && t.dataset.field;
@@ -2936,17 +3068,18 @@ document.addEventListener('drop', e => {
 // Подсказки закрываются при уходе из поля и по Esc; выбор пункта идёт через pointerdown, чтобы поле не теряло фокус раньше времени
 document.addEventListener('pointerdown', e => { if(e.target.closest && e.target.closest('.my-sug-i')) e.preventDefault(); });
 document.addEventListener('focusout', e => {
-  if(e.target && (e.target.id==='my-drug' || e.target.id==='my-route')) setTimeout(myrxSuggestHide, 120);
+  if(e.target && (e.target.id==='my-drug' || e.target.id==='my-route' || e.target.id==='my-group')) setTimeout(myrxSuggestHide, 120);
   if(e.target && e.target.id==='f-group') setTimeout(grpSuggestHide, 120);
 });
 document.addEventListener('focusin', e => {
   if(!e.target) return;
   if(e.target.id==='my-drug' && e.target.value) myrxSuggest(e.target.value);
   if(e.target.id==='my-route') myrxRouteSuggest(e.target.value);
+  if(e.target.id==='my-group' && e.target.value) myrxGroupSuggest(e.target.value);
   if(e.target.id==='f-group' && e.target.value) grpSuggest(e.target.value);
 });
 document.addEventListener('keydown', e => {
-  const open = ['mySug', 'myRouteSug', 'grpSug'].some(id => $id(id) && !$id(id).hidden);
+  const open = ['mySug', 'myRouteSug', 'myGrpSug', 'grpSug'].some(id => $id(id) && !$id(id).hidden);
   if(e.key==='Escape' && open){ myrxSuggestHide(); grpSuggestHide(); e.stopPropagation(); }
 }, true);
 // Клавиатура: Enter — «Проверить» / «Далее», стрелки — соседний вопрос или карточка, Esc — закрыть окно
@@ -3095,7 +3228,7 @@ function syncHistory(){
   }catch{}
 }
 addEventListener('popstate', e => {
-  if(histIgnore > 0){ histIgnore--; return; }
+  if(histIgnore > 0){ histIgnore--; refreshDocTitle(); return; }
   if(closeSheet()){ // открыто окно «i» — закрываем его и остаёмся на экране
     try{ history.pushState({d: depthOf(mode)}, ''); }catch{}
     return;

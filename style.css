@@ -531,6 +531,9 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .bl.in1{padding-left:2.2em}.bl.in2{padding-left:4.4em}
 .bl .red{color:var(--red);font-size:16px}
 .blank.is-struck .bl{color:var(--red)}
+/* Пример запрета: линия справа от Recipe: ограничивает всё место под ним, а само место заштриховано */
+.blank .ban{display:block;width:fit-content;margin-top:-6px;padding:6px 12px 4px 0;border-right:3px solid var(--red)}
+.blank .ban-x{display:block;height:96px;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--red) 6px 8px)}
 .blank .side{display:block;margin:0;padding:0;text-align:right;color:var(--red);font:400 18px/32px "Marck Script",cursive}
 
 /* ===== «Впиши сам»: латынь, концентрация, форма — и переворот карточки с эталонным рецептом ===== */
@@ -683,9 +686,9 @@ body.tour-on .tour-focus{outline:3px solid var(--amber);outline-offset:5px;borde
 .my-hint{margin:2px 2px 14px;color:var(--muted);font-size:13px;line-height:1.4}
 
 /* ===== Импорт и экспорт ===== */
-.my-xfer{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 5px 20px 0}
-.my-xfer .btn{min-height:46px;padding:0 10px;font-size:14.5px}
-.my-xfer .btn svg{flex:none;width:20px;height:20px}
+.my-xfer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 5px 20px 0}
+.my-xfer .btn{min-height:46px;padding:0 6px;font-size:13.5px;gap:5px}
+.my-xfer .btn svg{flex:none;width:18px;height:18px}
 .my-xfer small{opacity:.7;font-weight:700}
 .my-drop{display:grid;justify-items:center;gap:4px;padding:20px 16px;border:2px dashed var(--edge);border-radius:var(--r-md);background:var(--inset);text-align:center;cursor:pointer;transition:background-color .15s,box-shadow .15s}
 .my-drop>*{pointer-events:none}
