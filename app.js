@@ -1657,8 +1657,9 @@ function viewWriteBack(d, st, counter, actions){
     ? `<div class="wr-res ${st.correct ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(st.correct)}</span><div class="wr-body"><b>Ответ</b><span>${st.correct ? 'Верно' : 'Есть неточности'}</span></div></div>`
     : wrRes('Латынь', st.latinOk, st.typed.latin, d[4], st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1], doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d));
   return `<article class="card wr-back" data-swipe>
+    <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d[0], d[4], true, counter)}
-    <div class="blank wr-blank"><div class="rxd wr-rx" data-short="${esc(rxDoc(rxShort(rxLines)))}">${rxDoc(rxLines)}</div><span class="stamp">${esc(grpText(d))}</span></div>
+    <div class="blank wr-blank"><div class="rxd wr-rx" data-short="${esc(rxDoc(rxShort(rxLines)))}">${rxDoc(rxLines)}</div></div>
     ${rows}
     ${actions}
   </article>`;
@@ -1858,7 +1859,7 @@ const myrxBlankDraft = () => ({id:'', form:'tab', drug:'', latin:'', dose:'', vo
 let rxDraft = null;
 function myrxLoad(){
   const v = store.get(MYRX_KEY);
-  return Array.isArray(v) ? v.filter(x => x && typeof x==='object' && x.id).map(x => ({...myrxBlankDraft(), ...x, tests: Array.isArray(x.tests) ? x.tests.filter(t => MYRX_TEST_ID.test(t)) : []})) : [];
+  return Array.isArray(v) ? v.filter(x => x && typeof x==='object' && x.id).map(x => ({...myrxBlankDraft(), ...x, tests: Array.isArray(x.tests) ? x.tests.filter(t => MYRX_TEST_ID.test(t)) : []})).map(x => x.drug && x.drug.trim() ? x : {...x, drug: String(x.latin || '').trim()}) : [];
 }
 const MYRX_MAX = 1000;   // предел числа своих рецептов
 const myrxStore = list => store.set(MYRX_KEY, list);
@@ -1901,7 +1902,7 @@ function myrxLines(r, plain){
 function myrxBlank(r, noStamp){
   const lines = myrxLines(r), short = rxShort(lines);
   const body = `<div class="rxd wr-rx" data-short="${esc(rxDoc(short))}">${rxDoc(lines)}</div>`;   // сокращения включаются сами, если строка не помещается (fitRx)
-  return `<div class="blank wr-blank">${body}${!noStamp && String(r.group).trim() ? `<span class="stamp">${esc(String(r.group).trim())}</span>` : ''}</div>`;
+  return `<div class="blank wr-blank">${body}</div>`;
 }
 function myrxPlain(r){
   const lines = myrxLines(r);
@@ -1911,6 +1912,7 @@ function myrxPlain(r){
 }
 function myrxError(r){
   const F = myrxForm(r.form);
+  if(!r.drug.trim()) return 'Впишите название препарата — из справочника или своё.';
   if(!r.latin.trim()) return 'Впишите латинское название препарата.';
   if(/[А-Яа-яЁё]/.test(r.latin)) return 'Название пишется латиницей, в родительном падеже (например, Labetaloli).';
   if(!F.nodose && !r.dose.trim()) return F.conc ? 'Укажите концентрацию.' : 'Укажите дозировку.';
@@ -1918,7 +1920,6 @@ function myrxError(r){
   if(F.num && !r.num.trim()) return 'Укажите число доз.';
   if(!r.signa.trim()) return 'Напишите Signa — инструкцию для пациента.';
   if(r.tests.length){
-    if(!r.drug.trim()) return 'Для тестов впишите русское название препарата в поле «Препарат».';
     const key = r.drug.trim().toLowerCase();
     if(DB.slice(0, BASE_LEN).some(d => d[0].trim().toLowerCase()===key))
       return 'Препарат с таким названием уже есть в справочнике. Для теста измените название (например, добавьте «(мой)»).';
@@ -2009,6 +2010,7 @@ function myrxSanitize(x){
     r[k] = (typeof x[k]==='string' || (typeof x[k]==='number' && isFinite(x[k]))) ? String(x[k]).trim().slice(0, 300) : '';   // объекты, списки и т. п. — пусто
   r.tests = Array.isArray(x.tests) ? [...new Set(x.tests.filter(t => typeof t==='string' && MYRX_TEST_ID.test(t)))] : [];
   r.abbr = false;   // сокращения подбираются автоматически
+  if(!r.drug && r.latin) r.drug = r.latin;   // название обязательно: у старых файлов берём латинское
   return r;
 }
 const myrxKey = r => [r.form, r.drug, r.latin, r.dose, r.vol, r.num, r.signa].map(v => String(v).trim().toLowerCase()).join('|');
@@ -2260,6 +2262,7 @@ function myrxFromBot(block){
   r.dose = form==='tinct' ? '' : dose;
   if(form!=='amp' && form!=='caps' && form!=='supp' && form!=='powder' && form!=='tab') r.num = '';
   r.signa = signa; r.group = group;
+  r.drug = r.latin;   // название обязательно: из вставленного текста берём латинское, потом можно изменить
   return r;
 }
 function myrxPasteHtml(msg, text, example){
@@ -2430,7 +2433,7 @@ function viewMyList(){
   return head + list.map(r => { const grp = String(r.group).trim(), name = r.drug || r.latin || 'Без названия';
     return `<section class="card my-item">
       ${grp ? `<div class="card-tag"><span class="chip">${esc(grp)}</span></div>` : ''}
-      ${drugHead(name, r.drug ? r.latin : '', false)}
+      ${drugHead(name, '', false)}
       <div class="my-prev">${myrxBlank(r, true)}</div>
       <p class="my-meta${r.tests.length ? ' is-on' : ''}">${esc(myrxTestsText(r))}</p>
       <div class="my-acts">
@@ -2469,7 +2472,7 @@ function viewMyEdit(){
     <nav class="tabs my-tabs" aria-label="Форма выпуска">${MYRX_FORMS.map(f => `<button class="tab${f.id===r.form ? ' is-active' : ''}" type="button" data-act="myrxForm" data-f="${f.id}">${f.title}</button>`).join('')}</nav>
     <div class="my-prev" id="myrxPreview">${myrxBlank(r)}</div>
     <div class="my-field">
-      <label class="label wr-label" for="my-drug"><span class="wr-lab">Препарат</span><span class="wr-sub">из справочника или своё название</span></label>
+      <label class="label wr-label" for="my-drug"><span class="wr-lab">Препарат *</span><span class="wr-sub">обязательно: из справочника или своё название</span></label>
       <input class="input" id="my-drug" data-my="drug" type="text" maxlength="300" value="${esc(r.drug)}" placeholder="Начните вводить название"
         role="combobox" aria-expanded="false" aria-controls="mySug" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div class="my-sug" id="mySug" role="listbox" hidden></div>
@@ -2493,7 +2496,7 @@ function viewMyEdit(){
           <div class="my-dd-list">${myrxTests().filter(isBlockTest).map(t => `<label class="my-check"><input type="checkbox" data-mytest="${t.id}"${r.tests.includes(t.id) ? ' checked' : ''}> ${esc(t.title)}</label>`).join('')}</div>
         </details>
       </div>
-      <p class="my-hint">Для тестов нужны: русское название (поле «Препарат»), группа и путь введения. Рецепт, отмеченный только для блока, в зачёт семестра не попадает — отметьте и семестр.</p>
+      <p class="my-hint">Для тестов нужны: группа и путь введения (название препарата обязательно всегда). Рецепт, отмеченный только для блока, в зачёт семестра не попадает — отметьте и семестр.</p>
     </fieldset>
     <p class="my-err" id="myrxErr" role="alert" hidden></p>
     <div class="actions actions-even">

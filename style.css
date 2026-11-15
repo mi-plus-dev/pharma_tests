@@ -561,8 +561,8 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rxd .k,.rxd .v,.rxd .v.wrap{font-family:inherit;font-size:1em;font-weight:inherit;font-stretch:inherit;font-size-adjust:inherit;line-height:inherit}
 .blank .rxd .bl{font-size:inherit}
 .rxd .k,.rxd .v{white-space:nowrap}
-/* «Recipe:» / «Rp.:» — красная плашка с обводкой, как прежняя метка «Rp.» */
-.rxd .k:not(:empty){align-self:center;justify-self:start;padding:1px .55em;border:2px solid var(--edge);border-radius:6px;background:var(--red);color:var(--on-red);font:800 .72em/1.5 var(--display);letter-spacing:.06em}
+/* «Recipe:» / «Rp.:» — красный текст без плашки и рамки */
+.rxd .k:not(:empty){align-self:baseline;justify-self:start;padding:0;border:0;border-radius:0;background:none;color:var(--red);font:inherit;font-weight:700;letter-spacing:normal}
 .rxd .v.wrap{white-space:normal;overflow-wrap:break-word}
 .rxd .bl.in2 .v{padding-left:1.6em}
 .rxd .ru{font-size:.96em}
@@ -605,9 +605,6 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .blank .bl{font:500 16px/32px "IBM Plex Sans Condensed","Roboto Condensed","PT Sans Narrow","Arial Narrow",var(--sans);font-stretch:condensed;color:var(--ink)}
 .blank .rxd .bl{font:inherit;color:inherit}
 .blank .rxd{line-height:32px}
-/* В «Как писать рецепты» слово Recipe: / Rp.: — обычным текстом, без красной рамки (плашка остаётся только в «Впиши сам») */
-.blank:not(.wr-blank) .rxd .k:not(:empty){align-self:baseline;padding:0;border:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:normal}
-.blank .stamp{display:block;width:fit-content;max-width:100%;margin:6px 0 0 auto;padding:3px 9px;border:2px solid var(--red);border-radius:6px;background:var(--card);color:var(--red);font:800 13px/1.25 var(--display);transform:rotate(-1.5deg)}
 
 /* ===== Обучение для нового пользователя: подсвечена одна кнопка, остальные скрыты ===== */
 .tour-block{position:fixed;inset:0;z-index:1000;background:transparent;touch-action:none}
@@ -811,4 +808,4 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 .my-item .my-meta{margin:10px 2px 12px}
 
 /* Главный экран: воздух между заголовком «Рецепты» и первой кнопкой */
-.rx-head{margin:26px 2px 28px}
+.rx-head{margin:26px 2px 126px}
