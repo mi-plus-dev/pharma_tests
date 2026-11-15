@@ -627,7 +627,7 @@ const LISTS = {
 };
 // Куда ведёт «Назад»; всё, чего здесь нет, возвращает в меню
 const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
-  semQuiz:'semMenu', semWrite:'semMenu',
+  semQuiz:'semMenu', semWrite:'semMenu', tests:'menu', semMenu:'tests', exam:'tests',
   quiz:'examQuiz', write:'examWrite', studyList:'examQuiz', writeBlockList:'examWrite', examQuiz:'exam', examWrite:'exam',
   myrx:'menu', myrxEdit:'myrx', myQuiz:'myrx', myWrite:'myrx', myGroup:'menu', grpQuiz:'myGroup', grpWrite:'myGroup'};
 // Куда ведёт «назад» с карточек: из тем — в темы, из семестра — в семестр
@@ -916,7 +916,7 @@ function restoreView(){
   if(okIdx(v.wbBlockIdx)) lastBlock.writeBlock = v.wbBlockIdx;
   if(okIdx(v.groupIdx)) lastBlock.groupCards = v.groupIdx;
   if(Number.isInteger(v.semIdx) && v.semIdx>=0 && v.semIdx<SEMESTERS.length) semIdx = v.semIdx;
-  cardsBack = v.cardsBack==='groupList' ? 'groupList' : 'menu';   // «назад» с карточек: в список «Карточки» или в меню (старые 'topics'/'semester' ведут в недостижимые экраны)
+  cardsBack = v.cardsBack==='groupList' ? 'groupList' : v.cardsBack==='tests' ? 'tests' : 'menu';   // «назад» с карточек: в список «Карточки» или в меню (старые 'topics'/'semester' ведут в недостижимые экраны)
   if(typeof v.grpId==='string') curGrp = v.grpId;
   let m = v.mode;
   if(m==='myrxEdit') m = 'myrx';   // черновик редактора не восстанавливается
@@ -927,7 +927,7 @@ function restoreView(){
   for(const k of OLD_BLOCK_KEYS) if(store.has(k)){ store.del(k); migrated = true; }
   if(migrated && LISTS[PARENT[m]]) m = PARENT[m];
   if(m==='semQuiz' || m==='semWrite'){ const S = loadSession(m); if(S){ semSess = S; mode = m; } }
-  else if(m==='quiz' || m==='write' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
+  else if(m==='quiz' || m==='write' || m==='tests' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
   else if(m==='myGroup'){ if(myGrpOk()) mode = m; }
   else if(SESSION[m]?.grp){ if(myGrpOk()) openBlock(m, curGrp, true); }
   else if(m==='groupCards' || SESSION[m]?.block) openBlock(m, lastBlock[m], true);
@@ -1208,13 +1208,15 @@ const ICON = {
 };
 const FIELDS = {dose:'Концентрация / форма', route:'Способ введения', group:'Фармакологическая группа'};
 
+let topName = '';
 // t: {back, title, count, score, progress} — чего нет, то скрыто
 function setTop(t){
   document.querySelector('.topbar').classList.toggle('is-session', !!t.compact);
   document.querySelector('.topbar').classList.toggle('is-empty', !t.back && !t.title && !t.count && t.progress==null);   // пустая шапка (главный экран) не рисуется
   $id('backBtn').hidden = !t.back;
   if(t.back) $id('backLabel').textContent = t.back;
-  $id('topTitle').innerHTML = t.title ? `<span>${esc(t.title)}</span>` + (t.count ? `<b>${esc(t.count)}</b>` : '') : '';
+  topName = t.title || '';   // верхний заголовок не рисуем (он дублировал заголовок страницы); название нужно только для экранных дикторов и вкладки
+  $id('topTitle').innerHTML = t.count ? `<b>${esc(t.count)}</b>` : '';
   $id('topSub').hidden = t.progress==null;
   if(t.progress!=null) $id('progressFill').style.width = Math.round(t.progress*100) + '%';
   const score = $id('score');
@@ -1351,7 +1353,7 @@ function viewHowTo(){
     ${step(3, 'Препарат и дозировка', `
       <p>Допустим, пишем рецепт на препарат <b>лабеталол</b>. Название препарата тоже пишется на латыни — <b>с заглавной буквы</b> и в <b>косвенном падеже</b> (родительном, <i>Genitivus</i>).</p>
       ${blank([['Recipe: Tabulettas Labetaloli 0,1','']])}
-      <p>После названия следует дозировка. В рецепте <b>не пишут</b> <i>mg, g, ml</i>. Дозировки, например таблеток, пишутся в граммах: 100 миллиграмм — это десятая доля грамма, то есть <b>0,1</b>.</p>
+      <p>Дозировки, например таблеток, пишутся в граммах: 100 миллиграмм — это десятая доля грамма, то есть <b>0,1</b>.</p>
       <p>Количество вещества пишется в правой части строки:</p>
       <div class="ht-key">
         <div><span class="ht-lat">1,0</span>1 г</div>
@@ -1385,7 +1387,7 @@ function viewHowTo(){
       <p>Здесь не указано количество и не указано, в чём должен быть раствор. Сразу пишется <i>Da. Signa:</i> — фармацевту понятно, что нужно выдать один стандартный заводской флакон (сосудосуживающие капли в нос).</p>
       <p>Но если раствор для <b>инъекций или капельных вливаний</b>, обязательно пишем, что нужно выдать определённое число ампул:</p>
       ${blank([['Rp.: Solutionis Coffeini natrii benzoatis 10% — 1 ml',''],['Da tales doses numero 6 in ampullis','in1'],['S.: подкожно, по 1 мл 2 р/д','in1']])}
-      <p class="ht-note"><b>Сокращать — так сокращать.</b> Если вы сократили <i>Recipe</i> до <i>Rp.</i>, сокращайте и дальше в этом рецепте. Либо сокращаете всё, что можно, либо пишете полностью. (В первом примере выше этот принцип мы проигнорировали.)</p>`)}
+      <p class="ht-note"><b>Сокращать — так сокращать.</b> Если вы сократили <i>Recipe</i> до <i>Rp.</i>, сокращайте и дальше в этом рецепте. Либо сокращаете всё, что можно, либо пишете полностью. (В примере выше этот принцип мы проигнорировали.)</p>`)}
 
     ${step(7, 'Группа препарата', `
       <p>Важный момент для студентов: не забудьте указать <b>где-нибудь в сторонке</b>, к какой фармакологической группе принадлежит препарат (альфа-адреноблокатор, кардиотоник и так далее).</p>
@@ -1414,37 +1416,28 @@ function viewHowTo(){
     <button class="btn btn-secondary btn-block list-end" type="button" data-act="up">К меню</button>`;
 }
 
-function viewMenu(){
-  setTop({});
-  const row = (attrs, no, title, icon, extra='') => `<button class="rx-row" type="button" ${attrs}>
+function rxRow(attrs, no, title, icon, extra=''){
+  return `<button class="rx-row" type="button" ${attrs}>
       ${icon ? '' : `<span class="rx-no">${no}</span>`}<span class="rx-lbl">${title}</span>${extra}${icon ? `<span class="rx-ico rx-i-${icon}" aria-hidden="true"></span><span class="rx-go" aria-hidden="true">${ICON.chevron}</span>` : ''}</button>`;
-
-  // «Зачёты»: семестровые тесты и экзамен
+}
+// Экран «Тесты»: зачёты по семестрам, экзамен и карточки по темам
+function viewTests(){
+  setTop({back:'Меню', title:'Тесты'});
+  const row = rxRow;
   const exams = [
-    withReset('sem0', row('data-act="openSemTest" data-i="0"', '1', 'I семестр', 'cad')),
-    withReset('sem1', row('data-act="openSemTest" data-i="1"', '2', 'II семестр', 'cad')),
+    withReset('sem0', row('data-act="openSemTest" data-i="0"', '1', 'I семестр', 'r1')),
+    withReset('sem1', row('data-act="openSemTest" data-i="1"', '2', 'II семестр', 'r2')),
     withReset('exam', row('data-act="go" data-mode="exam"', '3', 'Экзамен', 'cad'))
   ].join('');
-
-  // «По темам»: раскрывающийся пункт с пятью темами курса
   const subs = BLOCKS.map((b,i) => {
     const pos = cardsPos(i);
     const pg = pos>0 ? `<span class="rx-pg">${pos+1}/${b.items.length}</span>` : '';
     const reset = pos>0 ? `<button class="rx-reset" type="button" data-act="reset" data-mode="groupCards" data-i="${i}" title="Сбросить прогресс" aria-label="Сбросить прогресс темы «${esc(b.title)}»">${ICON.reset}</button>` : '';
     return `<div class="rx-subitem">${row(`data-act="openTopic" data-mode="groupCards" data-i="${i}"`, b.num, esc(b.title), '', pg)}${reset}</div>`;
   }).join('');
-
-  const upd = updateReady ? `<div class="upd-banner" role="status"><span>Вышла новая версия приложения.</span><button class="btn btn-primary" type="button" data-act="reloadApp">Обновить</button></div>` : '';
-  return `
-    <header class="rx-head">
-      <div class="rx-brand"><h1 class="rx-title"><span class="rx-r">Р</span>ецепты</h1></div>
-    </header>
-    ${upd}
-    <h2 class="rx-sec">Зачёты</h2>
-    <div class="rx-rows">${exams}</div>
-    ${myGrpMenuHtml()}
-    <h2 class="rx-sec" style="margin-top:42px">Другое</h2>
+  return `<header class="page-head"><h1>Тесты</h1><p>Зачёты по семестрам, экзамен и карточки по темам.</p></header>
     <div class="rx-rows rx-acc">
+      ${exams}
       <div class="rx-wrap">
         <button class="rx-row" type="button" id="topicsToggle" data-act="topicsToggle" aria-expanded="${topicsOpen ? 'true' : 'false'}" aria-controls="topicsBody">
           <span class="rx-lbl">По темам</span><span class="rx-ico rx-i-book" aria-hidden="true"></span><span class="rx-chev rx-go" aria-hidden="true">${ICON.chevron}</span>
@@ -1452,12 +1445,27 @@ function viewMenu(){
         ${resetBadge('topics')}
         <div class="rx-sub" id="topicsBody"${topicsOpen ? '' : ' hidden'} style="margin-top:12px">${subs}</div>
       </div>
-      ${row('data-act="go" data-mode="groupList"', '?', 'Карточки', 'book')}
-      ${withReset('mistakes', row('data-act="go" data-mode="mistakes"', '?', 'Работа над ошибками', 'scis'))}
-      ${row('data-act="go" data-mode="reference"', '?', 'Справочник', 'search')}
-      ${row('data-act="go" data-mode="myrx"', '?', 'Мои рецепты', 'pen')}
+    </div>`;
+}
+
+function viewMenu(){
+  setTop({});
+  const row = rxRow;
+  const upd = updateReady ? `<div class="upd-banner" role="status"><span>Вышла новая версия приложения.</span><button class="btn btn-primary" type="button" data-act="reloadApp">Обновить</button></div>` : '';
+  return `
+    <header class="rx-head">
+      <div class="rx-brand"><h1 class="rx-title"><span class="rx-r">Р</span>ецепты</h1></div>
+    </header>
+    ${upd}
+    <div class="rx-rows rx-acc">
       ${row('data-act="howWrite"', '?', 'Как писать рецепты', 'clip')}
+      ${row('data-act="go" data-mode="groupList"', '?', 'Карточки', 'book')}
+      ${row('data-act="go" data-mode="tests"', '?', 'Тесты', 'cad')}
+      ${withReset('mistakes', row('data-act="go" data-mode="mistakes"', '?', 'Работа над ошибками', 'scis'))}
+      ${row('data-act="go" data-mode="myrx"', '?', 'Мои рецепты', 'pen')}
+      ${row('data-act="go" data-mode="reference"', '?', 'Справочник', 'search')}
     </div>
+    ${myGrpMenuHtml()}
     ${footerHtml()}
     <div class="rx-tourlink tour-dim-able"><button type="button" data-act="tour">Показать обучение</button></div>`;
 }
@@ -1478,7 +1486,7 @@ function footerHtml(){
 // Зачёт по семестру: тот же выбор формата, что и в экзамене
 function viewSemMenu(){
   const name = semName(semIdx), sem = SEMESTERS[semIdx] || SEMESTERS[0], n = semItems().length;
-  setTop({back:'Меню', title:name});
+  setTop({back:'Тесты', title:name});
   const one = (m, icon, title, desc) => {
     const p = progressOf(loadSession(m));
     return tile({m, act:'openSem', i:semIdx, icon, title, desc, meta:chip(p), reset: p && 'Сбросить прогресс'});
@@ -1490,7 +1498,7 @@ function viewSemMenu(){
     </div>`;
 }
 function viewExam(){
-  setTop({back:'Меню', title:'Экзамен'});
+  setTop({back:'Тесты', title:'Экзамен'});
   return `<header class="page-head"><h1>Экзамен</h1><p>Выберите формат подготовки.</p></header>
     <div class="list">${
       tile({m:'examQuiz',  icon:ICON.choice, title:'Тест',       desc:'Выбираете дозу, путь введения и группу из трёх вариантов.'})}${
@@ -1736,7 +1744,7 @@ function viewCards(){
   const b = BLOCKS[cards.block], n = b.items.length;
   cards.pos = Math.min(Math.max(cards.pos, 0), n-1);
   const d = b.items[cards.pos];
-  setTop({back: cardsBack==='groupList' ? 'Блоки' : cardsBack==='menu' ? 'Меню' : 'Темы', title: cardsBack==='menu' ? b.title : `Блок ${b.num}`, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
+  setTop({back: cardsBack==='groupList' ? 'Блоки' : cardsBack==='tests' ? 'Тесты' : cardsBack==='menu' ? 'Меню' : 'Темы', title: cardsBack==='groupList' ? `Блок ${b.num}` : b.title, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
   return `<article class="card" data-swipe>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d[0], d[4], false)}
@@ -1828,14 +1836,14 @@ if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for
    Хранятся в localStorage отдельно от прогресса тестов.
    ========================================================= */
 const MYRX_FORMS = [
-  {id:'tab',    title:'Таблетки',  ph:'0,1',            num:true},
-  {id:'caps',   title:'Капсулы',   ph:'0,0004',         num:true},
-  {id:'amp',    title:'Ампулы',    ph:'1%',             num:true, vol:true, conc:true},
-  {id:'flac',   title:'Раствор (флакон)', ph:'0,1%',    vol:true, conc:true},
-  {id:'tinct',  title:'Настойка',  vol:true, nodose:true},
-  {id:'supp',   title:'Свечи',     ph:'500 000 ED',     num:true},
-  {id:'powder', title:'Порошок',   ph:'1,0',            num:true},
-  {id:'aerosol',title:'Аэрозоль',  ph:'0,00002 г/доза'}
+  {id:'tab',    title:'Таблетки',  ph:'0,1',            num:true, unit:'таблеток', routes:['внутрь', 'сублингвально', 'рассасывание в полости рта'], dose:'по 1 таблетке'},
+  {id:'caps',   title:'Капсулы',   ph:'0,0004',         num:true, unit:'капсул',   routes:['внутрь'], dose:'по 1 капсуле'},
+  {id:'amp',    title:'Ампулы',    ph:'1%',             num:true, unit:'ампул', vol:true, conc:true, routes:['в/в', 'в/м', 'п/к', 'внутрь', 'инфильтрационно'], dose:'по 1 мл'},
+  {id:'flac',   title:'Раствор (флакон)', ph:'0,1%',    vol:true, conc:true, routes:['внутрь', 'в/в', 'местно', 'интраназально', 'капли'], dose:'по 1 столовой ложке'},
+  {id:'tinct',  title:'Настойка',  vol:true, nodose:true, routes:['внутрь', 'капли', 'местно'], dose:'по 20 капель'},
+  {id:'supp',   title:'Свечи',     ph:'500 000 ED',     num:true, unit:'свечей', routes:['ректально'], dose:'по 1 свече'},
+  {id:'powder', title:'Порошок',   ph:'1,0',            num:true, unit:'порошков', routes:['внутрь', 'местно'], dose:'по 1 порошку'},
+  {id:'aerosol',title:'Аэрозоль',  ph:'0,00002 г/доза', routes:['ингаляционно', 'интраназально', 'местно'], dose:'по 1 вдоху'}
 ];
 const myrxForm = id => MYRX_FORMS.find(f => f.id===id) || MYRX_FORMS[0];
 const myrxBlankDraft = () => ({id:'', form:'tab', drug:'', latin:'', dose:'', vol:'', num:'', signa:'', group:'', route:'', tests:[], abbr:false});
@@ -1882,14 +1890,13 @@ function myrxLines(r, plain){
   }
 }
 // Бланк с рецептом; в полной записи длинные строки сами переходят на сокращения (fitRx)
-function myrxBlank(r, abbr){
+function myrxBlank(r, noStamp){
   const lines = myrxLines(r), short = rxShort(lines);
-  const body = abbr ? `<div class="rxd wr-rx">${rxDoc(short)}</div>`
-                    : `<div class="rxd wr-rx" data-short="${esc(rxDoc(short))}">${rxDoc(lines)}</div>`;
-  return `<div class="blank wr-blank">${body}${String(r.group).trim() ? `<span class="stamp">${esc(String(r.group).trim())}</span>` : ''}</div>`;
+  const body = `<div class="rxd wr-rx" data-short="${esc(rxDoc(short))}">${rxDoc(lines)}</div>`;   // сокращения включаются сами, если строка не помещается (fitRx)
+  return `<div class="blank wr-blank">${body}${!noStamp && String(r.group).trim() ? `<span class="stamp">${esc(String(r.group).trim())}</span>` : ''}</div>`;
 }
 function myrxPlain(r){
-  const lines = r.abbr ? rxShort(myrxLines(r)) : myrxLines(r);
+  const lines = myrxLines(r);
   const tmp = document.createElement('div');
   const text = lines.map(([t]) => { tmp.innerHTML = t; return tmp.textContent; });
   return text.map((t, i) => i ? '    ' + t : t).join('\n') + (String(r.group).trim() ? '\n(' + String(r.group).trim() + ')' : '');
@@ -1951,9 +1958,17 @@ const myrxTests = () => [
   ...BLOCKS.map((b, i) => ({id:'b' + i, title:'Блок ' + (i + 1) + '. ' + b.title, short:'Блок ' + (i + 1)})),
   ...myGrpLoad().map(g => ({id:'g_' + g.id, title:'Группа «' + g.name + '»', short:g.name}))
 ];
+const rxTopicsSet = new WeakSet();   // у черновика отмечено «По темам» (ещё до выбора самой темы)
+const isBlockTest = t => /^b\d$/.test(t.id);
+const myrxTopicsOn = r => rxTopicsSet.has(r) || r.tests.some(id => /^b\d$/.test(id));
 const myrxTestsSummary = r => {
-  const all = myrxTests().filter(t => r.tests.includes(t.id)).map(t => t.short);
+  const all = myrxTests().filter(t => !isBlockTest(t) && r.tests.includes(t.id)).map(t => t.short);
+  if(myrxTopicsOn(r)) all.push('По темам');
   return all.length ? all.join(', ') : 'Не добавлять в тесты';
+};
+const myrxTopicSummary = r => {
+  const all = myrxTests().filter(t => isBlockTest(t) && r.tests.includes(t.id)).map(t => t.short);
+  return all.length ? all.join(', ') : 'Выберите тему';
 };
 const myrxTestsText = r => {
   const all = myrxTests().filter(t => r.tests.includes(t.id)).map(t => t.short);
@@ -1985,7 +2000,7 @@ function myrxSanitize(x){
   for(const k of ['drug', 'latin', 'dose', 'vol', 'num', 'signa', 'group', 'route'])
     r[k] = (typeof x[k]==='string' || (typeof x[k]==='number' && isFinite(x[k]))) ? String(x[k]).trim().slice(0, 300) : '';   // объекты, списки и т. п. — пусто
   r.tests = Array.isArray(x.tests) ? [...new Set(x.tests.filter(t => typeof t==='string' && MYRX_TEST_ID.test(t)))] : [];
-  r.abbr = x.abbr===true;
+  r.abbr = false;   // сокращения подбираются автоматически
   return r;
 }
 const myrxKey = r => [r.form, r.drug, r.latin, r.dose, r.vol, r.num, r.signa].map(v => String(v).trim().toLowerCase()).join('|');
@@ -2263,24 +2278,28 @@ function myrxPasteRun(text){
   // «рецепт» без названия, Signa и дозы — это просто лишняя строка перед настоящим рецептом (например, группа, которой нет в словаре): молча пропускаем
   const junk = new Set(parsed.map((r, i) => (!r.latin && !r.signa && !r.dose) ? i + 1 : 0).filter(Boolean));
   const ofJunk = s => { const m = /^Рецепт (\d+):/.exec(s); return !!m && junk.has(+m[1]); };
-  res.fixes.filter(x => !ofJunk(x)).forEach(x => lines.push('Исправлено: ' + x));
-  res.warnings.filter(w => !MYRX_PASTE_SKIP.test(w) && !ofJunk(w)).forEach(w => lines.push(w));
+  // в сообщениях вместо номера — название препарата: «Рецепт Labetaloli: …»; если названия нет, остаётся номер
+  const rxName = i => 'Рецепт ' + ((parsed[i - 1] && parsed[i - 1].latin) || i);
+  const rename = s => s.replace(/^Рецепт (\d+):/, (_, n) => rxName(+n) + ':');
+  const dot = s => /[.!?…]$/.test(s) ? s : s + '.';
+  res.fixes.filter(x => !ofJunk(x)).forEach(x => lines.push('Исправлено: ' + dot(rename(x))));
+  res.warnings.filter(w => !MYRX_PASTE_SKIP.test(w) && !ofJunk(w)).forEach(w => lines.push(dot(rename(w))));
   parsed.forEach((r, i) => {
     if(junk.has(i + 1)) return;
-    const pfx = 'Рецепт ' + (i + 1) + ': ';
+    const pfx = rxName(i + 1) + ': ';
     if(r.group){                              // группа из текста → точное написание из имеющихся групп, если оно одно
       const h = groupHits(r.group);
-      if(h.length===1 && h[0]!==r.group){ lines.push(pfx + 'группа «' + r.group + '» → «' + h[0] + '»'); r.group = h[0]; }
+      if(h.length===1 && h[0]!==r.group){ lines.push(pfx + 'группа «' + r.group + '» → «' + h[0] + '».'); r.group = h[0]; }
     }
     const err = myrxError(r);
-    if(err){ lines.push(pfx + 'не сохранён. ' + err); return; }
-    if(seen.has(myrxKey(r))){ lines.push(pfx + 'такой рецепт уже есть, пропущен'); return; }
-    if(list.length + fresh.length >= MYRX_MAX){ lines.push(pfx + 'не сохранён: предел ' + MYRX_MAX + ' рецептов'); return; }
+    if(err){ lines.push(pfx + dot(err)); return; }
+    if(seen.has(myrxKey(r))){ lines.push(pfx + 'такой рецепт уже есть, пропущен.'); return; }
+    if(list.length + fresh.length >= MYRX_MAX){ lines.push(pfx + 'не сохранён: предел ' + MYRX_MAX + ' рецептов.'); return; }
     seen.add(myrxKey(r));
     fresh.push({...r, id: base.toString(36) + Math.random().toString(36).slice(2, 6) + fresh.length, t: base});
   });
   if(!fresh.length){
-    myrxSheet(myrxPasteHtml('Ни один рецепт не сохранён. ' + lines.filter(l => !/^Исправлено/.test(l)).join(' '), text));
+    myrxSheet(myrxPasteHtml(lines.filter(l => !/^Исправлено/.test(l)).join(' ') || 'Ни один рецепт не сохранён.', text));
     return;
   }
   if(!myrxStore([...fresh, ...list])){ myrxStorageFail(); return; }
@@ -2400,17 +2419,28 @@ function viewMyList(){
       [['quiz','myQuiz','Тест'], ['write','myWrite','Впиши сам']].map(([k, m, t]) => { const p = progressOf(loadSession(m));
         return `<button class="btn btn-secondary" type="button" data-act="myrxTest" data-k="${k}">${t}${p ? ` <small>${p.done ? '✓' : p.pos + '/' + p.n}</small>` : ''}</button>`; }).join('')}</div></div>` : ''}`;
   if(!list.length) return head + `<div class="empty">${ICON.pen}<p>Пока пусто. Нажмите «Новый рецепт» — можно выбрать препарат из справочника, и поля заполнятся сами. Уже есть файл с рецептами — нажмите «Импорт».</p></div>`;
-  return head + list.map(r => `<section class="my-item">
-      <h3>${esc(r.drug || r.latin || 'Без названия')}</h3>
-      <div class="my-prev">${myrxBlank(r, r.abbr)}</div>
+  return head + list.map(r => { const grp = String(r.group).trim(), name = r.drug || r.latin || 'Без названия';
+    return `<section class="card my-item">
+      ${grp ? `<div class="card-tag"><span class="chip">${esc(grp)}</span></div>` : ''}
+      ${drugHead(name, r.drug ? r.latin : '', false)}
+      <div class="my-prev">${myrxBlank(r, true)}</div>
       <p class="my-meta${r.tests.length ? ' is-on' : ''}">${esc(myrxTestsText(r))}</p>
       <div class="my-acts">
         <button class="btn btn-secondary" type="button" data-act="myrxEdit" data-id="${esc(r.id)}">Изменить</button>
         <button class="btn btn-secondary" type="button" data-act="myrxCopy" data-id="${esc(r.id)}">Копировать</button>
         <button class="btn btn-secondary" type="button" data-act="myrxDel" data-id="${esc(r.id)}">Удалить</button>
       </div>
-    </section>`).join('');
+    </section>`; }).join('');
 }
+// Кнопки быстрого ввода под полями: нажатие добавляет текст в поле (повторное нажатие на путь введения — убирает)
+// Подсказки зависят от выбранной формы: для таблеток нет инъекций, для ампул — «после еды»
+const myrxQuickRoute = F => F.routes;
+function myrxQuickSigna(F){
+  const oral = (F.routes || []).includes('внутрь') && !F.vol || F.id==='tinct' || F.id==='flac';
+  const inj = (F.routes || []).some(x => /^(в\/в|в\/м|п\/к)$/.test(x));
+  return [...F.routes.filter(x => x.length < 14), F.dose, '1 раз в день', '2 раза в день', '3 раза в день', ...(oral ? ['до еды', 'после еды', 'во время еды'] : []), ...(inj ? ['при необходимости'] : [])];
+}
+const myrxQuick = (key, list) => `<div class="my-quick" role="group" aria-label="Быстрый ввод">${list.map(v => `<button class="my-q" type="button" data-act="myrxQuick" data-k="${key}" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div>`;
 function viewMyEdit(){
   if(!rxDraft) rxDraft = myrxBlankDraft();
   const r = rxDraft, F = myrxForm(r.form);
@@ -2424,12 +2454,12 @@ function viewMyEdit(){
         autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${attrs}>`}${after}</div>`;
   const row2 = [
     F.vol ? field('vol', 'Объём, мл', 'Например: 5', 'inputmode="decimal"') : '',
-    F.num ? field('num', 'Число доз', 'Например: 10', 'inputmode="numeric"') : ''
+    F.num ? field('num', 'Число доз' + (F.unit ? ' (' + F.unit + ')' : ''), 'Например: 10', 'inputmode="numeric"') : ''
   ].filter(Boolean);
   return `<header class="page-head"><h1>${r.id ? 'Изменить рецепт' : 'Новый рецепт'}</h1>
       <p>Выберите препарат из справочника — поля заполнятся из него, и их можно поправить. Либо впишите всё сами.</p></header>
     <nav class="tabs my-tabs" aria-label="Форма выпуска">${MYRX_FORMS.map(f => `<button class="tab${f.id===r.form ? ' is-active' : ''}" type="button" data-act="myrxForm" data-f="${f.id}">${f.title}</button>`).join('')}</nav>
-    <div class="my-prev" id="myrxPreview">${myrxBlank(r, r.abbr)}</div>
+    <div class="my-prev" id="myrxPreview">${myrxBlank(r)}</div>
     <div class="my-field">
       <label class="label wr-label" for="my-drug"><span class="wr-lab">Препарат</span><span class="wr-sub">из справочника или своё название</span></label>
       <input class="input" id="my-drug" data-my="drug" type="text" maxlength="300" value="${esc(r.drug)}" placeholder="Начните вводить название"
@@ -2439,18 +2469,24 @@ function viewMyEdit(){
     ${field('latin', 'Латинское название', 'Например: Labetaloli', 'lang="la"')}
     ${F.nodose ? '' : field('dose', F.conc ? 'Концентрация' : 'Дозировка', F.ph || '')}
     ${row2.length ? `<div class="my-row2">${row2.join('')}</div>` : ''}
-    ${field('signa', 'Signa — инструкция для пациента', 'внутрь, по 1 таблетке 3 раза в день')}
+    ${field('signa', 'Signa — инструкция для пациента', 'внутрь, по 1 таблетке 3 раза в день', '', '', myrxQuick('signa', myrxQuickSigna(F)))}
     ${field('group', 'Фармакологическая группа', 'нужна для тестов', 'role="combobox" aria-expanded="false" aria-controls="myGrpSug"', '', '<div class="my-sug" id="myGrpSug" role="listbox" hidden></div>')}
-    ${field('route', 'Путь введения', 'внутрь, в/в, в/м…', 'role="combobox" aria-expanded="false" aria-controls="myRouteSug"', '', '<div class="my-sug" id="myRouteSug" role="listbox" hidden></div>')}
+    ${field('route', 'Путь введения', 'внутрь, в/в, в/м…', 'role="combobox" aria-expanded="false" aria-controls="myRouteSug"', '', '<div class="my-sug" id="myRouteSug" role="listbox" hidden></div>' + myrxQuick('route', myrxQuickRoute(F)))}
     <fieldset class="my-tests">
       <legend class="label wr-label"><span class="wr-lab">Добавить в тесты</span><span class="wr-sub">необязательно — отметьте, где рецепт должен встречаться</span></legend>
       <details class="my-dd" id="myDd">
         <summary class="input my-dd-btn"><span id="myDdText">${esc(myrxTestsSummary(r))}</span><span class="my-dd-arr" aria-hidden="true">${ICON.chevron}</span></summary>
-        <div class="my-dd-list">${myrxTests().map(t => `<label class="my-check"><input type="checkbox" data-mytest="${t.id}"${r.tests.includes(t.id) ? ' checked' : ''}> ${esc(t.title)}</label>`).join('')}</div>
+        <div class="my-dd-list">${myrxTests().filter(t => !isBlockTest(t)).map(t => `<label class="my-check"><input type="checkbox" data-mytest="${t.id}"${r.tests.includes(t.id) ? ' checked' : ''}> ${esc(t.title)}</label>`).join('')}<label class="my-check"><input type="checkbox" data-mytopics${myrxTopicsOn(r) ? ' checked' : ''}> По темам</label></div>
       </details>
+      <div class="my-topic" id="myTopicBox"${myrxTopicsOn(r) ? '' : ' hidden'}>
+        <div class="label wr-label"><span class="wr-lab">Тема</span><span class="wr-sub">можно отметить несколько</span></div>
+        <details class="my-dd" id="myDd2">
+          <summary class="input my-dd-btn"><span id="myDd2Text">${esc(myrxTopicSummary(r))}</span><span class="my-dd-arr" aria-hidden="true">${ICON.chevron}</span></summary>
+          <div class="my-dd-list">${myrxTests().filter(isBlockTest).map(t => `<label class="my-check"><input type="checkbox" data-mytest="${t.id}"${r.tests.includes(t.id) ? ' checked' : ''}> ${esc(t.title)}</label>`).join('')}</div>
+        </details>
+      </div>
       <p class="my-hint">Для тестов нужны: русское название (поле «Препарат»), группа и путь введения. Рецепт, отмеченный только для блока, в зачёт семестра не попадает — отметьте и семестр.</p>
     </fieldset>
-    <label class="my-check"><input type="checkbox" data-my="abbr"${r.abbr ? ' checked' : ''}> Сокращённая запись (Rp., D.t.d.n., S.)</label>
     <p class="my-err" id="myrxErr" role="alert" hidden></p>
     <div class="actions actions-even">
       <button class="btn btn-secondary" type="button" data-act="up">Отмена</button>
@@ -2559,7 +2595,7 @@ function myrxSuggestHide(){
 }
 function myrxPreviewUpdate(){
   const box = $id('myrxPreview');
-  if(box && rxDraft){ box.innerHTML = myrxBlank(rxDraft, rxDraft.abbr); fitRx(); }
+  if(box && rxDraft){ box.innerHTML = myrxBlank(rxDraft); fitRx(); }
   const e = $id('myrxErr'); if(e) e.hidden = true;
 }
 function myrxCopyText(text){
@@ -2572,7 +2608,7 @@ function myrxCopyText(text){
   });
 }
 
-const VIEWS = {semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
+const VIEWS = {tests: viewTests, semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
   howto: viewHowTo};
 
 // Плавный подъём к началу страницы (около полсекунды, с замедлением к концу)
@@ -2609,7 +2645,7 @@ function announce(text){
 const SESS_TITLE = {quiz:'Тест, все рецепты', write:'Впиши сам, все рецепты', study:'Тест по блоку', writeBlock:'Впиши сам по блоку',
   mistakesQuiz:'Повторение ошибок: тест', mistakesWrite:'Повторение ошибок: впиши сам', myQuiz:'Мои рецепты: тест', myWrite:'Мои рецепты: впиши сам'};
 function screenName(S){
-  const top = ($id('topTitle').textContent || '').trim();
+  const top = (topName || '').trim();
   if(top) return top;
   if(S){
     if(S.sem!==undefined) return semName(S.sem) + (mode==='semQuiz' ? ': тест' : ': впиши сам');
@@ -2846,7 +2882,7 @@ const ACTIONS = {
   openSemTest: el => { semIdx = +el.dataset.i || 0; go('semMenu'); },
   openSem: el => startSemTest(+el.dataset.i || 0, el.dataset.mode==='semWrite' ? 'semWrite' : 'semQuiz'),
   open: el => { if(el.dataset.mode==='groupCards') cardsBack = mode; openBlock(el.dataset.mode, +el.dataset.i); },
-  openTopic: el => { cardsBack = 'menu'; openBlock('groupCards', +el.dataset.i); },
+  openTopic: el => { cardsBack = 'tests'; openBlock('groupCards', +el.dataset.i); },
   openMistakes: el => openMistakes(el.dataset.mode),
   reset: el => askReset(el.dataset.mode, el.dataset.i==null ? null : SESSION[el.dataset.mode]?.grp ? el.dataset.i : +el.dataset.i),
   myGrpOpen: el => { curGrp = el.dataset.g || ''; go('myGroup'); },
@@ -2889,6 +2925,23 @@ const ACTIONS = {
     if(!rxDraft || !inp) return;
     rxDraft.group = el.dataset.v; inp.value = el.dataset.v;
     myrxPreviewUpdate(); myrxSuggestHide();
+  },
+  myrxQuick: el => {
+    const key = el.dataset.k, v = el.dataset.v, inp = $id('my-' + key);
+    if(!rxDraft || !inp || !v) return;
+    let cur = inp.value;
+    if(key==='route'){
+      const parts = cur.split(',').map(x => x.trim()).filter(Boolean), i = parts.indexOf(v);
+      if(i >= 0) parts.splice(i, 1); else parts.push(v);
+      cur = parts.join(', ');
+    } else {
+      cur = cur.replace(/\s+$/, '');
+      cur = cur && !/[,.;:]$/.test(cur) ? cur + (/^(внутрь|в\/в|в\/м|п\/к)$/.test(v) ? '; ' : ' ') + v : cur ? cur + ' ' + v : v;
+    }
+    inp.value = cur; rxDraft[key] = cur;
+    if(inp.tagName==='TEXTAREA') autosizeArea(inp);
+    myrxPreviewUpdate(); myrxSuggestHide();
+    try{ inp.focus({preventScroll:true}); inp.setSelectionRange(cur.length, cur.length); }catch(_){}
   },
   myrxPickRoute: el => {
     const inp = $id('my-route');
@@ -3022,6 +3075,18 @@ document.addEventListener('input', e => {
     if(!t.checked && i >= 0) rxDraft.tests.splice(i, 1);
     const e = $id('myrxErr'); if(e) e.hidden = true;
     const tx = $id('myDdText'); if(tx) tx.textContent = myrxTestsSummary(rxDraft);
+    const t2 = $id('myDd2Text'); if(t2) t2.textContent = myrxTopicSummary(rxDraft);
+    return;
+  }
+  if(t.dataset && t.dataset.mytopics !== undefined){
+    if(!rxDraft) return;
+    if(t.checked) rxTopicsSet.add(rxDraft);
+    else { rxTopicsSet.delete(rxDraft); rxDraft.tests = rxDraft.tests.filter(id => !/^b\d$/.test(id)); document.querySelectorAll('#myDd2 input[data-mytest]').forEach(c => { c.checked = false; }); }
+    const box = $id('myTopicBox'); if(box) box.hidden = !t.checked;
+    const dd2 = $id('myDd2'); if(dd2) dd2.open = !!t.checked;
+    const e = $id('myrxErr'); if(e) e.hidden = true;
+    const tx = $id('myDdText'); if(tx) tx.textContent = myrxTestsSummary(rxDraft);
+    const t2 = $id('myDd2Text'); if(t2) t2.textContent = myrxTopicSummary(rxDraft);
     return;
   }
   if(t.dataset && t.dataset.my){
@@ -3046,8 +3111,10 @@ document.addEventListener('input', e => {
   const fill = $id('wrFill'); if(fill) fill.textContent = wrFillText(st);
 });
 document.addEventListener('click', e => {
-  const dd = $id('myDd');
-  if(dd && dd.open && !dd.contains(e.target)) dd.open = false;
+  for(const id of ['myDd', 'myDd2']){
+    const dd = $id(id);
+    if(dd && dd.open && !dd.contains(e.target)) dd.open = false;
+  }
 });
 document.addEventListener('change', e => {
   const t = e.target;
@@ -3285,12 +3352,12 @@ const SESSION_TOUR_STEPS = (first, fields, primary) => [
 const TOURS = {
   menu: {key:'pharma_tour_v1', scope:'.rx-rows > *, .rx-tourlink', steps:[
     {t:'Добро пожаловать!', x:'«Рецепты» — тренажёр по фармакологии: дозы, пути введения, группы и латинские названия препаратов, а ещё оформление рецептов. За минуту покажу кнопки главного экрана.'},
-    {sel:'[data-act="openSemTest"]', t:'I и II семестр', x:'Зачёты по семестрам, в каждом — «Тест» и «Впиши сам». I — вегетативная и центральная нервная система, анестезиология. II — кровообращение, противомикробные средства, дыхание, пищеварение, гормоны.'},
-    {sel:'[data-act="go"][data-mode="exam"]', t:'Экзамен', x:'Весь курс сразу. Выберите «Тест» (три варианта ответа) или «Впиши сам»: вписываете латынь, концентрацию и группу, и карточка переворачивается с готовым рецептом.'},
-    {sel:'#topicsToggle', t:'По темам', x:'Нажмите — раскроются пять тем курса. Внутри карточки для заучивания.'},
+    {sel:'[data-act="howWrite"]', t:'Как писать рецепты', x:'Краткая схема оформления рецепта по шагам: от Recipe до Signa.'},
+    {sel:'[data-act="go"][data-mode="groupList"]', t:'Карточки', x:'Вся информация о препарате на одной карточке — для повторения, без вопросов.'},
+    {sel:'[data-act="go"][data-mode="tests"]', t:'Тесты', x:'Здесь зачёты по I и II семестру, экзамен и карточки по темам. В каждом зачёте — «Тест» и «Впиши сам».'},
     {sel:'[data-act="go"][data-mode="mistakes"]', t:'Работа над ошибками', x:'Сюда попадают препараты, в которых вы ошиблись. Повторяйте, пока список не опустеет.'},
-    {sel:'[data-act="go"][data-mode="reference"]', t:'Справочник', x:'Все препараты по алфавиту. Ищите по названию, латыни или группе.'},
-    {sel:'[data-act="howWrite"]', t:'Как писать рецепты', x:'Краткая схема оформления рецепта по шагам: от Recipe до Signa. Дальше — как проходит тест, на примере зачёта по I семестру.'}
+    {sel:'[data-act="go"][data-mode="myrx"]', t:'Мои рецепты', x:'Свои рецепты на бланке: их можно добавлять в тесты и собирать в группы.'},
+    {sel:'[data-act="go"][data-mode="reference"]', t:'Справочник', x:'Все препараты по алфавиту. Ищите по названию, латыни или группе. Дальше — как проходит тест, на примере зачёта по I семестру.'}
   ]},
   quiz: {key:'pharma_tour_quiz_v1', scope:'.card > *, #topSub, #backBtn', steps: SESSION_TOUR_STEPS(
     'Вверху — препарат и номер вопроса. Нужно определить его дозу, путь введения и группу.',

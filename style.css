@@ -4,7 +4,7 @@
    ========================================================= */
 :root{
   /* Палитра */
-  --paper:#F4EDDD; --paper-2:#EBE1C8; --card:#FBF7EB;
+  --paper:#FAFBF8; --paper-2:#E8EDE6; --card:#FFFFFF;
   --ink:#182721; --green:#0E5B45; 
   --red:#C93F23; --amber:#E0A23E;
 
@@ -27,9 +27,9 @@
   --bad-soft:rgba(207,67,39,.12);
   --btn-danger:#CF4327;
   --overlay:rgba(24,39,33,.45);
-  --on-red:#FBF7EB; --lift:#FFFFFF;
+  --on-red:#FFFFFF; --lift:#FFFFFF;
   --surface:var(--card);
-  --inset:#F2EAD3;
+  --inset:#F1F5EF;
   --topbar:var(--paper);
   --shadow:6px 6px 0 var(--hardc);
   --shadow-sm:4px 4px 0 var(--hardc);
@@ -532,7 +532,8 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .bl .red{color:var(--red);font-size:16px}
 .blank.is-struck .bl{color:var(--red)}
 /* Пример запрета: линия справа от Recipe: ограничивает всё место под ним, а само место заштриховано */
-.blank .ban{display:block;width:fit-content;margin-top:-6px;padding:6px 12px 4px 0;border-right:3px solid var(--red)}
+.blank .ban{position:relative;display:block;width:fit-content;margin-top:-6px;padding:6px 6px 4px 0}
+.blank .ban::after{content:"";position:absolute;right:0;top:12px;bottom:4px;width:2px;border-radius:1px;background:var(--red)}
 .blank .ban-x{display:block;height:96px;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--red) 6px 8px)}
 .blank .side{display:block;margin:0;padding:0;text-align:right;color:var(--red);font:400 18px/32px "Marck Script",cursive}
 
@@ -642,7 +643,7 @@ body.tour-on .tour-focus{outline:3px solid var(--amber);outline-offset:5px;borde
 @media (prefers-reduced-motion:reduce){body.tour-on .tour-focus,.tour-card{animation:none}}
 
 /* ===== «Мои рецепты»: список и редактор собственного рецепта ===== */
-.rx-i-pen{-webkit-mask-size:46px 46px;mask-size:46px 46px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>")}
+.rx-i-pen{-webkit-mask-size:46px 46px;mask-size:46px 46px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>")}
 .my-new{margin:0 5px 20px 0;width:calc(100% - 5px)}
 .my-item{margin:0 5px 22px 0}
 .my-item h3{margin:0 0 8px 2px;font-family:var(--display);font-size:14px;line-height:1.25;font-weight:800;overflow-wrap:anywhere}
@@ -788,3 +789,23 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 /* ===== Баннер «Вышла новая версия» на главном экране ===== */
 .upd-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 5px 14px 0;padding:10px 12px 10px 14px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);box-shadow:var(--shadow-sm);font-size:14px;font-weight:600;line-height:1.35}
 .upd-banner .btn{flex:none;min-height:44px;padding:0 16px}
+
+/* Римские цифры I и II: полый контур, толщина линии как у остальных иконок */
+.rx-i-r1{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M14 8H36V14H31V36H36V42H14V36H19V14H14Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M14 8H36V14H31V36H36V42H14V36H19V14H14Z'/></svg>")}
+.rx-i-r2{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M3 8H23V14H18V36H23V42H3V36H8V14H3Z'/><path d='M27 8H47V14H42V36H47V42H27V36H32V14H27Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M3 8H23V14H18V36H23V42H3V36H8V14H3Z'/><path d='M27 8H47V14H42V36H47V42H27V36H32V14H27Z'/></svg>")}
+/* Быстрый ввод и выбор темы в «Моих рецептах» */
+.my-quick{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.my-q{padding:6px 11px;border:2px solid var(--edge);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.my-q:active{background:var(--bg)}
+.my-topic{margin-top:10px}
+.my-topic[hidden]{display:none}
+
+/* Выбор формы в «Моих рецептах»: компактнее и ярче */
+.my-tabs{gap:6px}
+.my-tabs .tab{min-height:38px;padding:4px 10px;font-size:13px;box-shadow:none}
+.my-tabs .tab.is-active{background:#1F8A66;color:#fff;border-color:#157055}
+
+/* Список «Моих рецептов»: карточки как на экране «Карточки», без справочных сведений */
+.my-item.card{margin:0 5px 18px 0}
+.my-item .my-prev{margin:0 0 4px}
+.my-item .my-meta{margin:10px 2px 12px}
