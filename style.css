@@ -643,7 +643,7 @@ body.tour-on .tour-focus{outline:3px solid var(--amber);outline-offset:5px;borde
 @media (prefers-reduced-motion:reduce){body.tour-on .tour-focus,.tour-card{animation:none}}
 
 /* ===== «Мои рецепты»: список и редактор собственного рецепта ===== */
-.rx-i-pen{-webkit-mask-size:46px 46px;mask-size:46px 46px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>")}
+.rx-i-pen{-webkit-mask-size:46px 46px;mask-size:46px 46px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='0.85' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='0.85' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4L19.3 8.7a2.1 2.1 0 0 0-3-3L5 17v3z'/><path d='M14.5 7.5l3 3'/></svg>")}
 .my-new{margin:0 5px 20px 0;width:calc(100% - 5px)}
 .my-item{margin:0 5px 22px 0}
 .my-item h3{margin:0 0 8px 2px;font-family:var(--display);font-size:14px;line-height:1.25;font-weight:800;overflow-wrap:anywhere}
@@ -791,8 +791,8 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 .upd-banner .btn{flex:none;min-height:44px;padding:0 16px}
 
 /* Римские цифры I и II: полый контур, толщина линии как у остальных иконок */
-.rx-i-r1{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M14 8H36V14H31V36H36V42H14V36H19V14H14Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M14 8H36V14H31V36H36V42H14V36H19V14H14Z'/></svg>")}
-.rx-i-r2{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M3 8H23V14H18V36H23V42H3V36H8V14H3Z'/><path d='M27 8H47V14H42V36H47V42H27V36H32V14H27Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='3.4' stroke-linejoin='round'><path d='M3 8H23V14H18V36H23V42H3V36H8V14H3Z'/><path d='M27 8H47V14H42V36H47V42H27V36H32V14H27Z'/></svg>")}
+.rx-i-r1{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'><path d='M14 8H36V14H31V36H36V42H14V36H19V14H14Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'><path d='M14 8H36V14H31V36H36V42H14V36H19V14H14Z'/></svg>")}
+.rx-i-r2{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'><path d='M3 8H23V14H18V36H23V42H3V36H8V14H3Z'/><path d='M27 8H47V14H42V36H47V42H27V36H32V14H27Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'><path d='M3 8H23V14H18V36H23V42H3V36H8V14H3Z'/><path d='M27 8H47V14H42V36H47V42H27V36H32V14H27Z'/></svg>")}
 /* Быстрый ввод и выбор темы в «Моих рецептах» */
 .my-quick{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
 .my-q{padding:6px 11px;border:2px solid var(--edge);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
@@ -809,3 +809,6 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 .my-item.card{margin:0 5px 18px 0}
 .my-item .my-prev{margin:0 0 4px}
 .my-item .my-meta{margin:10px 2px 12px}
+
+/* Главный экран: воздух между заголовком «Рецепты» и первой кнопкой */
+.rx-head{margin:26px 2px 28px}

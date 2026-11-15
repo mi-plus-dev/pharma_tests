@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FAFBF8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -19,7 +19,9 @@
 <!-- шрифты подключаются без блокировки первого кадра: пока они не пришли (или нет сети), показывается запасной шрифт -->
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&family=Marck+Script&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&family=Marck+Script&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<script>try{if(localStorage.getItem("pharma-theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");var m=document.querySelector('meta[name="theme-color"]');if(m)m.content="#0F131C"}}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme-dark.css">
 </head>
 <body>
 <noscript><p style="font:16px/1.4 sans-serif;padding:24px;text-align:center">Для работы приложения нужен включённый JavaScript.</p></noscript>

@@ -1448,6 +1448,13 @@ function viewTests(){
     </div>`;
 }
 
+// Тёмная тема: выбор хранится в localStorage, оформление — в theme-dark.css
+function isDark(){ return document.documentElement.getAttribute('data-theme')==='dark'; }
+function setTheme(dark){
+  if(dark) document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme');
+  try{ localStorage.setItem('pharma-theme', dark ? 'dark' : 'light'); }catch{}
+  const m = document.querySelector('meta[name="theme-color"]'); if(m) m.content = dark ? '#0F131C' : '#FAFBF8';
+}
 function viewMenu(){
   setTop({});
   const row = rxRow;
@@ -1467,7 +1474,8 @@ function viewMenu(){
     </div>
     ${myGrpMenuHtml()}
     ${footerHtml()}
-    <div class="rx-tourlink tour-dim-able"><button type="button" data-act="tour">Показать обучение</button></div>`;
+    <div class="rx-tourlink tour-dim-able"><button type="button" data-act="tour">Показать обучение</button></div>
+    <div class="theme-toggle tour-dim-able"><button type="button" data-act="theme">${isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'}</button></div>`;
 }
 // Подвал главного экрана: © · Обратная связь · Официальный сайт
 // Заполните нужное — пустое не показывается; если пусто всё, подвала нет
@@ -3028,6 +3036,7 @@ const ACTIONS = {
     myrxCopyText(myrxPlain(r)).then(() => { el.textContent = 'Готово ✓'; }, () => { el.textContent = 'Не удалось'; });
     setTimeout(() => { if(el.isConnected) el.textContent = old; }, 1600);
   },
+  theme: () => { setTheme(!isDark()); render(); },
   tour: () => { Object.keys(TOURS).forEach(k => store.del(TOURS[k].key)); startTour('menu', true); },
   resetSection: el => askResetSection(el.dataset.sec),
   topicsToggle: el => {
