@@ -75,6 +75,3 @@ html[data-theme="dark"] ::selection{background:#2F7FC0;color:#fff}
 .theme-toggle button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 16px;border:2px solid var(--line);border-radius:99px;background:var(--card);color:var(--green);font-size:13.5px;font-weight:700}
 .theme-toggle button:active{background:var(--inset)}
 html[data-theme="dark"] .theme-toggle button{color:#7DB9EC;border-color:var(--edge)}
-
-/* Первая буква «Р» в заголовке «Рецепты» — голубая, в тон кнопкам, а не красная */
-html[data-theme="dark"] .rx-r{color:var(--accent)}
