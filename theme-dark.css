@@ -13,8 +13,8 @@ html[data-theme="dark"]{
   --bg:var(--paper);
   --muted:#98A2B3;
   --line:rgba(255,255,255,.10);
-  --edge:#2B3345;
-  --hardc:rgba(0,0,0,.45);
+  --edge:#566480;
+  --hardc:#06080D;
   --accent:#5BA3DB;
 
   --btn:#2F7FC0;
@@ -31,8 +31,8 @@ html[data-theme="dark"]{
   --surface:var(--card);
   --inset:#141925;
   --topbar:var(--paper);
-  --shadow:0 8px 22px rgba(0,0,0,.40);
-  --shadow-sm:0 4px 12px rgba(0,0,0,.35);
+  --shadow:6px 6px 0 var(--hardc);
+  --shadow-sm:4px 4px 0 var(--hardc);
 
   --icon:#5BA3DB;   /* цвет иконок на кнопках */
 }
@@ -47,14 +47,6 @@ html[data-theme="dark"] .btn,
 html[data-theme="dark"] .btn-back,
 html[data-theme="dark"] .icon-btn,
 html[data-theme="dark"] .opt{border-color:var(--edge)}
-@media (hover:hover){
-  html[data-theme="dark"] .rx-row:hover,
-  html[data-theme="dark"] .tile:hover,
-  html[data-theme="dark"] .btn:hover:not(:disabled),
-  html[data-theme="dark"] .btn-back:hover,
-  html[data-theme="dark"] .icon-btn:hover{box-shadow:0 8px 22px rgba(0,0,0,.5)}
-}
-html[data-theme="dark"] .rx-row:active{box-shadow:none}
 
 /* Ссылка «Показать обучение» и переключатель темы */
 html[data-theme="dark"] .rx-tourlink button{color:#7DB9EC;background:var(--card);border-color:var(--edge)}
@@ -82,3 +74,6 @@ html[data-theme="dark"] .skip-warn{background:var(--inset);border-color:var(--am
 html[data-theme="dark"] .skip-warn b{color:var(--amber)}
 html[data-theme="dark"] .skip-warn p{color:var(--muted)}
 html[data-theme="dark"] .skip-warn .mistake.skipped{color:var(--ink);border-color:var(--edge)}
+
+/* Буква «Р» в заголовке — того же синего, что и иконки */
+html[data-theme="dark"] .rx-r{color:var(--icon)}

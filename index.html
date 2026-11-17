@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FAFBF8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,6 +23,7 @@
 <script>try{if(localStorage.getItem("pharma-theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");var m=document.querySelector('meta[name="theme-color"]');if(m)m.content="#0F131C"}}catch(e){}</script>
 <script>
 /* Заставка-продолжение: показывается только в установленном приложении (или по адресу ?splash=1 — для проверки в браузере) */
+try{if(sessionStorage.getItem("pharma-splash-shown")==="1")document.documentElement.classList.add("no-splash");else sessionStorage.setItem("pharma-splash-shown","1")}catch(e){}
 try{var q=/[?&]splash=1/.test(location.search),sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
 if(!(q||sa)||(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("no-splash")}catch(e){document.documentElement.classList.add("no-splash")}
 </script>

@@ -580,7 +580,7 @@ function rxBuild(d){
       lines = [[head, ''], ['Da tales doses numero 10 in\u00a0ampullis', 'in1'],
                ['Signa: ' + rxRoute(route, true) + ', по ' + GAP + ' мл ' + GAP + ' раз в день', 'in1']];
     } else {
-      form = 'раствор (флакон)';
+      form = 'флакон';
       const unit = /интраназ|капли/.test(route) ? 'капель' : 'мл';
       const rt = rxRoute(route, false);
       lines = [[head, ''], ['Da. Signa: ' + (rt === 'в виде капель' ? '' : rt + ', ') + 'по ' + GAP + ' ' + unit + ' ' + GAP + ' раз в день', 'in1']];
@@ -1761,7 +1761,7 @@ function viewCards(){
   cards.pos = Math.min(Math.max(cards.pos, 0), n-1);
   const d = b.items[cards.pos];
   setTop({back: cardsBack==='groupList' ? 'Блоки' : cardsBack==='tests' ? 'Тесты' : cardsBack==='menu' ? 'Меню' : cardsBack==='myGroup' ? myGrpName(curGrp) : 'Темы', title: cardsBack==='groupList' ? `Блок ${b.num}` : b.title, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
-  return `<article class="card" data-swipe>
+  return `<article class="card card-study" data-swipe>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d[0], d[4], false)}
     ${(() => { const mine = MY_SET.has(d) && MY_ACTIVE.find(m => m.d===d);
@@ -1891,7 +1891,7 @@ const MYRX_FORMS = [
   {id:'tab',    title:'Таблетки',  ph:'0,1',            num:true, unit:'таблеток', routes:['внутрь', 'сублингвально', 'рассасывание в полости рта'], dose:'по 1 таблетке'},
   {id:'caps',   title:'Капсулы',   ph:'0,0004',         num:true, unit:'капсул',   routes:['внутрь'], dose:'по 1 капсуле'},
   {id:'amp',    title:'Ампулы',    ph:'1%',             num:true, unit:'ампул', vol:true, conc:true, routes:['в/в', 'в/м', 'п/к', 'внутрь', 'инфильтрационно'], dose:'по 1 мл'},
-  {id:'flac',   title:'Раствор (флакон)', ph:'0,1%',    vol:true, conc:true, routes:['внутрь', 'в/в', 'местно', 'интраназально', 'капли'], dose:'по 1 столовой ложке'},
+  {id:'flac',   title:'Флакон', ph:'0,1%',    vol:true, conc:true, routes:['внутрь', 'в/в', 'местно', 'интраназально', 'капли'], dose:'по 1 столовой ложке'},
   {id:'tinct',  title:'Настойка',  vol:true, nodose:true, routes:['внутрь', 'капли', 'местно'], dose:'по 20 капель'},
   {id:'supp',   title:'Свечи',     ph:'500 000 ED',     num:true, unit:'свечей', routes:['ректально'], dose:'по 1 свече'},
   {id:'powder', title:'Порошок',   ph:'1,0',            num:true, unit:'порошков', routes:['внутрь', 'местно'], dose:'по 1 порошку'},
@@ -2816,7 +2816,9 @@ function kbBarPlace(){
   const inp = kbEl;
   if(!kbBar || !inp || !inp.isConnected || document.activeElement!==inp){ kbBarHide(); return; }
   const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, h = vv ? vv.height : innerHeight;
-  kbBar.style.bottom = Math.max(0, innerHeight - top - h) + 'px';      // нижний край видимой области = верх клавиатуры
+  const gap = Math.max(0, innerHeight - top - h);
+  kbBar.style.bottom = gap + 'px';      // нижний край видимой области = верх клавиатуры
+  kbBar.classList.toggle('is-kb', gap > 80);   // клавиатура открыта — нижний отступ под жестовую панель не нужен (иначе между панелью и клавиатурой тёмная полоса)
   const over = inp.getBoundingClientRect().bottom - (top + h - kbBar.offsetHeight) + 12;   // поле не должно прятаться за панелью
   if(over > 0){ const sc = inp.closest('.sheet'); if(sc) sc.scrollTop += over; else scrollBy(0, over); }
 }
@@ -2836,7 +2838,8 @@ function kbBarShow(el){
   kbBar.hidden = false;
   kbBarPlace();
 }
-if(window.visualViewport) ['resize', 'scroll'].forEach(ev => visualViewport.addEventListener(ev, () => { if(kbBar && !kbBar.hidden) kbBarPlace(); }));
+if(window.visualViewport) ['resize', 'scroll'].forEach(ev => visualViewport.addEventListener(ev, () => { if(kbBar && !kbBar.hidden) { kbBarPlace(); requestAnimationFrame(kbBarPlace); } }));
+addEventListener('resize', () => { if(kbBar && !kbBar.hidden) kbBarPlace(); });
 function myrxSuggestHide(){
   const box = $id('mySug'); if(box) box.hidden = true;
   const inp = $id('my-drug'); if(inp) inp.setAttribute('aria-expanded', 'false');
@@ -2969,6 +2972,11 @@ function draw(){
   if(mode==='myGroup' && !myGrpOk()) mode = 'menu';
   saveView();
   closeSheet(true);
+  if(!tour && !sheetRoot.childElementCount){      // страховка: если блокировка страницы «залипла», снимаем её
+    setInert('sheet', false); setInert('tour', false);
+    document.body.classList.remove('is-locked', 'tour-on');
+    ['tourBlock','tourCard'].forEach(x => { const e = $id(x); if(e) e.remove(); });
+  }
   const keepY = scrollY;                 // положение прокрутки до перерисовки
   const focusSig = focusSignature();
   const firstDraw = lastScreenId === '';
@@ -3288,7 +3296,7 @@ const ACTIONS = {
     myrxCopyText(myrxPlain(r)).then(() => { el.textContent = 'Готово ✓'; }, () => { el.textContent = 'Не удалось'; });
     setTimeout(() => { if(el.isConnected) el.textContent = old; }, 1600);
   },
-  theme: () => { setTheme(!isDark()); render(); },
+  theme: el => { setTheme(!isDark()); el.textContent = isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'; },
   tour: el => {                                                // сбрасывает все подсказки: они покажутся при заходе на экраны
     Object.values(TOURS).forEach(T => store.del(T.key)); TOURS_OLD_KEYS.forEach(k => store.del(k));
     if(!el) return;
@@ -3551,6 +3559,7 @@ function syncHistory(){
       if(!userActive()){ deferSync(); return; }
       while(c < d){ c++; history.pushState({d:c}, ''); }
     } else if(d < c){
+      if(histIgnore > 0) return;      // предыдущий переход по истории ещё не завершился — второй не запускаем
       histIgnore++;
       setTimeout(() => { histIgnore = 0; }, 600);
       history.go(d - c);
