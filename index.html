@@ -14,16 +14,37 @@
 <link rel="icon" type="image/png" href="icons/favicon.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" as="image" href="icons/splash-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- шрифты подключаются без блокировки первого кадра: пока они не пришли (или нет сети), показывается запасной шрифт -->
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&family=Marck+Script&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&family=Marck+Script&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <script>try{if(localStorage.getItem("pharma-theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");var m=document.querySelector('meta[name="theme-color"]');if(m)m.content="#0F131C"}}catch(e){}</script>
+<script>
+/* Заставка-продолжение: показывается только в установленном приложении (или по адресу ?splash=1 — для проверки в браузере) */
+try{var q=/[?&]splash=1/.test(location.search),sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
+if(!(q||sa)||(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("no-splash")}catch(e){document.documentElement.classList.add("no-splash")}
+</script>
+<style>
+/* Заставка. Системная заставка Android — иконка из манифеста по центру на фоне background_color (#FAFBF8).
+   Здесь тот же кадр: тот же фон и та же иконка, поэтому переход незаметен. Дальше иконка уменьшается,
+   а фон плавно приходит к цвету выбранной темы (в светлой теме цвет тот же, меняется только иконка). */
+:root{--splash-bg:#FAFBF8;--splash-to:#FAFBF8;--splash-size:128px;--splash-hold:.2s;--splash-dur:.6s}
+html[data-theme="dark"]{--splash-to:#0F131C}
+#splash{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;background:var(--splash-bg);pointer-events:none}
+#splash img{width:var(--splash-size);height:var(--splash-size);display:block}
+html.no-splash #splash{display:none}
+#splash.go{animation:splashBg var(--splash-dur) cubic-bezier(.45,0,.25,1) var(--splash-hold) forwards}
+#splash.go img{animation:splashIcon var(--splash-dur) cubic-bezier(.55,0,.7,.35) var(--splash-hold) forwards}
+@keyframes splashBg{to{background-color:var(--splash-to)}}
+@keyframes splashIcon{to{transform:scale(0)}}
+</style>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="theme-dark.css">
 </head>
 <body>
+<div id="splash" aria-hidden="true"><img src="icons/splash-icon.png" alt="" width="512" height="512" decoding="sync"></div>
 <noscript><p style="font:16px/1.4 sans-serif;padding:24px;text-align:center">Для работы приложения нужен включённый JavaScript.</p></noscript>
 <div class="app">
   <header class="topbar">
@@ -46,5 +67,18 @@
 <script src="data.js"></script>
 <script src="recipe-bot.js"></script>
 <script src="app.js"></script>
+<script>
+/* Анимацию запускаем, когда приложение уже нарисовало первый экран; на случай сбоя заставка уберётся сама */
+(function(){
+  var sp=document.getElementById("splash");
+  if(!sp)return;
+  function done(){if(sp.parentNode)sp.parentNode.removeChild(sp)}
+  if(document.documentElement.classList.contains("no-splash")){done();return}
+  sp.addEventListener("animationend",function(e){if(e.target===sp)done()});
+  function go(){sp.classList.add("go")}
+  requestAnimationFrame(function(){requestAnimationFrame(go)});
+  setTimeout(done,3500);
+})();
+</script>
 </body>
 </html>

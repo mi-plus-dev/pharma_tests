@@ -1,8 +1,8 @@
 /* Service worker: приложение целиком работает без интернета.
    Чтобы выпустить обновление, увеличьте номер в CACHE (pharma-v1 -> pharma-v2). */
-const CACHE = 'pharma-v57';
+const CACHE = 'pharma-v68';
 const FONTS = 'pharma-fonts-v1';   // шрифты лежат отдельно и переживают обновление приложения
-const CORE = ['./', './index.html', './style.css', './theme-dark.css', './data.js', './app.js', './recipe-bot.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg'];
+const CORE = ['./', './index.html', './style.css', './theme-dark.css', './data.js', './app.js', './recipe-bot.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/splash-icon.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg'];
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&family=Marck+Script&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap';   // тот же адрес, что в index.html
 const FONT_SUBSETS = ['cyrillic', 'latin'];   // остальные начертания (латиница расширенная, вьетнамский и т. п.) приложению не нужны
 const EXTRA_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
