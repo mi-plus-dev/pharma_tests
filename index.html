@@ -28,12 +28,12 @@ if(!(q||sa)||(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").
 </script>
 <style>
 /* Заставка. Системная заставка Android — иконка из манифеста по центру на фоне background_color (#FAFBF8).
-   Здесь тот же кадр: тот же фон и та же иконка, поэтому переход незаметен. Дальше иконка уменьшается,
+   Здесь тот же кадр: тот же фон и та же иконка (белый квадрат --splash-box с картинкой --splash-size внутри; размеры сняты со скриншота системной заставки, 1 dp = 1 px CSS), поэтому переход незаметен. Дальше иконка уменьшается,
    а фон плавно приходит к цвету выбранной темы (в светлой теме цвет тот же, меняется только иконка). */
-:root{--splash-bg:#FAFBF8;--splash-to:#FAFBF8;--splash-size:128px;--splash-hold:.2s;--splash-dur:.6s}
+:root{--splash-bg:#FAFBF8;--splash-to:#FAFBF8;--splash-box:240px;--splash-size:208px;--splash-hold:.2s;--splash-dur:.6s}
 html[data-theme="dark"]{--splash-to:#0F131C}
 #splash{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;background:var(--splash-bg);pointer-events:none}
-#splash img{width:var(--splash-size);height:var(--splash-size);display:block}
+#splash img{box-sizing:content-box;width:var(--splash-size);height:var(--splash-size);padding:calc((var(--splash-box) - var(--splash-size)) / 2);background:#fff;display:block}
 html.no-splash #splash{display:none}
 #splash.go{animation:splashBg var(--splash-dur) cubic-bezier(.45,0,.25,1) var(--splash-hold) forwards}
 #splash.go img{animation:splashIcon var(--splash-dur) cubic-bezier(.55,0,.7,.35) var(--splash-hold) forwards}
