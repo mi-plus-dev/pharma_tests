@@ -81,11 +81,10 @@ html[data-theme="dark"] .rx-r{color:var(--icon)}
 /* Спокойная карточка вопроса: тонкие нейтральные контуры вместо контрастных */
 html[data-theme="dark"] .card .opt,
 html[data-theme="dark"] .card .btn,
-html[data-theme="dark"] .card .input{border-color:var(--line)}
+html[data-theme="dark"] .card .input{border-color:var(--edge)}
 html[data-theme="dark"] .card .opt.is-selected{border-color:var(--accent)}
 html[data-theme="dark"] .card .opt.is-correct{border-color:var(--good)}
 html[data-theme="dark"] .card .opt.is-wrong{border-color:var(--bad)}
-html[data-theme="dark"] .card .btn-primary{border-color:transparent}
 html[data-theme="dark"] .card .input:focus{border-color:var(--accent)}
 html[data-theme="dark"] .topbar.is-session .btn-back{border-color:var(--line)}
 html[data-theme="dark"] .btn-back{border-color:var(--line);background:var(--card)}
