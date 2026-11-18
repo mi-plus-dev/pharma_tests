@@ -1605,7 +1605,7 @@ function viewReference(){
 
 function drugHead(name, latin, withInfo, counter, masked){
   return `<header class="drug${counter ? ' has-count' : ''}${masked ? ' wr-nolatin' : ''}">${counter ? `<span class="drug-count" aria-label="Вопрос ${esc(counter.replace('/',' из '))}">${esc(counter)}</span>` : ''}
-    <div class="drug-row"><h2 class="drug-name">${esc(name)}</h2>${withInfo && INFO[name] ? ' <button class="btn-info" type="button" data-act="info" aria-label="Подробнее о препарате">i</button>' : ''}</div>
+    <div class="drug-row"><h2 class="drug-name">${esc(name)}</h2>${withInfo && INFO[name] ? '<button class="btn-info" type="button" data-act="info" aria-label="Подробнее о препарате">i</button>' : ''}</div>
     ${masked ? '' : `<div class="drug-latin" lang="la">${esc(latin)}</div>`}
   </header>`;
 }
