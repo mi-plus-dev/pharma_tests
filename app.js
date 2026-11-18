@@ -1234,7 +1234,9 @@ function setTop(t){
   $id('backBtn').hidden = !t.back;
   if(t.back) $id('backLabel').textContent = t.back;
   topName = t.title || '';   // верхний заголовок не рисуем (он дублировал заголовок страницы); название нужно только для экранных дикторов и вкладки
-  $id('topTitle').innerHTML = t.count ? `<b>${esc(t.count)}</b>` : '';
+  $id('topTitle').innerHTML = '';
+  $id('topCount').hidden = !t.count || t.progress==null;   // номер карточки — справа от шкалы
+  $id('topCount').textContent = t.count || '';
   $id('topSub').hidden = t.progress==null;
   if(t.progress!=null) $id('progressFill').style.width = Math.round(t.progress*100) + '%';
   const score = $id('score');
@@ -1656,7 +1658,13 @@ function wrMarkSvg(ok){
 }
 function wrRes(label, ok, typed, right, note){
   return `<div class="wr-res ${ok ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(ok)}</span>
-    <div class="wr-body"><b>${label}</b><span>${esc(String(typed).trim() || '—')}</span>${ok ? '' : `<em>${esc(String(right))}</em>`}${note ? `<small class="wr-note">${esc(note)}</small>` : ''}</div></div>`;
+    <div class="wr-body"><b>${label}</b><span>${esc(String(typed).trim() || '—')}</span>${note ? `<small class="wr-note">${esc(note)}</small>` : ''}</div></div>`;
+}
+// Верные ответы — отдельным блоком под ответами пользователя, только для тех полей, где была ошибка
+function wrFix(items){
+  const bad = items.filter(x => !x[1]);
+  if(!bad.length) return '';
+  return `<div class="wr-fix"><div class="wr-fix-h">Правильные ответы</div>${bad.map(x => `<div class="wr-fix-row"><b>${x[0]}</b><span>${esc(String(x[2]))}</span></div>`).join('')}</div>`;
 }
 // Концентрацию всегда пишут в граммах: если вписали миллиграммы или микрограммы — подсказка с пересчётом
 function doseUnitNote(typed){
@@ -1672,7 +1680,7 @@ function viewWriteBack(d, st, counter, actions){
   const legacy = st.v !== 3;
   const rows = legacy
     ? `<div class="wr-res ${st.correct ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(st.correct)}</span><div class="wr-body"><b>Ответ</b><span>${st.correct ? 'Верно' : 'Есть неточности'}</span></div></div>`
-    : wrRes('Латынь', st.latinOk, st.typed.latin, d[4], st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1], doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d));
+    : wrRes('Латынь', st.latinOk, st.typed.latin, d[4], st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1], doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d)) + wrFix([['Латынь', st.latinOk, d[4]], ['Концентрация', st.doseOk, d[1]], ['Группа', st.groupOk, grpText(d)]]);
   return `<article class="card wr-back" data-swipe>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d[0], d[4], true, counter)}
@@ -1727,7 +1735,7 @@ function viewSession(){
   if(S.pos >= n) return viewSummary(S, cfg, t);
   if(cfg.kind==='choice') ensureOpts(S);
   const backLabel = cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? semName(S.sem) : mode==='quiz' ? 'Тест' : 'Впиши сам';
-  setTop({back: backLabel, compact:true, score:t, progress:S.pos/n});
+  setTop({back: backLabel, compact:true, score:t, progress:S.pos/n, count:`${S.pos+1} / ${n}`});
   const d = S.order[S.pos], [name, , , , latin] = d;
   const st = S.state[S.pos];
   const primary = st.checked
@@ -1738,15 +1746,15 @@ function viewSession(){
       <button class="btn btn-secondary" type="button" data-act="prev"${S.pos===0 ? ' disabled' : ''}>Назад</button>
       ${primary}
     </div>`;
-    if(st.checked) return viewWriteBack(d, st, `${S.pos+1}/${n}`, actions);
+    if(st.checked) return viewWriteBack(d, st, '', actions);
     return `<article class="card" data-swipe>
-      ${drugHead(name, latin, true, `${S.pos+1}/${n}`, true)}
+      ${drugHead(name, latin, true, '', true)}
       ${writeFields(st)}
       ${actions}
     </article>`;
   }
   return `<article class="card card-choice" data-swipe>
-    ${drugHead(name, latin, true, `${S.pos+1}/${n}`)}
+    ${drugHead(name, latin, true, '')}
     ${choiceFields(st, rightOf(d))}
     <div class="actions">
       <button class="btn btn-secondary" type="button" data-act="prev"${S.pos===0 ? ' disabled' : ''}>Назад</button>
@@ -1847,7 +1855,7 @@ function solveOptH(H0, cs, target){
 const OPT_SCALE = 1.2;   // во сколько раз варианты ответов крупнее подогнанного размера
 function fitOptsRaw(){
   const S = cur();
-  const on = !!S && SESSION[mode] && SESSION[mode].kind==='choice' && S.pos < S.order.length;
+  const on = false;   // растягивание вариантов отключено: спокойные варианты естественной высоты
   view.classList.toggle('fit-opts', on);
   view.style.removeProperty('--opt-h');
   if(!on || !view.querySelector('.opt')) return;
