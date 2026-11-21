@@ -651,6 +651,8 @@ let myrxEditBack = 'myrx';   // откуда открыт редактор ре�
 // Экраны прежних версий: отдельные «Все экз. рецепты» / «По семестрам» / «По темам» (с вкладками сверху) и список блоков карточек.
 // Из меню в них больше не попасть, поэтому восстановление и перерисовка уводят оттуда на главный экран.
 const ORPHAN_MODES = new Set(['allRx','semesters','semester','topics']);
+// ВРЕМЕННО закрыты: «Работа над ошибками», «Мои рецепты», «Справочник». Чтобы открыть снова — очистить этот список и убрать `disabled` у кнопок в viewMenu.
+const LOCKED_MODES = new Set(['mistakes','myrx','reference']);
 const parentOf = m => m==='groupCards' ? cardsBack : m==='myGroup' ? grpBack : m==='myrxEdit' ? myrxEditBack : (PARENT[m] || 'menu');
 // Глубина экрана в истории браузера: каждый шаг вглубь — одна запись
 function depthOf(m){ let d = 0; const seen = {}; while(m && m!=='menu' && !seen[m]){ seen[m] = 1; m = parentOf(m); d++; } return d; }
@@ -941,7 +943,7 @@ function restoreView(){
   grpBack = v.grpBack==='myrx' ? 'myrx' : 'menu';
   let m = v.mode;
   if(m==='myrxEdit') m = 'myrx';   // черновик редактора не восстанавливается
-  if(ORPHAN_MODES.has(m)) m = 'menu';
+  if(ORPHAN_MODES.has(m) || LOCKED_MODES.has(m)) m = 'menu';
   // Первый запуск после перехода на единые блоки: прогресс старых блоков удаляется,
   // а вместо старого блока открывается список новых
   let migrated = false;
@@ -957,7 +959,7 @@ function restoreView(){
 }
 
 /* ========================= Действия ========================= */
-function go(m){ flushSave(); mode = m; render(); }
+function go(m){ if(LOCKED_MODES.has(m)) return; flushSave(); mode = m; render(); }
 
 function openBlock(target, i, silent){
   if(target!=='groupCards' || typeof i==='number') lastBlock[target] = i;
@@ -1257,7 +1259,7 @@ const count = n => `${n} ${plural(n,'препарат','препарата','п�
 function tile(o){
   const attrs = `data-mode="${o.m}"${o.i!=null ? ` data-i="${o.i}"` : ''}`;
   return `<div class="tile-wrap">
-    <button class="tile${o.reset ? ' has-reset' : ''}" type="button" data-act="${o.act || 'go'}" ${attrs}>
+    <button class="tile${o.reset ? ' has-reset' : ''}${o.compact ? ' tile-compact' : ''}" type="button" data-act="${o.act || 'go'}" ${attrs}>
       <span class="tile-icon">${o.icon}</span>
       <span class="tile-body"><span class="tile-title">${o.title}</span>${o.desc ? `<span class="tile-desc">${o.desc}</span>` : ''}${o.meta ? `<span class="tile-meta">${o.meta}</span>` : ''}</span>
     </button>${o.reset ? `
@@ -1459,11 +1461,10 @@ function viewTests(){
     <div class="rx-rows rx-acc">
       ${exams}
       <div class="rx-wrap">
-        <button class="rx-row" type="button" id="topicsToggle" data-act="topicsToggle" aria-expanded="${topicsOpen ? 'true' : 'false'}" aria-controls="topicsBody">
+        <button class="rx-row" type="button" id="topicsToggle" disabled aria-disabled="true" aria-expanded="false" aria-controls="topicsBody">
           <span class="rx-lbl">По темам</span><span class="rx-ico rx-i-book" aria-hidden="true"></span><span class="rx-chev rx-go" aria-hidden="true">${ICON.chevron}</span>
         </button>
-        ${resetBadge('topics')}
-        <div class="rx-sub" id="topicsBody"${topicsOpen ? '' : ' hidden'} style="margin-top:12px">${subs}</div>
+        <div class="rx-sub" id="topicsBody" hidden style="margin-top:12px">${subs}</div>
       </div>
     </div>`;
 }
@@ -1488,15 +1489,14 @@ function viewMenu(){
       ${row('data-act="howWrite"', '?', 'Как писать рецепты', 'clip')}
       ${row('data-act="go" data-mode="groupList"', '?', 'Карточки', 'book')}
       ${row('data-act="go" data-mode="tests"', '?', 'Тесты', 'cad')}
-      ${withReset('mistakes', row('data-act="go" data-mode="mistakes"', '?', 'Работа над ошибками', 'scis'))}
-      ${row('data-act="go" data-mode="myrx"', '?', 'Мои рецепты', 'pen')}
-      ${row('data-act="go" data-mode="reference"', '?', 'Справочник', 'search')}
+      ${row('disabled aria-disabled="true"', '?', 'Работа над ошибками', 'scis')}
+      ${row('disabled aria-disabled="true"', '?', 'Мои рецепты', 'pen')}
+      ${row('disabled aria-disabled="true"', '?', 'Справочник', 'search')}
     </div>
     ${myGrpMenuHtml()}
     ${footerHtml()}
-    <div class="rx-tourlink rx-fb tour-dim-able"><button type="button" data-act="feedback">Предложения по улучшению</button></div>
-    <div class="rx-tourlink tour-dim-able"><button type="button" data-act="tour">Показать обучение</button></div>
-    <div class="theme-toggle tour-dim-able"><button type="button" data-act="theme">${isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'}</button></div>`;
+    <div class="rx-tourlink rx-fb"><button type="button" data-act="feedback">Предложения по улучшению</button></div>
+    <div class="theme-toggle"><button type="button" data-act="theme">${isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'}</button></div>`;
 }
 // Подвал главного экрана: © · Обратная связь · Официальный сайт
 // Заполните нужное — пустое не показывается; если пусто всё, подвала нет
@@ -1593,7 +1593,8 @@ function viewList(){
     let p = null;
     if(L.target==='groupCards'){ const pos = cardsPos(i); if(pos>0) p = {}; }
     else p = progressOf(loadSession(L.target, i));
-    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(b.title), desc:esc(b.desc),
+    const flat = L.target==='groupCards';   // «Карточки»: без названия блока — вместо него текст со списком групп; компактная плитка
+    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(flat ? b.desc : b.title), desc:flat ? '' : esc(b.desc), compact:flat,
       meta:`<span>${count(b.items.length)}</span>${chip(p)}`, reset: p && `Сбросить прогресс блока ${b.num}`});
   }).join('');
   return `<header class="page-head"><h1>${L.title}</h1><p>${L.desc}</p></header><div class="list">${rows}</div>`;
@@ -1748,7 +1749,6 @@ function viewSummary(S, cfg, t){
   } else {
     heading = cfg.grp ? 'Папка пройдена' : cfg.block ? `Блок ${S.block+1} пройден` : 'Круг завершён';
     primary = `<button class="btn btn-primary" type="button" data-act="restart">${cfg.block ? 'Пройти заново' : 'Новый круг'}</button>`;
-    if(nm) after = '<button class="btn btn-secondary btn-block after" type="button" data-act="go" data-mode="mistakes">Работа над ошибками</button>';
   }
   setTop({back: cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? semName(S.sem) : mode==='quiz' ? 'Тест' : 'Впиши сам', compact:true, score:t, progress:1});
   return `<article class="card" data-swipe>
@@ -2636,9 +2636,6 @@ function myGrpListHtml(){
     return `<div class="my-grp"><button class="my-grp-t my-grp-open" type="button" data-act="myGrpOpen" data-g="${esc(g.id)}"><b>${esc(g.name)}</b><small>${n ? myrxRecipes(n) : 'Пока пусто'}</small></button>
       <button class="my-grp-b" type="button" data-act="myGrpEdit" data-g="${esc(g.id)}" aria-label="Переименовать папку «${esc(g.name)}»">${ICON.pen}</button>
       <button class="my-grp-b" type="button" data-act="myGrpDel" data-g="${esc(g.id)}" aria-label="Удалить папку «${esc(g.name)}»">${MYRX_ICO.trash}</button></div>`; }).join('');
-  // TODO (обучение): добавить в обучение «Мои рецепты» два текста, убранных с экрана:
-  //  1) «Собирайте рецепты в папки: для каждой на главном экране появится кнопка с тестами и карточками.» (раньше показывался, пока папок нет);
-  //  2) «Откройте папку, чтобы добавить в неё рецепты.» (раньше показывался под списком папок).
   return `<div class="my-groups"><div class="my-grp-head"><h2>Папки</h2><button class="my-linkbtn" type="button" data-act="myGrpNew">+ Новая папка</button></div>${rows}</div>`;
 }
 let myGrpEditId = '';
@@ -3091,7 +3088,7 @@ function focusSignature(){
   return null;
 }
 function restoreFocus(sig){
-  if(!sig || tour) return;
+  if(!sig) return;
   const el = view.querySelector(sig.sel);
   if(!el || el.disabled){
     // прежнего элемента нет или он пока отключён (например, «Проверить» на новом вопросе) — фокус на заголовок карточки, а не в никуда
@@ -3123,7 +3120,7 @@ function afterDraw(sig, firstDraw){
   const pageName = (h1.textContent || name).trim();
   setDocTitle(mode==='menu' ? 'Тест по фармакологии' : pageName + ' — Тест по фармакологии');
   if(screenChanged){
-    if(!firstDraw && !tour){
+    if(!firstDraw){
       h1.setAttribute('tabindex', '-1'); try{ h1.focus({preventScroll:true}); }catch{}   // экранный диктор прочтёт название нового экрана
       if(S && S.pos < S.order.length) announce(`${S.order[S.pos][0]}, вопрос ${S.pos + 1} из ${S.order.length}`);
     }
@@ -3140,15 +3137,14 @@ function afterDraw(sig, firstDraw){
 function draw(){
   if(myrxSeries.dirty && mode!=='myrxEdit'){ myrxSeriesReload(); return; }   // серия закончена: перезагрузка, чтобы рецепты попали в тесты
   if(mode!=='myrx' && myrxSel.on) myrxSelLeave();
-  if(ORPHAN_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
+  if(ORPHAN_MODES.has(mode) || LOCKED_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
   if(SESSION[mode] && !cur()) mode = parentOf(mode);   // сессия не найдена — на уровень выше
   if(mode==='myGroup' && !myGrpOk()) mode = 'menu';
   saveView();
   closeSheet(true);
-  if(!tour && !sheetRoot.childElementCount){      // страховка: если блокировка страницы «залипла», снимаем её
-    setInert('sheet', false); setInert('tour', false);
-    document.body.classList.remove('is-locked', 'tour-on');
-    ['tourBlock','tourCard'].forEach(x => { const e = $id(x); if(e) e.remove(); });
+  if(!sheetRoot.childElementCount){      // страховка: если блокировка страницы «залипла», снимаем её
+    setInert('sheet', false);
+    document.body.classList.remove('is-locked');
   }
   const keepY = scrollY;                 // положение прокрутки до перерисовки
   const focusSig = focusSignature();
@@ -3174,7 +3170,6 @@ function draw(){
   view.querySelectorAll('textarea[data-my]').forEach(autosizeArea);
   myrxNeedUpdate();
   afterDraw(focusSig, firstDraw);
-  tourRefresh();
   if(enterDir){
     const el = view.querySelector('.card');
     if(el && el.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -3199,12 +3194,12 @@ const NAV_ACTS = new Set(['up','go','howWrite','openSemTest','openSem','open','o
 /* ===================== Нижнее окно: сведения и подтверждения ===================== */
 const sheetRoot = $id('sheetRoot');
 let sheetOpener = null, onConfirm = null;
-// Пока открыто окно или идёт обучение, остальная страница недоступна ни касанием, ни клавишей Tab, ни скринридеру
-const inertState = {sheet:false, tour:false};
+// Пока открыто окно, остальная страница недоступна ни касанием, ни клавишей Tab, ни скринридеру
+const inertState = {sheet:false};
 function setInert(key, on){
   inertState[key] = on;
   const app = document.querySelector('.app');
-  if(app) app.inert = inertState.sheet || inertState.tour;
+  if(app) app.inert = inertState.sheet;
 }
 function openSheet(inner){
   onConfirm = null;
@@ -3558,12 +3553,6 @@ const ACTIONS = {
     setTimeout(() => { if(el.isConnected) el.textContent = old; }, 1600);
   },
   theme: el => { setTheme(!isDark()); el.textContent = isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'; },
-  tour: el => {                                                // сбрасывает все подсказки: они покажутся при заходе на экраны
-    Object.values(TOURS).forEach(T => store.del(T.key)); TOURS_OLD_KEYS.forEach(k => store.del(k));
-    if(!el) return;
-    const t = el.textContent; el.textContent = 'Подсказки покажутся заново';
-    setTimeout(() => { if(el.isConnected) el.textContent = t; }, 2500);
-  },
   resetSection: el => askResetSection(el.dataset.sec),
   topicsToggle: el => {
     topicsOpen = !topicsOpen;
@@ -3890,43 +3879,6 @@ function edgeFallback(){
 }
 
 
-/* =========================================================
-   ПОДСКАЗКИ (ОБУЧЕНИЕ)
-   Накопительные: шаги идут по одному, а уже показанные элементы остаются подсвеченными.
-   Каждый экран показывает свои подсказки один раз — при первом заходе: «Мои рецепты», «Тесты»,
-   «Тест» и «Впиши сам». Общее для тестов (кнопка «i», свайпы) показывается один раз на оба режима.
-   На главном экране, в справочнике, в «Как писать рецепты» и в работе над ошибками подсказок нет.
-   Ссылка «Показать обучение» внизу главного экрана сбрасывает все: подсказки покажутся заново при заходе на экраны.
-   ========================================================= */
-const TOURS = {
-  myrx: {key:'pharma_tour_myrx_v1', scope:'.my-new, .my-xfer > *, .my-groups', steps:[
-    {sel:'.my-new', t:'Новый рецепт', x:'Свой рецепт собирается на бланке. Можно взять препарат из справочника — поля заполнятся сами.'},
-    {sel:'[data-act="myrxImportOpen"]', t:'Загрузить рецепты', x:'Файл или текст: JSON либо обычный рецепт. Чего не хватает — приложение спросит по шагам.'},
-    {sel:'[data-act="myrxExportOpen"]', t:'Отправить рецепты', x:'Все, выбранные или целая папка. Файл уйдёт через «Поделиться» или скачается.'}
-  ]},
-  tests: {key:'pharma_tour_tests_v1', scope:'.rx-rows', steps:[
-    {t:'Тесты', x:'Зачёты по семестрам, экзамен и карточки по темам. В каждом зачёте есть «Тест» и «Впиши сам» — начните с любого.'}
-  ]},
-  quiz: {key:'pharma_tour_quiz_v2', scope:'.card > *, #topSub, #backBtn', steps:[
-    {sel:'.card > .drug', t:'Препарат', x:'Вверху — препарат и номер вопроса. Нужно определить его дозу, путь введения и группу.'},
-    {sel:'.card .field', t:'Ответ', x:'В каждом блоке выберите один из трёх вариантов: концентрацию и форму, способ введения, фармакологическую группу.'},
-    {sel:'#primary', t:'Проверить', x:'Включается, когда выбраны все три ответа. Верные варианты загорятся зелёным, неверные — красным, а кнопка станет «Далее».'},
-    {sel:'#topSub', t:'Шкала и счёт', x:'Полоса — ваш прогресс по кругу, а ✓ и ✕ — число верных и неверных ответов.'}
-  ]},
-  write: {key:'pharma_tour_write_v1', scope:'.card > *, #topSub, #backBtn', steps:[
-    {sel:'.card > .drug', t:'Препарат', x:'Видно только русское название. Латинское название, концентрацию и группу вы вписываете сами.'},
-    {sel:'.card .field', t:'Поля', x:'Латынь пишется в родительном падеже, например Labetaloli. Группу можно выбрать из подсказок.'},
-    {sel:'.card .wr-chips', t:'Быстрая вставка', x:'Кнопки %, мл, МЕ и гр вставляют единицы в поле — клавиатуру переключать не нужно.'},
-    {sel:'#primary', t:'Проверить', x:'Включается, когда заполнены все три поля. Потом карточка перевернётся и покажет эталонный рецепт.'},
-    {sel:'#topSub', t:'Шкала и счёт', x:'Полоса — ваш прогресс по кругу, а ✓ и ✕ — число верных и неверных ответов.'}
-  ]},
-  common: {key:'pharma_tour_common_v1', scope:'.card > *, #topSub, #backBtn', steps:[
-    {sel:'.card .btn-info', t:'Кнопка «i»', x:'Справка о препарате: фармакокинетика, действие, показания. Ответа она не выдаёт.'},
-    {sel:'.card', t:'Свайп влево и вправо', x:'Смахните карточку влево — вопрос пропустится, к нему можно вернуться. Вправо — вернётесь к предыдущему вопросу.'}
-  ]}
-};
-const TOURS_OLD_KEYS = ['pharma_tour_v1', 'pharma_tour_quiz_v1'];   // ключи прежнего единого обучения
-
 // Строки рецепта не переносятся: размер шрифта подбирается так, чтобы самая длинная строка помещалась целиком
 /* Целевой размер рецепта задаёт CSS (.blank .rxd). Короткие рецепты остаются на нём, длинные чуть уменьшаются (до FIT_MIN),
    и только если и так не помещается — переходят на сокращения (Rp.:, D.t.d.n., S.:) и снова стремятся к целевому размеру */
@@ -3952,188 +3904,10 @@ function fitRx(){
 }
 addEventListener('resize', fitRx);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitRx);
-let tour = null;     // {ids, key, steps, scope, i}
-const tourSeen = id => store.has(TOURS[id].key);
-const tourMark = id => store.set(TOURS[id].key, 1);
-const tourUnseen = ids => ids.filter(id => !tourSeen(id));
-// Подсказки одного экрана: список разделов склеивается в одну последовательность шагов
-function tourBuild(ids){
-  return {ids, key: ids.join('+'), steps: ids.flatMap(id => TOURS[id].steps),
-    scope: [...new Set(ids.flatMap(id => TOURS[id].scope.split(',').map(x => x.trim())))].join(', ')};
-}
-function tourTargets(step){
-  if(!step.sel) return [];
-  const top = step.sel.split(',').filter(x => /^\s*#(topSub|backBtn)/.test(x)).join(',');
-  return [...view.querySelectorAll(step.sel), ...(top ? document.querySelectorAll(top) : [])]
-    .filter((el, k, a) => a.indexOf(el) === k)
-    .map(el => el.closest('.rx-rows > *') || el);
-}
-function tourEnsureUi(){
-  if(!$id('tourBlock')){
-    const b = document.createElement('div'); b.id = 'tourBlock'; b.className = 'tour-block'; document.body.appendChild(b);
-    const c = document.createElement('div'); c.id = 'tourCard'; c.className = 'tour-card'; c.setAttribute('role','dialog'); c.setAttribute('aria-live','polite'); document.body.appendChild(c);
-  }
-}
-// Обводка не должна заходить на соседние кнопки: отступ подбирается по расстоянию до ближайшего видимого соседа.
-// Обводка шире на толщину линии (3px) + отступ; оставляем 2px воздуха, а если места совсем нет — отступ 0 (лёгкое касание допустимо).
-const TOUR_LINE = 3, TOUR_AIR = 2, TOUR_OFF_MAX = 5, TOUR_PULSE_MAX = 3;
-function tourFitOutline(targets){
-  const others = [...document.querySelectorAll(tour.scope), ...document.querySelectorAll('#topSub, #backBtn')]
-    .filter((el, k, a) => a.indexOf(el) === k && !el.classList.contains('tour-dim'));
-  targets.forEach(t => {
-    const a = t.getBoundingClientRect();
-    let gap = Infinity;
-    others.forEach(o => {
-      if(o === t || o.contains(t) || t.contains(o)) return;
-      const b = o.getBoundingClientRect();
-      if(!b.width || !b.height) return;
-      const dx = Math.max(0, a.left - b.right, b.left - a.right), dy = Math.max(0, a.top - b.bottom, b.top - a.bottom);
-      if(dx === 0 && dy === 0) return;                 // перекрываются сами по себе (например, вложенные блоки) — не считаем
-      const d = Math.max(dx, dy);
-      gap = Math.min(gap, targets.includes(o) ? d / 2 : d);   // рядом тоже обведённый блок: место делим пополам
-    });
-    const off = Math.max(0, Math.min(TOUR_OFF_MAX, gap - TOUR_AIR - TOUR_LINE));
-    t.style.setProperty('--tour-off', off + 'px');
-    t.style.setProperty('--tour-pulse', Math.min(TOUR_PULSE_MAX, off) + 'px');
-  });
-}
-function tourApply(){
-  if(!tour) return;
-  const steps = tour.steps;
-  let step = steps[tour.i], targets = tourTargets(step);
-  // шаг про элемент, которого на экране нет (например, нет справки), пропускается
-  while(step.sel && !targets.length && tour.i < steps.length - 1){ tour.i++; step = steps[tour.i]; targets = tourTargets(step); }
-  // накопительно: видно всё, что показано на этом и прежних шагах; скрыто остальное в области обучения
-  const shown = steps.slice(0, tour.i + 1).flatMap(tourTargets).filter((el, k, a) => a.indexOf(el) === k);
-  const related = (a, b) => a === b || a.contains(b) || b.contains(a);
-  document.querySelectorAll(tour.scope).forEach(el => {
-    el.classList.toggle('tour-dim', !!step.sel && !shown.some(t => related(el, t)));
-  });
-  document.querySelectorAll('.tour-focus,.tour-seen').forEach(el => { el.classList.remove('tour-focus', 'tour-seen'); el.style.removeProperty('--tour-off'); el.style.removeProperty('--tour-pulse'); });
-  shown.forEach(el => el.classList.add(targets.includes(el) ? 'tour-focus' : 'tour-seen'));
-  tourFitOutline(targets);
-  const last = tour.i === steps.length - 1;
-  const card = $id('tourCard');
-  const n = steps.length;
-  card.classList.toggle('is-intro', !step.sel);
-  card.setAttribute('aria-modal', 'true'); card.setAttribute('aria-label', 'Подсказки');
-  card.innerHTML = `<div class="tour-top">
-      <span class="tour-count">${n > 1 ? `Шаг ${tour.i+1} из ${n}` : 'Подсказка'}</span>
-      ${last ? '' : '<button class="tour-skip" type="button" data-tour="skip">Пропустить</button>'}
-    </div>
-    ${n > 1 ? `<div class="tour-dots" aria-hidden="true">${steps.map((_,k) => `<i class="${k===tour.i ? 'on' : k<tour.i ? 'done' : ''}"></i>`).join('')}</div>` : ''}
-    <h2 class="tour-title">${esc(step.t)}</h2>
-    <p class="tour-text">${esc(step.x)}</p>
-    <div class="tour-actions">
-      ${tour.i === 0 ? '' : '<button class="btn btn-secondary tour-back" type="button" data-tour="back">Назад</button>'}
-      <button class="btn btn-primary tour-next" type="button" data-tour="next">${last ? 'Готово' : 'Далее'}</button>
-    </div>`;
-  { const nb = card.querySelector('.tour-next'); if(nb) try{ nb.focus({preventScroll:true}); }catch(_){} }
-  // карточка подсказки — на свободной половине экрана, не поверх выделенного
-  const first = targets[0];
-  const r = first && first.getBoundingClientRect();
-  card.classList.toggle('at-top', !!r && r.top + r.height/2 > innerHeight/2);
-  // если карточка всё равно закрывает выделенное — сдвигаем страницу, чтобы цель оказалась на свободной части экрана
-  if(first){
-    const cr = card.getBoundingClientRect(), tr = first.getBoundingClientRect();
-    if(tr.bottom > cr.top && tr.top < cr.bottom){
-      const dy = card.classList.contains('at-top') ? tr.top - (cr.bottom + 8) : tr.bottom - (cr.top - 8);
-      scrollBy({top:dy, behavior:'instant'});
-    }
-  }
-}
-function startTour(ids){
-  if(sheetRoot.childElementCount) closeSheet(true);
-  tour = {...tourBuild(ids), i:0};
-  setInert('tour', true);
-  document.body.classList.add('tour-on');
-  tourEnsureUi();
-  tourApply();
-  const n = document.querySelector('.tour-next'); if(n) n.focus({preventScroll:true});
-}
-// Конец подсказок: показанные разделы больше не появятся (пока не нажмут «Показать обучение»)
-function endTour(){
-  if(!tour) return;
-  const ids = tour.ids;
-  tour = null;
-  setInert('tour', false);
-  ids.forEach(tourMark);
-  document.body.classList.remove('tour-on');
-  ['tourBlock','tourCard'].forEach(x => { const e = $id(x); if(e) e.remove(); });
-  document.querySelectorAll('.tour-dim,.tour-focus,.tour-seen').forEach(el => { el.classList.remove('tour-dim','tour-focus','tour-seen'); el.style.removeProperty('--tour-off'); el.style.removeProperty('--tour-pulse'); });
-}
-function tourNext(){
-  if(!tour) return;
-  if(tour.i < tour.steps.length - 1){ tour.i++; tourApply(); return; }
-  endTour();
-}
-function tourBack(){
-  if(!tour || tour.i <= 0) return;
-  let k = tour.i - 1;
-  while(k > 0 && tour.steps[k].sel && !tourTargets(tour.steps[k]).length) k--;     // пропускаем шаги, которых на экране нет
-  tour.i = k; tourApply();
-}
-// Какие подсказки ещё не показаны на текущем экране (пусто — никаких)
-function tourFor(){
-  if(mode === 'myrx') return tourUnseen(['myrx']);
-  if(mode === 'tests') return tourUnseen(['tests']);
-  const cfg = SESSION[mode];
-  if(cfg && !cfg.dynamic){                                // «Тест» и «Впиши сам»; работа над ошибками — без подсказок
-    const S = cur();
-    if(!S || S.pos >= S.order.length) return [];          // итоги круга — без подсказок
-    return tourUnseen([cfg.kind === 'write' ? 'write' : 'quiz', 'common']);
-  }
-  return [];
-}
-let tourTimer = 0;
-function tourReady(ids){
-  const steps = tourBuild(ids).steps;
-  return steps.every(x => !x.sel) || steps.some(x => x.sel && tourTargets(x).length);
-}
-function tourRefresh(){
-  const ids = tourFor(), key = ids.join('+');
-  if(tour){
-    if(key !== tour.key) endTour(); else tourApply();
-    return;
-  }
-  if(!ids.length) return;
-  clearTimeout(tourTimer);
-  tourTimer = setTimeout(() => { if(!tour && tourFor().join('+') === key && tourReady(ids)) startTour(ids); }, 350);
-}
-function tourAutostart(){ tourRefresh(); }
-document.addEventListener('click', e => {
-  const b = e.target.closest && e.target.closest('[data-tour]');
-  if(!b || !tour) return;
-  e.preventDefault(); e.stopPropagation();
-  if(b.dataset.tour === 'skip') return endTour();
-  if(b.dataset.tour === 'back') return tourBack();
-  tourNext();
-}, true);
-// Листание жестом: влево — дальше, вправо — назад
-let tourSwipe = null;
-document.addEventListener('pointerdown', e => {
-  tourSwipe = tour && e.target.closest && e.target.closest('#tourCard,#tourBlock') && !e.target.closest('[data-tour]') ? {x:e.clientX, y:e.clientY} : null;
-}, true);
-document.addEventListener('pointerup', e => {
-  if(!tourSwipe || !tour) return;
-  const dx = e.clientX - tourSwipe.x, dy = e.clientY - tourSwipe.y; tourSwipe = null;
-  if(Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-  if(dx < 0) tourNext(); else tourBack();
-}, true);
-document.addEventListener('keydown', e => {
-  if(!tour) return;
-  if(e.key === 'Escape'){ e.stopPropagation(); return endTour(); }
-  if(e.key === 'Enter' || e.key === 'ArrowRight'){
-    e.preventDefault(); e.stopPropagation();
-    tourNext();
-  } else if(e.key === 'ArrowLeft'){ e.preventDefault(); e.stopPropagation(); tourBack(); }
-}, true);
-
 try{ history.replaceState({d:0}, ''); }catch{}
 edgeFallback();
 restoreView();
 render();
-tourAutostart();
 
 /* Работа без интернета: service worker кэширует страницу, данные, иконки и шрифты */
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
