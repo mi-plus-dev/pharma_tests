@@ -687,6 +687,12 @@ body.tour-on .tour-focus{outline:3px solid var(--amber);outline-offset:var(--tou
 .my-file-in:focus-visible+.my-drop{border-style:solid;box-shadow:4px 4px 0 var(--accent)}
 .my-or{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:var(--muted);font-size:13px;font-weight:600}
 .my-or::before,.my-or::after{content:"";flex:1;border-top:1px solid transparent}
+.fb-add{width:100%;margin:2px 0 6px}
+.fb-files{display:grid;gap:8px;margin:6px 0}
+.fb-file{display:flex;align-items:center;gap:10px}
+.fb-file img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex:none}
+.fb-file-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--muted)}
+.fb-file-x{flex:none;width:36px;min-width:0;padding:6px 0}
 .my-ta.is-short{min-height:92px;margin:0 0 6px}
 .my-linkbtn{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:0 0 10px;padding:0 2px;border:0;background:none;color:var(--green);font:inherit;font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .my-linkbtn svg{width:18px;height:18px}

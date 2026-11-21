@@ -1503,6 +1503,44 @@ function viewMenu(){
 const COPYRIGHT_NAME = '';   // например: 'Иванов И. И.' → «© 2026 Иванов И. И.»
 const FEEDBACK_EMAIL = 'mi.plus.dev@gmail.com';   // на этот адрес приходят «Предложения по улучшению» (запасной вариант через mailto)
 const FEEDBACK_FORM_ID = '25b7c80b0e6428598e3e16eeedf8994a';   // случайная строка FormSubmit вместо открытого адреса в запросе
+const FB_MAX_BYTES = 5 * 1024 * 1024, FB_MAX_FILES = 4;   // лимит FormSubmit: 5 МБ вложений суммарно
+let fbFiles = [];   // [{blob, name, url}] — фото, прикреплённые к предложению
+const fbTotal = () => fbFiles.reduce((n, f) => n + f.blob.size, 0);
+const fbMb = n => (n / 1048576).toFixed(1).replace('.', ',') + ' МБ';
+const fbClear = () => { fbFiles.forEach(f => { try{ URL.revokeObjectURL(f.url); }catch(_){} }); fbFiles = []; };
+// Фото сжимается в браузере (до 1600 px по длинной стороне, JPEG), чтобы уложиться в лимит
+function fbShrink(file){
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => b ? ok(b) : fail(new Error('blob')), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('img')); };
+    img.src = url;
+  });
+}
+function fbRender(){
+  const box = $id('fbFiles'); if(!box) return;
+  box.hidden = !fbFiles.length;
+  box.innerHTML = fbFiles.map((f, i) => `<div class="fb-file"><img src="${f.url}" alt=""><span class="fb-file-n">${esc(f.name)} · ${fbMb(f.blob.size)}</span><button class="btn btn-secondary fb-file-x" type="button" data-act="fbRemove" data-i="${i}" aria-label="Убрать фото">✕</button></div>`).join('');
+  const add = $id('fbAddBtn'); if(add) add.disabled = fbFiles.length >= FB_MAX_FILES;
+}
+async function fbAddFiles(list){
+  const msg = $id('fbMsg'), say = t => { if(msg){ msg.textContent = t; msg.hidden = false; } };
+  if(msg) msg.hidden = true;
+  for(const file of list){
+    if(fbFiles.length >= FB_MAX_FILES){ say('Можно прикрепить не больше ' + FB_MAX_FILES + ' фото.'); break; }
+    if(!/^image\//.test(file.type)){ say('«' + file.name + '» — не фото, пропускаю.'); continue; }
+    let blob; try{ blob = await fbShrink(file); }catch(_){ say('Не удалось прочитать «' + file.name + '».'); continue; }
+    if(fbTotal() + blob.size > FB_MAX_BYTES){ say('Не поместилось: вложения не могут быть больше 5 МБ в сумме (сейчас ' + fbMb(fbTotal()) + ', «' + file.name + '» ещё ' + fbMb(blob.size) + ').'); continue; }
+    fbFiles.push({blob, name: file.name.replace(/\.[^.]*$/, '') + '.jpg', url: URL.createObjectURL(blob)});
+  }
+  fbRender();
+}
 const SITE_URL = '';         // адрес сайта → кнопка «Официальный сайт»
 function footerHtml(){
   const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
@@ -3343,15 +3381,21 @@ const ACTIONS = {
   },
   myrxImportOpen: () => { myrxLastText = ''; openSheet(myrxImpHtml1()); },
   feedback: () => {
+    fbClear();
     openSheet(`<h2 class="sheet-title" id="sheetTitle">Предложения по улучшению</h2>
       <p class="sheet-text">Что неудобно, чего не хватает, где ошибка? Напишите своими словами.</p>
       <textarea class="input my-ta is-short" id="fbText" rows="5" maxlength="2000" placeholder="Например: хочу сортировку рецептов по названию" aria-label="Ваше предложение" style="font-family:inherit"></textarea>
+      <div id="fbFiles" class="fb-files" hidden></div>
+      <input type="file" id="fbFile" class="my-file-in" accept="image/*" multiple>
+      <button class="btn btn-secondary fb-add" id="fbAddBtn" type="button" data-act="fbPick">📎 Прикрепить фото</button>
       <p class="my-meta" id="fbMsg" role="status" hidden></p>
       <div class="actions actions-even">
         <button class="btn btn-secondary" type="button" data-act="close">Отмена</button>
         <button class="btn btn-primary" type="button" data-act="feedbackSend">Отправить</button>
       </div>`);
   },
+  fbPick: () => { const i = $id('fbFile'); if(i) i.click(); },
+  fbRemove: el => { const f = fbFiles.splice(+el.dataset.i, 1)[0]; if(f){ try{ URL.revokeObjectURL(f.url); }catch(_){} } fbRender(); const m = $id('fbMsg'); if(m) m.hidden = true; },
   feedbackSend: async el => {
     const ta = $id('fbText'), msg = $id('fbMsg'); if(!ta || !msg || el.disabled) return;
     const text = ta.value.trim(), say = t => { msg.textContent = t; msg.hidden = false; };
@@ -3359,16 +3403,18 @@ const ACTIONS = {
     const subj = 'Предложения по улучшению: Рецепты';
     el.disabled = true; el.textContent = 'Отправляем…'; msg.hidden = true;
     try{   // отправка на почту через FormSubmit (своего сервера у приложения нет)
-      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_FORM_ID, {
-        method:'POST', headers:{'Content-Type':'application/json', 'Accept':'application/json'},
-        body: JSON.stringify({message:text, _subject:subj, _captcha:'false', _template:'table', _honey:'', устройство:navigator.userAgent.slice(0, 140)})
-      });
+      const fd = new FormData();   // FormData нужен для вложений; заголовок Content-Type браузер выставит сам
+      fd.append('message', text); fd.append('_subject', subj); fd.append('_captcha', 'false'); fd.append('_template', 'table'); fd.append('_honey', '');
+      fd.append('устройство', navigator.userAgent.slice(0, 140));
+      fbFiles.forEach((f, i) => fd.append('attachment' + (i ? i + 1 : ''), f.blob, f.name));
+      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_FORM_ID, { method:'POST', headers:{'Accept':'application/json'}, body: fd });
       const j = await res.json().catch(() => ({}));
       if(!res.ok || String(j.success)==='false') throw new Error('send');
+      fbClear();
       myrxSheet(`<h2 class="sheet-title" id="sheetTitle">Спасибо!</h2><p class="sheet-text">Предложение отправлено. Мы обязательно его прочитаем.</p>${CLOSE_BTN}`);
     }catch(_){   // нет сети или сервис не ответил: письмо откроется в почтовом приложении, текст не потеряется
       el.disabled = false; el.textContent = 'Отправить';
-      say('Не удалось отправить напрямую. Открываю почту: останется нажать «Отправить» в письме.');
+      say('Не удалось отправить напрямую. Открываю почту: останется нажать «Отправить» в письме' + (fbFiles.length ? ' (фото придётся прикрепить там самим).' : '.'));
       location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(text);
     }
   },
@@ -3612,6 +3658,7 @@ document.addEventListener('change', e => {
     const st = $id('myrxStatus'); if(st) st.hidden = true;
     return;
   }
+  if(t && t.id==='fbFile'){ const l = Array.from(t.files || []); setTimeout(() => { try{ t.value = ''; }catch(_){} }, 0); if(l.length) fbAddFiles(l); return; }
   if(!t || t.id!=='myrxFile' || !t.files || !t.files[0]) return;
   const file = t.files[0];
   setTimeout(() => { try{ t.value = ''; }catch(_){} }, 0);   // чтобы тот же файл можно было выбрать повторно
