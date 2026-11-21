@@ -647,10 +647,11 @@ const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'grou
 // Куда ведёт «назад» с карточек: из тем — в темы, из семестра — в семестр
 let cardsBack = 'menu';
 let grpBack = 'menu';   // откуда открыта папка: из меню или из «Мои рецепты»
+let myrxEditBack = 'myrx';   // откуда открыт редактор рецепта: из «Мои рецепты» или из папки (тогда папка уже отмечена)
 // Экраны прежних версий: отдельные «Все экз. рецепты» / «По семестрам» / «По темам» (с вкладками сверху) и список блоков карточек.
 // Из меню в них больше не попасть, поэтому восстановление и перерисовка уводят оттуда на главный экран.
 const ORPHAN_MODES = new Set(['allRx','semesters','semester','topics']);
-const parentOf = m => m==='groupCards' ? cardsBack : m==='myGroup' ? grpBack : (PARENT[m] || 'menu');
+const parentOf = m => m==='groupCards' ? cardsBack : m==='myGroup' ? grpBack : m==='myrxEdit' ? myrxEditBack : (PARENT[m] || 'menu');
 // Глубина экрана в истории браузера: каждый шаг вглубь — одна запись
 function depthOf(m){ let d = 0; const seen = {}; while(m && m!=='menu' && !seen[m]){ seen[m] = 1; m = parentOf(m); d++; } return d; }
 
@@ -1493,19 +1494,19 @@ function viewMenu(){
     </div>
     ${myGrpMenuHtml()}
     ${footerHtml()}
+    <div class="rx-tourlink rx-fb tour-dim-able"><button type="button" data-act="feedback">Предложения по улучшению</button></div>
     <div class="rx-tourlink tour-dim-able"><button type="button" data-act="tour">Показать обучение</button></div>
     <div class="theme-toggle tour-dim-able"><button type="button" data-act="theme">${isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'}</button></div>`;
 }
 // Подвал главного экрана: © · Обратная связь · Официальный сайт
 // Заполните нужное — пустое не показывается; если пусто всё, подвала нет
 const COPYRIGHT_NAME = '';   // например: 'Иванов И. И.' → «© 2026 Иванов И. И.»
-const FEEDBACK_URL = '';     // ссылка на форму/чат или mailto:адрес → кнопка «Обратная связь»
+const FEEDBACK_EMAIL = 'mi.plus.dev@gmail.com';   // на этот адрес приходят «Предложения по улучшению»
 const SITE_URL = '';         // адрес сайта → кнопка «Официальный сайт»
 function footerHtml(){
   const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
   const parts = [];
   if(COPYRIGHT_NAME) parts.push(`<span>© ${new Date().getFullYear()} ${esc(COPYRIGHT_NAME)}</span>`);
-  if(FEEDBACK_URL) parts.push(link(FEEDBACK_URL, 'Обратная связь'));
   if(SITE_URL) parts.push(link(SITE_URL, 'Официальный сайт'));
   return parts.length ? `<footer class="rx-foot">${parts.join('<span class="rx-dot" aria-hidden="true">·</span>')}</footer>` : '';
 }
@@ -2538,7 +2539,10 @@ function viewMyGroup(){
     return `<div class="my-grp${bad ? ' is-bad' : ''}"><div class="my-grp-t"><b>${esc(r.drug || r.latin || 'Без названия')}</b><small>${esc(bad ? 'Не хватает данных: в тестах не участвует' : sub)}</small></div>
       <button class="my-grp-b my-grp-rm" type="button" data-act="myGrpRemove" data-id="${esc(r.id)}" aria-label="Убрать «${esc(r.drug || r.latin)}» из папки">Убрать</button></div>`; }).join('');
   return `<header class="page-head"><h1>${esc(g.name)}</h1><p>${pool.length ? 'Выберите формат подготовки.' : 'Папка пока пуста.'}</p></header>
-    <button class="btn btn-primary my-new" type="button" data-act="myGrpAdd">+ Добавить рецепт</button>
+    <div class="my-newrow">
+      <button class="btn btn-primary my-new" type="button" data-act="myGrpNewRx">+ Новый рецепт</button>
+      <button class="btn btn-secondary my-new" type="button" data-act="myGrpAdd">Добавить из моих рецептов</button>
+    </div>
     ${pool.length ? `<div class="list">${
       tl('grpQuiz', ICON.choice, 'Тест', 'Выбираете дозу, путь введения и группу из трёх вариантов.')}${
       tl('grpWrite', ICON.pen, 'Впиши сам', 'Видно только название — латынь, концентрацию и группу вписываете сами.')}${
@@ -2556,12 +2560,19 @@ function myGrpAddSheet(){
     return;
   }
   openSheet(`<h2 class="sheet-title" id="sheetTitle">Добавить в папку «${esc(g.name)}»</h2>
+    ${free.length > 1 ? `<div class="my-selbar-h"><span id="myGaddCnt" aria-live="polite">Ничего не выбрано</span><button class="my-linkbtn" type="button" id="myGaddAllBtn" data-act="myGaddAll">Выбрать все</button></div>` : ''}
     <div class="my-togs is-col my-gadd">${free.map(r => `<label class="my-tog"><input type="checkbox" data-gadd="${esc(r.id)}"><span>${esc(r.drug || r.latin)}</span></label>`).join('')}</div>
     <p class="my-err" id="myGaddErr" role="alert" hidden></p>
     <div class="actions actions-even">
       <button class="btn btn-secondary" type="button" data-act="close">Отмена</button>
-      <button class="btn btn-primary" type="button" data-act="myGrpAddGo">Добавить</button>
+      <button class="btn btn-primary" type="button" id="myGaddGo" data-act="myGrpAddGo">Добавить</button>
     </div>`);
+}
+function myGaddRefresh(){
+  const all = [...document.querySelectorAll('input[data-gadd]')], n = all.filter(x => x.checked).length;
+  const c = $id('myGaddCnt'); if(c) c.textContent = n ? 'Выбрано: ' + n : 'Ничего не выбрано';
+  const b = $id('myGaddGo'); if(b) b.textContent = n ? 'Добавить (' + n + ')' : 'Добавить';
+  const a = $id('myGaddAllBtn'); if(a) a.textContent = n===all.length ? 'Снять все' : 'Выбрать все';
 }
 function myGrpAddGo(){
   const ids = [...document.querySelectorAll('input[data-gadd]:checked')].map(x => x.dataset.gadd);
@@ -2633,9 +2644,92 @@ function myGrpDelete(id){
 }
 document.addEventListener('keydown', e => { if(e.key==='Enter' && e.target && e.target.id==='myrxGrpName'){ e.preventDefault(); myGrpSave(); } });
 let myrxOpen = new Set();   // раскрытые строки списка: остаются раскрытыми после возврата с экрана «Изменить»
+let myrxDestOpen = false;   // раскрыт ли блок «Куда добавить» в редакторе (переживает перерисовку)
+
+/* ----- Серия: «Сохранить и добавить ещё» -----
+   Рецепты пишутся в память сразу, прогресс затронутых тестов сбрасывается сразу, а перезагрузка страницы
+   (без неё рецепты не попадут в тесты — DB собирается при загрузке) откладывается до выхода с экрана редактора. */
+const myrxNoSeries = () => ({n:0, last:'', dirty:false});
+let myrxSeries = myrxNoSeries();
+let myrxReloading = false;   // идёт перезагрузка после серии: историю браузера больше не трогаем (иначе history.go отменит перезагрузку)
+const myrxNoteSet = title => { try{ sessionStorage.setItem(MYRX_NOTE, JSON.stringify({kind:'ok', title, lines:[]})); }catch(_){} };
+function myrxSeriesReload(){   // вызывается из draw(): редактор закрыт, а в серии есть сохранённое
+  const n = myrxSeries.n;
+  myrxSeries = myrxNoSeries(); myrxReloading = true;
+  dropPending();
+  if(n > 0 && myrxEditBack !== 'myGroup') myrxNoteSet(n===1 ? 'Рецепт добавлен.' : 'Добавлено: ' + myrxRecipes(n) + '.');
+  store.set(KEYS.view, mode==='myGroup' ? {mode:'myGroup', grpId:curGrp, grpBack} : {mode: mode==='menu' ? 'menu' : 'myrx'});
+  location.reload();
+}
+// Следующий черновик серии: форма, «куда добавить», группа и путь остаются — обычно подряд идут похожие рецепты
+function myrxNextDraft(prev){
+  const d = myrxBlankDraft();
+  d.form = prev.form; d.tests = [...prev.tests]; d.group = prev.group; d.route = prev.route;
+  if(myrxTopicsOn(prev)) rxTopicsSet.add(d);
+  return d;
+}
+function myrxSaveDraft(more){
+  const r = rxDraft; if(!r) return;
+  const err = myrxError(r);
+  if(err){ const e = $id('myrxErr'); if(e){ e.textContent = err; e.hidden = false; try{ e.scrollIntoView({block:'center', behavior:'smooth'}); }catch(_){} } return; }
+  const list = myrxLoad(), item = {...r, drug: r.drug.trim(), latin: r.latin.trim(), t: Date.now()};
+  const i = item.id ? list.findIndex(x => x.id===item.id) : -1;
+  if(i < 0 && list.length >= MYRX_MAX){
+    const e = $id('myrxErr'); if(e){ e.textContent = 'Можно хранить не больше ' + MYRX_MAX + ' рецептов. Удалите ненужные.'; e.hidden = false; }
+    return;
+  }
+  if(i >= 0) list[i] = item;
+  else { item.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); list.unshift(item); }
+  const was = MY_ACTIVE.find(m => m.id===item.id);      // участвовал ли рецепт в тестах при загрузке
+  const commit = () => {
+    if(!myrxStore(list)){ myrxStorageFail(); return; }  // рецепт не записан — черновик остаётся
+    if(more){                                            // остаёмся в редакторе: чистая форма для следующего рецепта
+      myrxResetProgress(new Set(item.tests));
+      myrxSeries = {n: myrxSeries.n + 1, last: item.drug, dirty: true};
+      rxDraft = myrxNextDraft(item);
+      render();
+      announce('Рецепт «' + item.drug + '» добавлен. Можно вводить следующий.');
+      scrollTo({top:0, behavior:'smooth'});
+      const f = $id('my-drug'); if(f) f.focus({preventScroll:true});
+      return;
+    }
+    rxDraft = null;
+    const n = myrxSeries.n + 1, wasSeries = myrxSeries.dirty;
+    myrxSeries = myrxNoSeries();
+    if(wasSeries && n > 1 && myrxEditBack !== 'myGroup') myrxNoteSet('Добавлено: ' + myrxRecipes(n) + '.');
+    myrxApplied(was, true, item.tests, myrxEditBack==='myGroup' ? 'myGroup' : undefined);
+  };
+  const ts = new Set([...item.tests, ...(was ? [...was.tests] : [])]);
+  if(ts.size && myrxHasProgress(ts)) askConfirm('Сохранить рецепт?', 'Прогресс тестов, куда входит этот рецепт, будет сброшен' + (more ? '.' : ', а страница обновится.') + ' Список ошибок сохранится.', 'Сохранить', commit);
+  else commit();
+}
+
+/* ----- Выбор нескольких рецептов на экране «Мои рецепты» ----- */
+let myrxSel = {on:false, ids:new Set()};
+const myrxSelCount = n => n ? 'Выбрано: ' + n : 'Ничего не выбрано';
+const MYRX_CHECK = svgIcon('<path d="M5 12.5l4.2 4.2L19 7"/>');
+function myrxSelBar(){
+  const n = myrxSel.ids.size, total = myrxLoad().length, hasGrp = myGrpLoad().length > 0;
+  return `<div class="my-selbar" role="region" aria-label="Действия с выбранными рецептами">
+    <div class="my-selbar-top"><b id="mySelCnt" aria-live="polite">${myrxSelCount(n)}</b><span>
+      <button class="my-linkbtn" type="button" id="mySelAll" data-act="myrxSelAll">${n===total ? 'Снять все' : 'Выбрать все'}</button>
+      <button class="my-linkbtn" type="button" data-act="myrxSelOff">Отмена</button></span></div>
+    <div class="my-selbar-btns">${hasGrp ? `<button class="btn btn-secondary" type="button" id="mySelMove" data-act="myrxSelMove"${n ? '' : ' disabled'}>В папку</button>` : ''}<button class="btn btn-danger" type="button" id="mySelDel" data-act="myrxSelDel"${n ? '' : ' disabled'}>${MYRX_ICO.trash}Удалить${n ? ' (' + n + ')' : ''}</button></div>
+  </div>`;
+}
+function myrxSelRefresh(){   // без перерисовки экрана: список может быть длинным
+  const n = myrxSel.ids.size, total = myrxLoad().length;
+  const c = $id('mySelCnt'); if(c) c.textContent = myrxSelCount(n);
+  const a = $id('mySelAll'); if(a) a.textContent = n===total ? 'Снять все' : 'Выбрать все';
+  const d = $id('mySelDel'); if(d){ d.disabled = !n; d.innerHTML = MYRX_ICO.trash + 'Удалить' + (n ? ' (' + n + ')' : ''); }
+  const m = $id('mySelMove'); if(m) m.disabled = !n;
+}
+function myrxSelEnter(id){ myrxSel = {on:true, ids:new Set(id ? [id] : [])}; render(); }
+function myrxSelLeave(){ myrxSel = {on:false, ids:new Set()}; }
 function viewMyList(){
   setTop({back:'Меню', title:'Мои рецепты'});
-  const list = myrxLoad();
+  const list = myrxLoad(), sel = myrxSel.on;
+  if(sel){ const have = new Set(list.map(r => r.id)); myrxSel.ids = new Set([...myrxSel.ids].filter(id => have.has(id))); }
   let note = ''; try{ note = myrxNoteHtml(sessionStorage.getItem(MYRX_NOTE)); sessionStorage.removeItem(MYRX_NOTE); }catch(_){}
   const head = `<header class="page-head"><h1>Мои рецепты</h1><p>Составляйте собственные рецепты на бланке и сохраняйте их на этом устройстве.</p></header>
     <button class="btn btn-primary my-new" type="button" data-act="myrxNew">+ Новый рецепт</button>
@@ -2647,8 +2741,13 @@ function viewMyList(){
     ${myGrpListHtml()}`;
   if(!list.length) return head + `<div class="empty">${ICON.pen}<p>Пока пусто. Нажмите «Новый рецепт» — можно выбрать препарат из справочника, и поля заполнятся сами. Уже есть рецепты (файл или текст) — нажмите «Загрузить рецепты».</p></div>`;
   const ids = new Set(list.map(r => r.id)); myrxOpen = new Set([...myrxOpen].filter(id => ids.has(id)));
-  return head + `<div class="label my-rows-h">Рецепты · ${list.length}</div>` + list.map(r => {
+  const listHead = `<div class="my-listhead"><div class="label my-rows-h">${sel ? 'Отметьте рецепты' : 'Рецепты'} · ${list.length}</div>${sel ? '' : '<button class="my-linkbtn" type="button" data-act="myrxSelOn">Выбрать</button>'}</div>`;
+  return head + listHead + list.map(r => {
     const name = r.drug || r.latin || 'Без названия', bad = myrxProblem(r), sub = [String(r.latin).trim(), String(r.group).trim()].filter(Boolean).join(' · ');
+    if(sel){
+      const on = myrxSel.ids.has(r.id);
+      return `<button class="my-row my-selrow${on ? ' is-sel' : ''}${bad ? ' is-bad' : ''}" type="button" role="checkbox" aria-checked="${on}" data-act="myrxSelRow" data-id="${esc(r.id)}"><span class="my-chk" aria-hidden="true">${MYRX_CHECK}</span><span class="my-row-t"><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${bad ? '<span class="my-row-warn" role="img" aria-label="Нужно дополнить">!</span>' : ''}</button>`;
+    }
     return `<details class="my-row${bad ? ' is-bad' : ''}" data-rx="${esc(r.id)}"${myrxOpen.has(r.id) ? ' open' : ''}>
       <summary class="my-row-s"><span class="my-row-t"><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${bad ? '<span class="my-row-warn" role="img" aria-label="Нужно дополнить">!</span>' : ''}<span class="my-dd-arr" aria-hidden="true">${ICON.chevron}</span></summary>
       <div class="my-row-b">
@@ -2660,11 +2759,12 @@ function viewMyList(){
           <button class="btn btn-secondary" type="button" data-act="myrxDel" data-id="${esc(r.id)}">Удалить</button>
         </div>
       </div>
-    </details>`; }).join('');
+    </details>`; }).join('') + (sel ? myrxSelBar() + '<div class="my-selpad"></div>' : '');
 }
 // Строка списка раскрылась или свернулась: запоминаем и подгоняем бланк по ширине (в закрытой строке у него нулевая ширина)
 document.addEventListener('toggle', e => {
   const d = e.target;
+  if(d && d.classList && d.classList.contains('my-dest')){ myrxDestOpen = d.open; return; }
   if(!d || !d.classList || !d.classList.contains('my-row')) return;
   const id = d.dataset.rx;
   if(d.open){ myrxOpen.add(id); fitRx(); } else myrxOpen.delete(id);
@@ -2689,7 +2789,7 @@ const kbButtons = (list, mode) => list.map(v => `<button class="my-q" type="butt
 function viewMyEdit(){
   if(!rxDraft) rxDraft = myrxBlankDraft();
   const r = rxDraft, F = myrxForm(r.form);
-  setTop({back:'Мои рецепты', title: r.id ? 'Изменить рецепт' : 'Новый рецепт'});
+  setTop({back: myrxEditBack==='myGroup' ? myGrpName(curGrp) : 'Мои рецепты', title: r.id ? 'Изменить рецепт' : 'Новый рецепт'});
   const field = (key, label, ph, attrs='', cls='', after='') => `<div class="my-field ${cls}">
       <label class="label wr-label" for="my-${key}"><span class="wr-lab">${label}</span></label>
       ${key==='signa'
@@ -2703,8 +2803,13 @@ function viewMyEdit(){
   ].filter(Boolean);
   const tog = (id, text, on, extra='') => `<label class="my-tog${on ? ' is-on' : ''}"><input type="checkbox" ${extra || `data-mytest="${id}"`}${on ? ' checked' : ''}><span>${esc(text)}</span></label>`;
   const T = myrxTests(), semT = T.filter(t => /^s\d$/.test(t.id)), examT = T.find(t => t.id==='exam'), blockT = T.filter(isBlockTest), grpT = T.filter(t => t.id.startsWith('g_'));
+  const ser = myrxSeries.dirty && !r.id ? myrxSeries : null;
+  const inFolder = !r.id && myrxEditBack==='myGroup' && myGrpOk() ? myGrpLoad().find(g => g.id===curGrp) : null;
   return `<header class="page-head"><h1>${r.id ? 'Изменить рецепт' : 'Новый рецепт'}</h1>
-      <p>Начните с названия: если препарат есть в справочнике, поля заполнятся сами. Все поля обязательны.</p></header>
+      ${ser ? '' : `<p>Начните с названия: если препарат есть в справочнике, поля заполнятся сами. Все поля обязательны.${inFolder ? ' Рецепт сразу попадёт в папку «' + esc(inFolder.name) + '».' : ''}</p>`}</header>
+    ${ser ? `<div class="my-series" role="status"><span class="my-series-ico" aria-hidden="true">${MYRX_ICO.ok}</span>
+      <div class="my-series-t"><b>«${esc(ser.last)}» добавлен</b><small>В серии: ${ser.n} · форма, группа и путь остались прежними</small></div>
+      <button class="btn btn-secondary" type="button" data-act="myrxFinish">Готово</button></div>` : ''}
     <div class="my-field">
       <label class="label wr-label" for="my-drug"><span class="wr-lab">Препарат</span><span class="wr-sub">при выборе из справочника добавится «(мой)»: название не должно совпадать с оригиналом</span></label>
       <input class="input" id="my-drug" data-my="drug" type="text" maxlength="300" value="${esc(r.drug)}" placeholder="Начните вводить название"
@@ -2719,24 +2824,39 @@ function viewMyEdit(){
     ${field('signa', 'Signa — инструкция для пациента', 'внутрь, по 1 таблетке 3 раза в день')}
     ${field('group', 'Фармакологическая группа', 'Начните вводить — появятся подсказки')}
     ${field('route', 'Путь введения', 'внутрь, в/в, в/м…')}
-    <fieldset class="my-tests">
-      <legend class="label wr-label"><span class="wr-lab">Куда добавить рецепт</span></legend>
+    <details class="my-dest" id="myDest"${myrxDestOpen ? ' open' : ''}>
+      <summary class="my-dest-s"><span class="my-dest-k">Куда добавить</span><span class="my-dest-v" id="myDestVal">${esc(myrxDestText(r))}</span><span class="my-dd-arr" aria-hidden="true">${ICON.chevron}</span></summary>
+      <fieldset class="my-tests">
+      <legend class="sr-only">Куда добавить рецепт</legend>
       <div class="my-togs">${semT.map(t => tog(t.id, t.short, r.tests.includes(t.id))).join('')}${tog('', 'Экзамен', r.tests.includes('exam'), 'data-mytest="exam"')}${tog('', 'Темы', myrxTopicsOn(r), 'data-mytopics')}</div>
       <div class="my-topic" id="myTopicBox"${myrxTopicsOn(r) ? '' : ' hidden'}>
         <div class="label wr-label"><span class="wr-lab">Темы</span><span class="wr-sub">можно отметить несколько</span></div>
         <div class="my-togs is-col">${blockT.map(t => tog(t.id, t.title, r.tests.includes(t.id))).join('')}</div>
       </div>
       ${grpT.length ? `<div class="label wr-label my-formlab"><span class="wr-lab">Папки</span></div><div class="my-togs">${grpT.map(t => tog(t.id, t.short, r.tests.includes(t.id))).join('')}</div>` : ''}
-    </fieldset>
+      </fieldset>
+    </details>
     <p class="my-need" id="myNeed" role="status" aria-live="polite" hidden></p>
     <div class="label wr-label my-formlab"><span class="wr-lab">Так рецепт выглядит на бланке</span></div>
     <div class="my-prev" id="myrxPreview">${myrxBlank(r)}</div>
     <p class="my-err" id="myrxErr" role="alert" hidden></p>
-    <div class="actions actions-even">
+    ${r.id ? `<div class="actions actions-even">
       <button class="btn btn-secondary" type="button" data-act="up">Отмена</button>
       <button class="btn btn-primary" type="button" data-act="myrxSave">Сохранить</button>
-    </div>`;
+    </div>` : `<div class="my-save">
+      <button class="btn btn-primary btn-block" type="button" data-act="myrxSaveMore">+ Сохранить и добавить ещё</button>
+      <div class="actions actions-even">
+        <button class="btn btn-secondary" type="button" data-act="${ser ? 'myrxFinish' : 'up'}">${ser ? 'Готово' : 'Отмена'}</button>
+        <button class="btn btn-secondary" type="button" data-act="myrxSave">Сохранить</button>
+      </div>
+    </div>`}`;
 }
+// Короткая запись «куда добавлен рецепт» для свёрнутого блока
+function myrxDestText(r){
+  const all = myrxTests().filter(t => r.tests.includes(t.id)).map(t => isBlockTest(t) ? t.short : t.short);
+  return all.length ? all.join(', ') : 'не выбрано';
+}
+function myrxDestUpdate(){ const el = $id('myDestVal'); if(el && rxDraft) el.textContent = myrxDestText(rxDraft); }
 // Что ещё не заполнено в форме (показывается над кнопкой «Сохранить», пока есть пропуски)
 function myrxNeedUpdate(){
   const el = $id('myNeed'); if(!el || !rxDraft) return;
@@ -2755,10 +2875,8 @@ function myrxNeedUpdate(){
 }
 // Изменился набор рецептов в тестах: DB и блоки собираются при загрузке, поэтому сбрасываем
 // незаконченные прохождения тестов со своими рецептами (в них сдвигаются номера) и перезагружаем страницу
-function myrxApplied(was, now, newTests, stay){
-  if(!was && !now){ go(stay || 'myrx'); return; }
-  const targets = new Set(newTests);          // сбрасываем только тесты, где рецепт был или будет
-  if(was) was.tests.forEach(t => targets.add(t));
+// Сбрасывает незаконченные прохождения тестов, куда входят (или войдут) свои рецепты
+function myrxResetProgress(targets){
   dropPending();
   for(const t of targets){
     if(t==='exam'){ store.del(KEYS.quiz); store.del(KEYS.write); }
@@ -2768,6 +2886,12 @@ function myrxApplied(was, now, newTests, stay){
   }
   // ошибки хранятся по названию: записи удалённых рецептов отбрасываются при следующей загрузке (initMistakes)
   dropMistakeSessions();
+}
+function myrxApplied(was, now, newTests, stay){
+  if(!was && !now){ go(stay || 'myrx'); return; }
+  const targets = new Set(newTests);          // сбрасываем только тесты, где рецепт был или будет
+  if(was) was.tests.forEach(t => targets.add(t));
+  myrxResetProgress(targets);
   mode = stay || 'myrx';
   store.set(KEYS.view, stay==='myGroup' ? {mode:'myGroup', grpId:curGrp, grpBack} : {mode: 'myrx'});
   location.reload();
@@ -2975,6 +3099,8 @@ function afterDraw(sig, firstDraw){
   lastScreenId = screenId; lastKey = key;
 }
 function draw(){
+  if(myrxSeries.dirty && mode!=='myrxEdit'){ myrxSeriesReload(); return; }   // серия закончена: перезагрузка, чтобы рецепты попали в тесты
+  if(mode!=='myrx' && myrxSel.on) myrxSelLeave();
   if(ORPHAN_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
   if(SESSION[mode] && !cur()) mode = parentOf(mode);   // сессия не найдена — на уровень выше
   if(mode==='myGroup' && !myGrpOk()) mode = 'menu';
@@ -3215,6 +3341,36 @@ const ACTIONS = {
     try{ inp.focus({preventScroll:true}); inp.setSelectionRange(cur.length, cur.length); }catch(_){}
   },
   myrxImportOpen: () => { myrxLastText = ''; openSheet(myrxImpHtml1()); },
+  feedback: () => {
+    openSheet(`<h2 class="sheet-title" id="sheetTitle">Предложения по улучшению</h2>
+      <p class="sheet-text">Что неудобно, чего не хватает, где ошибка? Напишите своими словами.</p>
+      <textarea class="input my-ta is-short" id="fbText" rows="5" maxlength="2000" placeholder="Например: хочу сортировку рецептов по названию" aria-label="Ваше предложение" style="font-family:inherit"></textarea>
+      <p class="my-meta" id="fbMsg" role="status" hidden></p>
+      <div class="actions actions-even">
+        <button class="btn btn-secondary" type="button" data-act="close">Отмена</button>
+        <button class="btn btn-primary" type="button" data-act="feedbackSend">Отправить</button>
+      </div>`);
+  },
+  feedbackSend: async el => {
+    const ta = $id('fbText'), msg = $id('fbMsg'); if(!ta || !msg || el.disabled) return;
+    const text = ta.value.trim(), say = t => { msg.textContent = t; msg.hidden = false; };
+    if(!text){ say('Напишите пару слов, и можно отправлять.'); ta.focus(); return; }
+    const subj = 'Предложения по улучшению: Рецепты';
+    el.disabled = true; el.textContent = 'Отправляем…'; msg.hidden = true;
+    try{   // отправка на почту через FormSubmit (своего сервера у приложения нет)
+      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_EMAIL, {
+        method:'POST', headers:{'Content-Type':'application/json', 'Accept':'application/json'},
+        body: JSON.stringify({message:text, _subject:subj, _captcha:'false', _template:'table', _honey:'', устройство:navigator.userAgent.slice(0, 140)})
+      });
+      const j = await res.json().catch(() => ({}));
+      if(!res.ok || String(j.success)==='false') throw new Error('send');
+      myrxSheet(`<h2 class="sheet-title" id="sheetTitle">Спасибо!</h2><p class="sheet-text">Предложение отправлено. Мы обязательно его прочитаем.</p>${CLOSE_BTN}`);
+    }catch(_){   // нет сети или сервис не ответил: письмо откроется в почтовом приложении, текст не потеряется
+      el.disabled = false; el.textContent = 'Отправить';
+      say('Не удалось отправить напрямую. Открываю почту: останется нажать «Отправить» в письме.');
+      location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(text);
+    }
+  },
   myrxExportOpen: () => myrxOpenSend(),
   myrxSendMode: el => { myrxSend.mode = el.dataset.m; myrxSheet(myrxSendHtml()); },
   myrxSendFolder: el => { myrxSend.folder = el.dataset.g; myrxSheet(myrxSendHtml()); },
@@ -3264,31 +3420,81 @@ const ACTIONS = {
     catch(_){ if(ta) ta.focus(); myrxImpErr('Браузер не дал доступ к буферу. Вставьте текст в поле вручную: долгое нажатие → «Вставить».'); }
   },
   myrxNoteClose: el => { const b = el.closest('.my-res'); if(b) b.remove(); },
-  myrxNew: () => { rxDraft = myrxBlankDraft(); go('myrxEdit'); },
-  myrxEdit: el => { const r = myrxLoad().find(x => x.id===el.dataset.id); if(!r) return; rxDraft = {...r, tests:[...r.tests]}; go('myrxEdit'); },
-  myrxForm: el => { if(!rxDraft) return; rxDraft.form = el.dataset.f; render(); },
-  myrxSave: () => {
-    const r = rxDraft; if(!r) return;
-    const err = myrxError(r);
-    if(err){ const e = $id('myrxErr'); if(e){ e.textContent = err; e.hidden = false; try{ e.scrollIntoView({block:'center', behavior:'smooth'}); }catch(_){} } return; }
-    const list = myrxLoad(), item = {...r, drug: r.drug.trim(), latin: r.latin.trim(), t: Date.now()};
-    const i = item.id ? list.findIndex(x => x.id===item.id) : -1;
-    if(i < 0 && list.length >= MYRX_MAX){
-      const e = $id('myrxErr'); if(e){ e.textContent = 'Можно хранить не больше ' + MYRX_MAX + ' рецептов. Удалите ненужные.'; e.hidden = false; }
+  myrxNew: () => { rxDraft = myrxBlankDraft(); myrxEditBack = 'myrx'; myrxDestOpen = false; myrxSeries = myrxNoSeries(); go('myrxEdit'); },
+  myGrpNewRx: () => {                                        // рецепт прямо из папки: она уже отмечена, «назад» вернёт в папку
+    if(!myGrpOk()) return;
+    rxDraft = myrxBlankDraft(); rxDraft.tests = ['g_' + curGrp];
+    myrxEditBack = 'myGroup'; myrxDestOpen = false; myrxSeries = myrxNoSeries(); go('myrxEdit');
+  },
+  myrxEdit: el => { const r = myrxLoad().find(x => x.id===el.dataset.id); if(!r) return; rxDraft = {...r, tests:[...r.tests]}; myrxEditBack = 'myrx'; myrxDestOpen = false; myrxSeries = myrxNoSeries(); go('myrxEdit'); },
+  myrxFinish: () => {                                        // конец серии: уже сохранённое остаётся, несохранённый черновик спросим
+    const r = rxDraft, filled = !!r && ['drug', 'latin', 'dose', 'vol', 'num', 'signa'].some(k => String(r[k] || '').trim());
+    const out = () => { rxDraft = null; go(parentOf('myrxEdit')); };
+    if(filled) askConfirm('Выйти без сохранения?', 'Текущий рецепт ещё не сохранён и пропадёт. Рецепты, добавленные ранее, останутся.', 'Выйти', out);
+    else out();
+  },
+  myrxSelOn: () => myrxSelEnter(''),
+  myrxSelOff: () => { myrxSelLeave(); render(); },
+  myrxSelRow: el => {
+    const id = el.dataset.id, on = !myrxSel.ids.has(id);
+    if(on) myrxSel.ids.add(id); else myrxSel.ids.delete(id);
+    el.classList.toggle('is-sel', on); el.setAttribute('aria-checked', String(on));
+    myrxSelRefresh();
+  },
+  myrxSelAll: () => {
+    const list = myrxLoad(), all = myrxSel.ids.size !== list.length;
+    myrxSel.ids = all ? new Set(list.map(r => r.id)) : new Set();
+    document.querySelectorAll('.my-selrow').forEach(b => { b.classList.toggle('is-sel', all); b.setAttribute('aria-checked', String(all)); });
+    myrxSelRefresh();
+  },
+  myrxSelDel: () => {
+    const ids = new Set(myrxSel.ids); if(!ids.size) return;
+    const chosen = myrxLoad().filter(r => ids.has(r.id)), n = chosen.length;
+    const act = chosen.map(r => MY_ACTIVE.find(m => m.id===r.id)).filter(Boolean);
+    const tests = new Set(act.flatMap(m => [...m.tests]));
+    const warn = tests.size && myrxHasProgress(tests) ? ' Прогресс тестов, куда входили эти рецепты, будет сброшен.' : '';
+    askConfirm('Удалить ' + myrxRecipes(n) + '?', 'Выбранные рецепты будут удалены с этого устройства без возможности восстановления.' + warn, 'Удалить (' + n + ')', () => {
+      if(!myrxStore(myrxLoad().filter(x => !ids.has(x.id)))){ myrxStorageFail(); return; }
+      myrxSelLeave();
+      myrxNoteSet('Удалено: ' + myrxRecipes(n) + '.');
+      myrxApplied(act.length ? {tests:[...tests]} : undefined, false, []);
+    });
+  },
+  myrxSelMove: () => {
+    const n = myrxSel.ids.size, gs = myGrpLoad(); if(!n || !gs.length) return;
+    const rs = myrxLoad();
+    openSheet(`<h2 class="sheet-title" id="sheetTitle">В какую папку?</h2>
+      <p class="sheet-text">${myrxRecipes(n)} добавятся в выбранную папку. Из «Мои рецепты» они никуда не пропадут.</p>
+      <div class="my-pick">${gs.map(g => { const k = rs.filter(r => r.tests.includes('g_' + g.id)).length;
+        return `<button class="btn btn-secondary btn-block my-pickrow" type="button" data-act="myrxSelToGrp" data-g="${esc(g.id)}"><span>${esc(g.name)}</span><small>${k ? myrxRecipes(k) : 'пусто'}</small></button>`; }).join('')}</div>
+      <button class="btn btn-secondary btn-block" type="button" data-act="close">Отмена</button>`);
+  },
+  myrxSelToGrp: el => {
+    const g = myGrpLoad().find(x => x.id===el.dataset.g); if(!g) return;
+    const tid = 'g_' + g.id, ids = new Set(myrxSel.ids);
+    const fresh = myrxLoad().filter(r => ids.has(r.id) && !r.tests.includes(tid)).length;
+    if(!fresh){
+      myrxSheet(`<h2 class="sheet-title" id="sheetTitle">Уже в папке</h2><p class="sheet-text">Все выбранные рецепты уже лежат в папке «${esc(g.name)}».</p>${CLOSE_BTN}`);
       return;
     }
-    if(i >= 0) list[i] = item;
-    else { item.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); list.unshift(item); }
-    const was = MY_ACTIVE.find(m => m.id===item.id);      // участвовал ли рецепт в тестах при загрузке
-    const commit = () => {
-      if(!myrxStore(list)){ myrxStorageFail(); return; }  // рецепт не записан — черновик остаётся
-      rxDraft = null;
-      myrxApplied(was, true, item.tests);
+    const run = () => {
+      if(!myrxStore(myrxLoad().map(r => ids.has(r.id) ? {...r, tests:[...new Set([...r.tests, tid])]} : r))){ myrxStorageFail(); return; }
+      myrxSelLeave();
+      myrxNoteSet('В папку «' + g.name + '» добавлено: ' + myrxRecipes(fresh) + '.');
+      myrxApplied(undefined, true, [tid]);
     };
-    const ts = new Set([...item.tests, ...(was ? [...was.tests] : [])]);
-    if(ts.size && myrxHasProgress(ts)) askConfirm('Сохранить рецепт?', 'Прогресс тестов, куда входит этот рецепт, будет сброшен, а страница обновится. Список ошибок сохранится.', 'Сохранить', commit);
-    else commit();
+    if(myrxHasProgress([tid])) askConfirm('Добавить в папку?', 'Прогресс тестов этой папки будет сброшен, а страница обновится.', 'Добавить', run);
+    else run();
   },
+  myGaddAll: () => {
+    const all = [...document.querySelectorAll('input[data-gadd]')], on = !all.every(x => x.checked);
+    all.forEach(x => { x.checked = on; const tg = x.closest('.my-tog'); if(tg) tg.classList.toggle('is-on', on); });
+    const e = $id('myGaddErr'); if(e) e.hidden = true;
+    myGaddRefresh();
+  },
+  myrxForm: el => { if(!rxDraft) return; rxDraft.form = el.dataset.f; render(); },
+  myrxSave: () => myrxSaveDraft(false),
+  myrxSaveMore: () => myrxSaveDraft(true),
   myrxDel: el => {
     const id = el.dataset.id;
     const was = MY_ACTIVE.find(m => m.id===id);
@@ -3351,7 +3557,7 @@ document.addEventListener('input', e => {
   const t = e.target;
   if(kbKind(t)) kbBarShow(t);
   if(t.id==='refQuery'){ $id('refList').innerHTML = refRows(t.value); return; }
-  if(t.dataset && t.dataset.gadd !== undefined){ const tg = t.closest('.my-tog'); if(tg) tg.classList.toggle('is-on', t.checked); const e = $id('myGaddErr'); if(e) e.hidden = true; return; }
+  if(t.dataset && t.dataset.gadd !== undefined){ const tg = t.closest('.my-tog'); if(tg) tg.classList.toggle('is-on', t.checked); const e = $id('myGaddErr'); if(e) e.hidden = true; myGaddRefresh(); return; }
   if(t.dataset && t.dataset.mytest){
     if(!rxDraft) return;
     const id = t.dataset.mytest, i = rxDraft.tests.indexOf(id);
@@ -3359,6 +3565,7 @@ document.addEventListener('input', e => {
     if(!t.checked && i >= 0) rxDraft.tests.splice(i, 1);
     const tg = t.closest('.my-tog'); if(tg) tg.classList.toggle('is-on', t.checked);
     const e = $id('myrxErr'); if(e) e.hidden = true;
+    myrxDestUpdate();
     return;
   }
   if(t.dataset && t.dataset.mytopics !== undefined){
@@ -3368,6 +3575,7 @@ document.addEventListener('input', e => {
     const tg = t.closest('.my-tog'); if(tg) tg.classList.toggle('is-on', t.checked);
     const box = $id('myTopicBox'); if(box) box.hidden = !t.checked;
     const e = $id('myrxErr'); if(e) e.hidden = true;
+    myrxDestUpdate();
     return;
   }
   if(t.dataset && t.dataset.my){
@@ -3408,6 +3616,25 @@ document.addEventListener('change', e => {
   setTimeout(() => { try{ t.value = ''; }catch(_){} }, 0);   // чтобы тот же файл можно было выбрать повторно
   myrxImpFile(file);
 });
+/* Долгое нажатие на строку «Мои рецепты» включает выбор (как в галерее и почте). Палец сдвинулся или начался скролл — отмена. */
+let myrxLP = null, myrxSwallow = false;
+const myrxLPCancel = () => { if(myrxLP){ clearTimeout(myrxLP.t); myrxLP = null; } };
+document.addEventListener('pointerdown', e => {
+  const sum = e.target.closest && e.target.closest('.my-row-s');
+  if(!sum || mode!=='myrx' || myrxSel.on || (e.pointerType==='mouse' && e.button!==0)) return;
+  const row = sum.closest('.my-row'), id = row && row.dataset.rx; if(!id) return;
+  myrxLPCancel();
+  myrxLP = {x:e.clientX, y:e.clientY, t:setTimeout(() => {
+    myrxLP = null; myrxSwallow = true;
+    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(_){}
+    myrxSelEnter(id);
+  }, 480)};
+});
+document.addEventListener('pointermove', e => { if(myrxLP && Math.hypot(e.clientX - myrxLP.x, e.clientY - myrxLP.y) > 10) myrxLPCancel(); });
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { myrxLPCancel(); if(myrxSwallow) setTimeout(() => { myrxSwallow = false; }, 350); }));
+addEventListener('scroll', myrxLPCancel, {passive:true});
+document.addEventListener('click', e => { if(myrxSwallow){ myrxSwallow = false; e.preventDefault(); e.stopPropagation(); } }, true);   // отпускание пальца после долгого нажатия не должно раскрыть строку
+document.addEventListener('contextmenu', e => { if(e.target.closest && e.target.closest('.my-row-s')) e.preventDefault(); });
 const myrxZone = e => e.target.closest && e.target.closest('#myrxDrop');
 ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { const z = myrxZone(e); if(z){ e.preventDefault(); z.classList.add('is-over'); } }));
 document.addEventListener('dragleave', e => { const z = myrxZone(e); if(z) z.classList.remove('is-over'); });
@@ -3560,6 +3787,7 @@ function deferSync(){
   evs.forEach(t => document.addEventListener(t, h, true));
 }
 function syncHistory(){
+  if(myrxReloading) return;
   try{
     const d = depthOf(mode);
     let c = histCur();
