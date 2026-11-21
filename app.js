@@ -1501,7 +1501,8 @@ function viewMenu(){
 // Подвал главного экрана: © · Обратная связь · Официальный сайт
 // Заполните нужное — пустое не показывается; если пусто всё, подвала нет
 const COPYRIGHT_NAME = '';   // например: 'Иванов И. И.' → «© 2026 Иванов И. И.»
-const FEEDBACK_EMAIL = 'mi.plus.dev@gmail.com';   // на этот адрес приходят «Предложения по улучшению»
+const FEEDBACK_EMAIL = 'mi.plus.dev@gmail.com';   // на этот адрес приходят «Предложения по улучшению» (запасной вариант через mailto)
+const FEEDBACK_FORM_ID = '25b7c80b0e6428598e3e16eeedf8994a';   // случайная строка FormSubmit вместо открытого адреса в запросе
 const SITE_URL = '';         // адрес сайта → кнопка «Официальный сайт»
 function footerHtml(){
   const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
@@ -3358,7 +3359,7 @@ const ACTIONS = {
     const subj = 'Предложения по улучшению: Рецепты';
     el.disabled = true; el.textContent = 'Отправляем…'; msg.hidden = true;
     try{   // отправка на почту через FormSubmit (своего сервера у приложения нет)
-      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_EMAIL, {
+      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_FORM_ID, {
         method:'POST', headers:{'Content-Type':'application/json', 'Accept':'application/json'},
         body: JSON.stringify({message:text, _subject:subj, _captcha:'false', _template:'table', _honey:'', устройство:navigator.userAgent.slice(0, 140)})
       });
