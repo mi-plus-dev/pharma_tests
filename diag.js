@@ -68,12 +68,63 @@
   addEventListener('error', e => note('⚠ ОШИБКА JS: ' + e.message + ' (' + String(e.filename || '').split('/').pop() + ':' + e.lineno + ')'));
   addEventListener('unhandledrejection', e => note('⚠ необработанный promise: ' + (e.reason && e.reason.message || e.reason)));
 
+  /* ---------- Сторож: сам ловит момент, когда кнопки перестают принимать касания ----------
+     После каждого касания/перехода (через 450 мс, когда анимации закончились) берёт первую видимую кнопку
+     экрана и проверяет, есть ли она вообще в стеке elementsFromPoint. Если нет — записывает стек, цепочку
+     родителей и последние строки журнала касаний в отдельный список (он не вытесняется журналом на 30 строк)
+     и добавляет ⚠ на кнопку «Диагностика». Окна, подсказка и сама панель диагностики за поломку не считаются. */
+  const broken = [];
+  let wasBroken = false, wdTimer = 0;
+  function chainOf(b){
+    const out = [];
+    for(let e = b; e && e.nodeType === 1; e = e.parentElement){
+      const c = getComputedStyle(e);
+      out.push(desc(e) + ' pe=' + c.pointerEvents + ' vis=' + c.visibility + ' pos=' + c.position + ' z=' + c.zIndex + ' tf=' + c.transform + ' op=' + c.opacity + (e.inert ? ' [inert]' : ''));
+    }
+    return out;
+  }
+  function watch(why){
+    clearTimeout(wdTimer);
+    wdTimer = setTimeout(() => safe(() => {
+      const view = document.getElementById('view');
+      if(!view || document.hidden) return;
+      const panel = document.getElementById('diagPanel');
+      if(panel && !panel.hidden) return;
+      if(document.getElementById('tourBlock') || document.querySelector('.overlay') || document.body.classList.contains('is-locked')) return;
+      if(typeof navBusy !== 'undefined' && navBusy) return;
+      const b = [...view.querySelectorAll('button, [data-act]')].find(e => { const r = e.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(e).visibility === 'visible'; });
+      if(!b) return;
+      const r = b.getBoundingClientRect(), x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      const stack = document.elementsFromPoint(x, y);
+      const ok = stack.some(e => e === b || b.contains(e) || e.contains(b) && e !== document.documentElement && e !== document.body && e !== document.querySelector('.app') && e !== view);
+      const btn = document.getElementById('diagBtn');
+      if(!ok){
+        if(!wasBroken){
+          wasBroken = true;
+          broken.push({t: stamp(), why, mode: safe(() => mode), body: document.body.className, line: desc(b) + ' в (' + x + ',' + y + ')', stack: stack.map(desc).join(' > '), chain: chainOf(b), recent: log.slice(-8)});
+          if(broken.length > 5) broken.shift();
+          note('⚠⚠ HIT-TEST СЛОМАН: ' + desc(b) + ' не в стеке; сверху ' + desc(stack[0]));
+        }
+        if(btn && !/⚠/.test(btn.textContent)) btn.textContent = '🐞 Диагностика ⚠';
+      } else if(wasBroken){
+        wasBroken = false;
+        note('✓ hit-test снова в порядке (' + desc(b) + ')');
+        if(btn) btn.textContent = '🐞 Диагностика';
+      }
+    }), 450);
+  }
+  ['click', 'pointerup', 'popstate', 'pageshow', 'visibilitychange', 'resize'].forEach(ev => addEventListener(ev, () => watch(ev), true));
+  setInterval(() => watch('timer'), 5000);
+
   /* ---------- Снимок состояния ---------- */
   function snapshot(){
     const L = [];
     const add = (k, v) => L.push(k + ': ' + v);
     const app = document.querySelector('.app'), view = document.getElementById('view');
 
+    L.push('=== СТОРОЖ HIT-TEST: ' + (wasBroken ? 'СЕЙЧАС СЛОМАН' : 'сейчас в порядке') + ', случаев за сессию: ' + broken.length + ' ===');
+    broken.forEach((m, i) => { L.push('#' + (i + 1) + ' ' + m.t + ' (' + m.why + ') mode=' + m.mode + ' body=' + (m.body || '-') + ' кнопка ' + m.line); L.push('  стек: ' + m.stack); m.chain.forEach(c => L.push('  ↑ ' + c)); L.push('  последние касания:'); m.recent.forEach(c => L.push('    ' + c)); });
+    L.push('');
     L.push('=== СОСТОЯНИЕ ПРИЛОЖЕНИЯ ===');
     add('время', new Date().toLocaleString() + ', приложение открыто ' + stamp() + ' назад');
     add('режим (mode)', safe(() => mode));
@@ -103,6 +154,33 @@
     add('внутри [inert]', safe(() => !!view.closest('[inert]')));
     add('карточка свайпа', safe(() => { const c = document.querySelector('.card[data-swipe]'); return c ? 'style="' + (c.getAttribute('style') || '') + '"' : 'нет'; }));
     add('элементов с tour-dim/focus', safe(() => document.querySelectorAll('.tour-dim,.tour-focus,.tour-seen').length));
+
+    L.push('', '=== ВЕРХНЯЯ КРОМКА (щель сверху) ===');
+    add('DPR / screen / outer', safe(() => 'dpr=' + devicePixelRatio + ' screen=' + screen.width + '×' + screen.height + ' avail=' + screen.availWidth + '×' + screen.availHeight + ' outer=' + outerWidth + '×' + outerHeight + ' screenY=' + screenY));
+    add('documentElement client', safe(() => { const e = document.documentElement; return 'clientW×H=' + e.clientWidth + '×' + e.clientHeight + ' scrollH=' + e.scrollHeight + ' scrollTop=' + e.scrollTop + ' innerH=' + innerHeight; }));
+    add('visualViewport точно', safe(() => { const v = visualViewport; return 'w=' + v.width + ' h=' + v.height + ' pageTop=' + v.pageTop + ' offsetTop=' + v.offsetTop; }));
+    add('safe-area top / bottom', safe(() => { const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)'; document.body.appendChild(p); const c = getComputedStyle(p), r = c.paddingTop + ' / ' + c.paddingBottom; p.remove(); return r; }));
+    add('top rect: html/body/.app/.topbar/#view', safe(() => ['html', 'body', '.app', '.topbar', '#view'].map(s => { const r = document.querySelector(s).getBoundingClientRect(); return s + ' y=' + r.top.toFixed(2) + ' h=' + r.height.toFixed(2); }).join(' | ')));
+    add('topbar computed', safe(() => { const t = document.querySelector('.topbar'), c = getComputedStyle(t); return 'class=' + t.className + ' pos=' + c.position + ' pt=' + c.paddingTop + ' bg=' + c.backgroundColor + ' border-b=' + c.borderBottomWidth; }));
+    add('фон html / body', safe(() => getComputedStyle(document.documentElement).backgroundColor + ' / ' + getComputedStyle(document.body).backgroundColor));
+    add('theme-color meta', safe(() => document.querySelector('meta[name="theme-color"]').content));
+    add('elementFromPoint у самого верха', safe(() => [0, 1, 2, 3, 5].map(y => 'y' + y + '=' + desc(document.elementFromPoint(Math.round(innerWidth / 2), y))).join('  ')));
+    add('элементы на y<6px', safe(() => [...document.querySelectorAll('body *')].filter(el => { if(inDiag(el)) return false; const r = el.getBoundingClientRect(); return r.width && r.height && r.top < 6 && r.bottom > 0; }).map(desc).slice(0, 8).join(' ; ') || 'нет'));
+
+    L.push('', '=== СТЕК В ТОЧКЕ ПЕРВОЙ КНОПКИ (elementsFromPoint) ===');
+    safe(() => {
+      const b0 = [...view.querySelectorAll('button, [data-act]')].find(b => { const r = b.getBoundingClientRect(); return r.width && r.height && r.top >= 0 && r.bottom <= innerHeight; });
+      if(!b0){ L.push('(кнопок нет)'); return; }
+      const r = b0.getBoundingClientRect(), x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      L.push('кнопка ' + desc(b0) + ' в (' + x + ',' + y + ')');
+      L.push('стек сверху вниз: ' + document.elementsFromPoint(x, y).map(desc).join(' > '));
+      const chain = []; for(let e = b0; e && e.nodeType === 1; e = e.parentElement){ const c = getComputedStyle(e); chain.push(desc(e) + ' pe=' + c.pointerEvents + ' vis=' + c.visibility + ' pos=' + c.position + ' z=' + c.zIndex + ' tf=' + c.transform + ' op=' + c.opacity + ' cv=' + c.contentVisibility + ' ct=' + c.contain + (e.hasAttribute('inert') ? ' [INERT]' : '') + (e.inert ? ' [inert=true]' : '') + ' ' + Math.round(e.getBoundingClientRect().top) + '..' + Math.round(e.getBoundingClientRect().bottom)); }
+      chain.forEach(s => L.push('  ↑ ' + s));
+      L.push('[inert] в документе: ' + ([...document.querySelectorAll('[inert]')].map(desc).join(' ; ') || 'нет'));
+      L.push('top layer / dialog / popover: ' + ([...document.querySelectorAll('dialog[open], [popover]:popover-open')].map(desc).join(' ; ') || 'нет'));
+      L.push('view.checkVisibility: ' + (view.checkVisibility ? view.checkVisibility({checkOpacity: true, checkVisibilityCSS: true}) : 'н/д') + ' | view children=' + view.childElementCount + ' | view rect=' + [...Object.entries(view.getBoundingClientRect().toJSON())].filter(([k]) => /^(top|height|width)$/.test(k)).map(([k, v]) => k + ':' + Math.round(v)).join(','));
+      L.push('активные анимации всего документа: ' + (document.getAnimations().map(a => (a.effect && a.effect.target ? desc(a.effect.target) : '?') + ':' + a.playState + '/' + (a.effect && a.effect.getComputedTiming().fill)).join(' ; ') || 'нет'));
+    });
 
     L.push('', '=== ЧТО ПОД ПАЛЬЦЕМ (elementFromPoint) ===');
     const W = innerWidth, H = innerHeight;
