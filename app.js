@@ -651,8 +651,6 @@ let myrxEditBack = 'myrx';   // откуда открыт редактор ре�
 // Экраны прежних версий: отдельные «Все экз. рецепты» / «По семестрам» / «По темам» (с вкладками сверху) и список блоков карточек.
 // Из меню в них больше не попасть, поэтому восстановление и перерисовка уводят оттуда на главный экран.
 const ORPHAN_MODES = new Set(['allRx','semesters','semester','topics']);
-// ВРЕМЕННО закрыты: «Работа над ошибками», «Мои рецепты», «Справочник». Чтобы открыть снова — очистить этот список и убрать `disabled` у кнопок в viewMenu.
-const LOCKED_MODES = new Set(['mistakes','myrx','reference']);
 const parentOf = m => m==='groupCards' ? cardsBack : m==='myGroup' ? grpBack : m==='myrxEdit' ? myrxEditBack : (PARENT[m] || 'menu');
 // Глубина экрана в истории браузера: каждый шаг вглубь — одна запись
 function depthOf(m){ let d = 0; const seen = {}; while(m && m!=='menu' && !seen[m]){ seen[m] = 1; m = parentOf(m); d++; } return d; }
@@ -910,7 +908,20 @@ function cur(){
   return (cfg.block ? blockSess : sess[mode]) || null;
 }
 // Набор карточек: тематический блок (число) или рецепты группы 'g_<id>'
+/* Избранное: звёздочка на карточке. Хранится список названий препаратов. Набор «Избранное» фиксируется при открытии
+   (favSnap): если снять звезду прямо в нём, карточка остаётся на месте до следующего захода — номера карточек не прыгают. */
+const FAV_KEY = 'pharma_fav_v1';
+function favRead(){ const v = store.get(FAV_KEY); return Array.isArray(v) ? v.filter(x => typeof x==='string') : []; }
+const isFav = d => favRead().includes(d[0]);
+function favToggle(d){   // → true, если карточка теперь в избранном
+  const a = favRead(), i = a.indexOf(d[0]);
+  if(i<0) a.push(d[0]); else a.splice(i, 1);
+  store.set(FAV_KEY, a);
+  return i<0;
+}
+let favSnap = null;
 function cardSet(k){
+  if(k==='fav'){ if(!favSnap){ const a = favRead(); favSnap = DB.filter(d => a.includes(d[0])); } return {num:0, title:'Избранное', items:favSnap}; }
   if(typeof k==='string' && k.startsWith('g_')){ const id = k.slice(2); return {num:0, title:myGrpName(id), items:myGrpPool(id)}; }
   return BLOCKS[k];
 }
@@ -943,7 +954,7 @@ function restoreView(){
   grpBack = v.grpBack==='myrx' ? 'myrx' : 'menu';
   let m = v.mode;
   if(m==='myrxEdit') m = 'myrx';   // черновик редактора не восстанавливается
-  if(ORPHAN_MODES.has(m) || LOCKED_MODES.has(m)) m = 'menu';
+  if(ORPHAN_MODES.has(m)) m = 'menu';
   // Первый запуск после перехода на единые блоки: прогресс старых блоков удаляется,
   // а вместо старого блока открывается список новых
   let migrated = false;
@@ -959,7 +970,7 @@ function restoreView(){
 }
 
 /* ========================= Действия ========================= */
-function go(m){ if(LOCKED_MODES.has(m)) return; flushSave(); mode = m; render(); }
+function go(m){ flushSave(); mode = m; render(); }
 
 function openBlock(target, i, silent){
   if(target!=='groupCards' || typeof i==='number') lastBlock[target] = i;
@@ -1259,7 +1270,7 @@ const count = n => `${n} ${plural(n,'препарат','препарата','п�
 function tile(o){
   const attrs = `data-mode="${o.m}"${o.i!=null ? ` data-i="${o.i}"` : ''}`;
   return `<div class="tile-wrap">
-    <button class="tile${o.reset ? ' has-reset' : ''}${o.compact ? ' tile-compact' : ''}" type="button" data-act="${o.act || 'go'}" ${attrs}>
+    <button class="tile${o.reset ? ' has-reset' : ''}" type="button" data-act="${o.act || 'go'}" ${attrs}>
       <span class="tile-icon">${o.icon}</span>
       <span class="tile-body"><span class="tile-title">${o.title}</span>${o.desc ? `<span class="tile-desc">${o.desc}</span>` : ''}${o.meta ? `<span class="tile-meta">${o.meta}</span>` : ''}</span>
     </button>${o.reset ? `
@@ -1461,10 +1472,11 @@ function viewTests(){
     <div class="rx-rows rx-acc">
       ${exams}
       <div class="rx-wrap">
-        <button class="rx-row" type="button" id="topicsToggle" disabled aria-disabled="true" aria-expanded="false" aria-controls="topicsBody">
+        <button class="rx-row" type="button" id="topicsToggle" data-act="topicsToggle" aria-expanded="${topicsOpen ? 'true' : 'false'}" aria-controls="topicsBody">
           <span class="rx-lbl">По темам</span><span class="rx-ico rx-i-book" aria-hidden="true"></span><span class="rx-chev rx-go" aria-hidden="true">${ICON.chevron}</span>
         </button>
-        <div class="rx-sub" id="topicsBody" hidden style="margin-top:12px">${subs}</div>
+        ${resetBadge('topics')}
+        <div class="rx-sub" id="topicsBody"${topicsOpen ? '' : ' hidden'} style="margin-top:12px">${subs}</div>
       </div>
     </div>`;
 }
@@ -1488,59 +1500,23 @@ function viewMenu(){
     <div class="rx-rows rx-acc">
       ${row('data-act="howWrite"', '?', 'Как писать рецепты', 'clip')}
       ${row('data-act="go" data-mode="groupList"', '?', 'Карточки', 'book')}
+      ${favRead().length ? row('data-act="openFav"', '?', 'Избранное', 'star') : ''}
       ${row('data-act="go" data-mode="tests"', '?', 'Тесты', 'cad')}
-      ${row('disabled aria-disabled="true"', '?', 'Работа над ошибками', 'scis')}
-      ${row('disabled aria-disabled="true"', '?', 'Мои рецепты', 'pen')}
-      ${row('disabled aria-disabled="true"', '?', 'Справочник', 'search')}
+      ${withReset('mistakes', row('data-act="go" data-mode="mistakes"', '?', 'Работа над ошибками', 'scis'))}
+      ${row('data-act="go" data-mode="myrx"', '?', 'Мои рецепты', 'pen')}
+      ${row('data-act="go" data-mode="reference"', '?', 'Справочник', 'search')}
     </div>
     ${myGrpMenuHtml()}
     ${footerHtml()}
-    <div class="rx-tourlink rx-fb"><button type="button" data-act="feedback">Предложения по улучшению</button></div>
-    <div class="theme-toggle"><button type="button" data-act="theme">${isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'}</button></div>`;
+    <div class="rx-tourlink rx-fb tour-dim-able"><button type="button" data-act="feedback">Предложения по улучшению</button></div>
+    <div class="rx-tourlink tour-dim-able"><button type="button" data-act="tour">Показать обучение</button></div>
+    <div class="theme-toggle tour-dim-able"><button type="button" data-act="theme">${isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'}</button></div>`;
 }
 // Подвал главного экрана: © · Обратная связь · Официальный сайт
 // Заполните нужное — пустое не показывается; если пусто всё, подвала нет
 const COPYRIGHT_NAME = '';   // например: 'Иванов И. И.' → «© 2026 Иванов И. И.»
 const FEEDBACK_EMAIL = 'mi.plus.dev@gmail.com';   // на этот адрес приходят «Предложения по улучшению» (запасной вариант через mailto)
 const FEEDBACK_FORM_ID = '25b7c80b0e6428598e3e16eeedf8994a';   // случайная строка FormSubmit вместо открытого адреса в запросе
-const FB_MAX_BYTES = 5 * 1024 * 1024, FB_MAX_FILES = 4;   // лимит FormSubmit: 5 МБ вложений суммарно
-let fbFiles = [];   // [{blob, name, url}] — фото, прикреплённые к предложению
-const fbTotal = () => fbFiles.reduce((n, f) => n + f.blob.size, 0);
-const fbMb = n => (n / 1048576).toFixed(1).replace('.', ',') + ' МБ';
-const fbClear = () => { fbFiles.forEach(f => { try{ URL.revokeObjectURL(f.url); }catch(_){} }); fbFiles = []; };
-// Фото сжимается в браузере (до 1600 px по длинной стороне, JPEG), чтобы уложиться в лимит
-function fbShrink(file){
-  return new Promise((ok, fail) => {
-    const url = URL.createObjectURL(file), img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
-      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
-      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
-      c.toBlob(b => b ? ok(b) : fail(new Error('blob')), 'image/jpeg', 0.82);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('img')); };
-    img.src = url;
-  });
-}
-function fbRender(){
-  const box = $id('fbFiles'); if(!box) return;
-  box.hidden = !fbFiles.length;
-  box.innerHTML = fbFiles.map((f, i) => `<div class="fb-file"><img src="${f.url}" alt=""><span class="fb-file-n">${esc(f.name)} · ${fbMb(f.blob.size)}</span><button class="btn btn-secondary fb-file-x" type="button" data-act="fbRemove" data-i="${i}" aria-label="Убрать фото">✕</button></div>`).join('');
-  const add = $id('fbAddBtn'); if(add) add.disabled = fbFiles.length >= FB_MAX_FILES;
-}
-async function fbAddFiles(list){
-  const msg = $id('fbMsg'), say = t => { if(msg){ msg.textContent = t; msg.hidden = false; } };
-  if(msg) msg.hidden = true;
-  for(const file of list){
-    if(fbFiles.length >= FB_MAX_FILES){ say('Можно прикрепить не больше ' + FB_MAX_FILES + ' фото.'); break; }
-    if(!/^image\//.test(file.type)){ say('«' + file.name + '» — не фото, пропускаю.'); continue; }
-    let blob; try{ blob = await fbShrink(file); }catch(_){ say('Не удалось прочитать «' + file.name + '».'); continue; }
-    if(fbTotal() + blob.size > FB_MAX_BYTES){ say('Не поместилось: вложения не могут быть больше 5 МБ в сумме (сейчас ' + fbMb(fbTotal()) + ', «' + file.name + '» ещё ' + fbMb(blob.size) + ').'); continue; }
-    fbFiles.push({blob, name: file.name.replace(/\.[^.]*$/, '') + '.jpg', url: URL.createObjectURL(blob)});
-  }
-  fbRender();
-}
 const SITE_URL = '';         // адрес сайта → кнопка «Официальный сайт»
 function footerHtml(){
   const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
@@ -1593,8 +1569,7 @@ function viewList(){
     let p = null;
     if(L.target==='groupCards'){ const pos = cardsPos(i); if(pos>0) p = {}; }
     else p = progressOf(loadSession(L.target, i));
-    const flat = L.target==='groupCards';   // «Карточки»: без названия блока — вместо него текст со списком групп; компактная плитка
-    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(flat ? b.desc : b.title), desc:flat ? '' : esc(b.desc), compact:flat,
+    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(b.title), desc:esc(b.desc),
       meta:`<span>${count(b.items.length)}</span>${chip(p)}`, reset: p && `Сбросить прогресс блока ${b.num}`});
   }).join('');
   return `<header class="page-head"><h1>${L.title}</h1><p>${L.desc}</p></header><div class="list">${rows}</div>`;
@@ -1749,6 +1724,7 @@ function viewSummary(S, cfg, t){
   } else {
     heading = cfg.grp ? 'Папка пройдена' : cfg.block ? `Блок ${S.block+1} пройден` : 'Круг завершён';
     primary = `<button class="btn btn-primary" type="button" data-act="restart">${cfg.block ? 'Пройти заново' : 'Новый круг'}</button>`;
+    if(nm) after = '<button class="btn btn-secondary btn-block after" type="button" data-act="go" data-mode="mistakes">Работа над ошибками</button>';
   }
   setTop({back: cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? semName(S.sem) : mode==='quiz' ? 'Тест' : 'Впиши сам', compact:true, score:t, progress:1});
   return `<article class="card" data-swipe>
@@ -1805,11 +1781,17 @@ function viewSession(){
 
 function viewCards(){
   const b = cardSet(cards.block), n = b.items.length;
-  if(!n){ setTop({back:'Мои рецепты', title:b.title}); return '<div class="empty"><p>Здесь пока нет рецептов.</p></div>'; }
+  if(!n){
+    const fav = cards.block==='fav';
+    setTop({back: fav ? 'Меню' : 'Мои рецепты', title:b.title});
+    return `<div class="empty"><p>${fav ? 'В избранном пока пусто. Нажмите ☆ на карточке препарата.' : 'Здесь пока нет рецептов.'}</p></div>`;
+  }
   cards.pos = Math.min(Math.max(cards.pos, 0), n-1);
   const d = b.items[cards.pos];
+  const fav = isFav(d);
   setTop({back: cardsBack==='groupList' ? 'Блоки' : cardsBack==='tests' ? 'Тесты' : cardsBack==='menu' ? 'Меню' : cardsBack==='myGroup' ? myGrpName(curGrp) : 'Темы', title: cardsBack==='groupList' ? `Блок ${b.num}` : b.title, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
   return `<article class="card card-study" data-swipe>
+    <button class="fav-btn${fav ? ' is-on' : ''}" type="button" data-act="fav" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из избранного' : 'Добавить в избранное'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.4l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9z"/></svg></button>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d[0], d[4], false)}
     ${(() => { const mine = MY_SET.has(d) && MY_ACTIVE.find(m => m.d===d);
@@ -2636,6 +2618,9 @@ function myGrpListHtml(){
     return `<div class="my-grp"><button class="my-grp-t my-grp-open" type="button" data-act="myGrpOpen" data-g="${esc(g.id)}"><b>${esc(g.name)}</b><small>${n ? myrxRecipes(n) : 'Пока пусто'}</small></button>
       <button class="my-grp-b" type="button" data-act="myGrpEdit" data-g="${esc(g.id)}" aria-label="Переименовать папку «${esc(g.name)}»">${ICON.pen}</button>
       <button class="my-grp-b" type="button" data-act="myGrpDel" data-g="${esc(g.id)}" aria-label="Удалить папку «${esc(g.name)}»">${MYRX_ICO.trash}</button></div>`; }).join('');
+  // TODO (обучение): добавить в обучение «Мои рецепты» два текста, убранных с экрана:
+  //  1) «Собирайте рецепты в папки: для каждой на главном экране появится кнопка с тестами и карточками.» (раньше показывался, пока папок нет);
+  //  2) «Откройте папку, чтобы добавить в неё рецепты.» (раньше показывался под списком папок).
   return `<div class="my-groups"><div class="my-grp-head"><h2>Папки</h2><button class="my-linkbtn" type="button" data-act="myGrpNew">+ Новая папка</button></div>${rows}</div>`;
 }
 let myGrpEditId = '';
@@ -3008,6 +2993,44 @@ function kbBarShow(el){
 }
 if(window.visualViewport) ['resize', 'scroll'].forEach(ev => visualViewport.addEventListener(ev, () => { if(kbBar && !kbBar.hidden) { kbBarPlace(); requestAnimationFrame(kbBarPlace); } }));
 addEventListener('resize', () => { if(kbBar && !kbBar.hidden) kbBarPlace(); });
+// iPhone: клавиатура не уменьшает страницу, а ложится поверх неё, и поле ввода (особенно в нижних окнах) оказывается под ней.
+// Здесь: (1) в CSS-переменные кладём размер видимой области, окна подстраиваются под неё (см. «Клавиатура на iPhone» в style.css);
+// (2) поле в фокусе всегда прокручиваем в видимую область — внутри окна или на странице.
+const kbVV = window.visualViewport;
+function kbSync(){
+  if(!kbVV) return;
+  const st = document.documentElement.style, top = Math.max(0, Math.round(kbVV.offsetTop)), h = Math.round(kbVV.height);
+  const gap = Math.max(0, Math.round(innerHeight - top - h));
+  const open = gap > 80 && kbVV.scale < 1.05;   // при щипке-масштабе область тоже уменьшается — это не клавиатура
+  document.documentElement.classList.toggle('kb-open', open);
+  if(open){ st.setProperty('--vv-top', top + 'px'); st.setProperty('--vv-bottom', gap + 'px'); st.setProperty('--vv-h', h + 'px'); }
+  else { st.removeProperty('--vv-top'); st.removeProperty('--vv-bottom'); st.removeProperty('--vv-h'); }
+}
+const kbIsText = el => !!el && (el.tagName==='TEXTAREA' || (el.tagName==='INPUT' && !/^(checkbox|radio|range|file|button|submit|reset|image|color)$/i.test(el.type)));
+function kbReveal(){
+  const el = document.activeElement;
+  if(!kbVV || !kbIsText(el) || !el.isConnected) return;
+  const bar = kbBar && !kbBar.hidden ? kbBar.offsetHeight : 0;
+  const bottom = kbVV.offsetTop + kbVV.height - bar - 14, top = kbVV.offsetTop + 8;
+  const r = el.getBoundingClientRect();
+  const d = r.bottom > bottom ? r.bottom - bottom : r.top < top ? r.top - top : 0;
+  if(Math.abs(d) < 2) return;
+  const sc = el.closest('.sheet');
+  if(sc) sc.scrollTop += d; else scrollBy(0, d);
+}
+if(kbVV){
+  let kbRaf = 0;
+  ['resize', 'scroll'].forEach(ev => kbVV.addEventListener(ev, () => {
+    if(kbRaf) return;
+    kbRaf = requestAnimationFrame(() => { kbRaf = 0; kbSync(); kbReveal(); });
+  }));
+  document.addEventListener('focusin', e => {
+    if(!kbIsText(e.target)) return;
+    // клавиатура выезжает ~0,3 с: проверяем несколько раз, пока область не устоялась
+    [0, 120, 350, 700].forEach(t => setTimeout(() => { kbSync(); kbReveal(); }, t));
+  });
+  document.addEventListener('focusout', () => setTimeout(() => { if(!kbIsText(document.activeElement)) kbSync(); }, 150));
+}
 function myrxSuggestHide(){
   const box = $id('mySug'); if(box) box.hidden = true;
   const inp = $id('my-drug'); if(inp) inp.setAttribute('aria-expanded', 'false');
@@ -3088,7 +3111,7 @@ function focusSignature(){
   return null;
 }
 function restoreFocus(sig){
-  if(!sig) return;
+  if(!sig || tour) return;
   const el = view.querySelector(sig.sel);
   if(!el || el.disabled){
     // прежнего элемента нет или он пока отключён (например, «Проверить» на новом вопросе) — фокус на заголовок карточки, а не в никуда
@@ -3120,7 +3143,7 @@ function afterDraw(sig, firstDraw){
   const pageName = (h1.textContent || name).trim();
   setDocTitle(mode==='menu' ? 'Тест по фармакологии' : pageName + ' — Тест по фармакологии');
   if(screenChanged){
-    if(!firstDraw){
+    if(!firstDraw && !tour){
       h1.setAttribute('tabindex', '-1'); try{ h1.focus({preventScroll:true}); }catch{}   // экранный диктор прочтёт название нового экрана
       if(S && S.pos < S.order.length) announce(`${S.order[S.pos][0]}, вопрос ${S.pos + 1} из ${S.order.length}`);
     }
@@ -3137,14 +3160,15 @@ function afterDraw(sig, firstDraw){
 function draw(){
   if(myrxSeries.dirty && mode!=='myrxEdit'){ myrxSeriesReload(); return; }   // серия закончена: перезагрузка, чтобы рецепты попали в тесты
   if(mode!=='myrx' && myrxSel.on) myrxSelLeave();
-  if(ORPHAN_MODES.has(mode) || LOCKED_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
+  if(ORPHAN_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
   if(SESSION[mode] && !cur()) mode = parentOf(mode);   // сессия не найдена — на уровень выше
   if(mode==='myGroup' && !myGrpOk()) mode = 'menu';
   saveView();
   closeSheet(true);
-  if(!sheetRoot.childElementCount){      // страховка: если блокировка страницы «залипла», снимаем её
-    setInert('sheet', false);
-    document.body.classList.remove('is-locked');
+  if(!tour && !sheetRoot.childElementCount){      // страховка: если блокировка страницы «залипла», снимаем её
+    setInert('sheet', false); setInert('tour', false);
+    document.body.classList.remove('is-locked', 'tour-on');
+    ['tourBlock','tourCard'].forEach(x => { const e = $id(x); if(e) e.remove(); });
   }
   const keepY = scrollY;                 // положение прокрутки до перерисовки
   const focusSig = focusSignature();
@@ -3170,6 +3194,7 @@ function draw(){
   view.querySelectorAll('textarea[data-my]').forEach(autosizeArea);
   myrxNeedUpdate();
   afterDraw(focusSig, firstDraw);
+  tourRefresh();
   if(enterDir){
     const el = view.querySelector('.card');
     if(el && el.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -3189,17 +3214,17 @@ function enterScreen(){
   const dir = depthOf(mode) >= depthOf(from) ? 1 : -1;
   view.animate([{transform:`translateX(${dir*34}px)`, opacity:0}, {transform:'none', opacity:1}], {duration:230, easing:'cubic-bezier(.2,.8,.25,1)'});
 }
-const NAV_ACTS = new Set(['up','go','howWrite','openSemTest','openSem','open','openTopic','openMistakes','myGrpOpen','myGrpTest']);
+const NAV_ACTS = new Set(['up','go','howWrite','openSemTest','openSem','open','openTopic','openFav','openMistakes','myGrpOpen','myGrpTest']);
 
 /* ===================== Нижнее окно: сведения и подтверждения ===================== */
 const sheetRoot = $id('sheetRoot');
 let sheetOpener = null, onConfirm = null;
-// Пока открыто окно, остальная страница недоступна ни касанием, ни клавишей Tab, ни скринридеру
-const inertState = {sheet:false};
+// Пока открыто окно или идёт обучение, остальная страница недоступна ни касанием, ни клавишей Tab, ни скринридеру
+const inertState = {sheet:false, tour:false};
 function setInert(key, on){
   inertState[key] = on;
   const app = document.querySelector('.app');
-  if(app) app.inert = inertState.sheet;
+  if(app) app.inert = inertState.sheet || inertState.tour;
 }
 function openSheet(inner){
   onConfirm = null;
@@ -3328,6 +3353,16 @@ const ACTIONS = {
   openSem: el => startSemTest(+el.dataset.i || 0, el.dataset.mode==='semWrite' ? 'semWrite' : 'semQuiz'),
   open: el => { if(el.dataset.mode==='groupCards') cardsBack = mode; openBlock(el.dataset.mode, +el.dataset.i); },
   openTopic: el => { cardsBack = 'tests'; openBlock('groupCards', +el.dataset.i); },
+  openFav: () => { favSnap = null; cardsBack = 'menu'; openBlock('groupCards', 'fav'); },
+  fav: el => {   // звёздочка на карточке: обновляем кнопку на месте, без перерисовки карточки
+    const b = cardSet(cards.block), d = b && b.items[cards.pos];
+    if(!d) return;
+    const on = favToggle(d);
+    el.classList.toggle('is-on', on);
+    el.setAttribute('aria-pressed', String(on));
+    el.setAttribute('aria-label', on ? 'Убрать из избранного' : 'Добавить в избранное');
+    announce(on ? 'Добавлено в избранное' : 'Убрано из избранного');
+  },
   openMistakes: el => openMistakes(el.dataset.mode),
   reset: el => askReset(el.dataset.mode, el.dataset.i==null ? null : SESSION[el.dataset.mode]?.grp ? el.dataset.i : +el.dataset.i),
   myGrpOpen: el => { curGrp = el.dataset.g || ''; grpBack = mode==='myrx' ? 'myrx' : 'menu'; go('myGroup'); },
@@ -3376,21 +3411,15 @@ const ACTIONS = {
   },
   myrxImportOpen: () => { myrxLastText = ''; openSheet(myrxImpHtml1()); },
   feedback: () => {
-    fbClear();
     openSheet(`<h2 class="sheet-title" id="sheetTitle">Предложения по улучшению</h2>
       <p class="sheet-text">Что неудобно, чего не хватает, где ошибка? Напишите своими словами.</p>
       <textarea class="input my-ta is-short" id="fbText" rows="5" maxlength="2000" placeholder="Например: хочу сортировку рецептов по названию" aria-label="Ваше предложение" style="font-family:inherit"></textarea>
-      <div id="fbFiles" class="fb-files" hidden></div>
-      <input type="file" id="fbFile" class="my-file-in" accept="image/*" multiple>
-      <button class="btn btn-secondary fb-add" id="fbAddBtn" type="button" data-act="fbPick">📎 Прикрепить фото</button>
       <p class="my-meta" id="fbMsg" role="status" hidden></p>
       <div class="actions actions-even">
         <button class="btn btn-secondary" type="button" data-act="close">Отмена</button>
         <button class="btn btn-primary" type="button" data-act="feedbackSend">Отправить</button>
       </div>`);
   },
-  fbPick: () => { const i = $id('fbFile'); if(i) i.click(); },
-  fbRemove: el => { const f = fbFiles.splice(+el.dataset.i, 1)[0]; if(f){ try{ URL.revokeObjectURL(f.url); }catch(_){} } fbRender(); const m = $id('fbMsg'); if(m) m.hidden = true; },
   feedbackSend: async el => {
     const ta = $id('fbText'), msg = $id('fbMsg'); if(!ta || !msg || el.disabled) return;
     const text = ta.value.trim(), say = t => { msg.textContent = t; msg.hidden = false; };
@@ -3398,18 +3427,16 @@ const ACTIONS = {
     const subj = 'Предложения по улучшению: Рецепты';
     el.disabled = true; el.textContent = 'Отправляем…'; msg.hidden = true;
     try{   // отправка на почту через FormSubmit (своего сервера у приложения нет)
-      const fd = new FormData();   // FormData нужен для вложений; заголовок Content-Type браузер выставит сам
-      fd.append('message', text); fd.append('_subject', subj); fd.append('_captcha', 'false'); fd.append('_template', 'table'); fd.append('_honey', '');
-      fd.append('устройство', navigator.userAgent.slice(0, 140));
-      fbFiles.forEach((f, i) => fd.append('attachment' + (i ? i + 1 : ''), f.blob, f.name));
-      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_FORM_ID, { method:'POST', headers:{'Accept':'application/json'}, body: fd });
+      const res = await fetch('https://formsubmit.co/ajax/' + FEEDBACK_FORM_ID, {
+        method:'POST', headers:{'Content-Type':'application/json', 'Accept':'application/json'},
+        body: JSON.stringify({message:text, _subject:subj, _captcha:'false', _template:'table', _honey:'', устройство:navigator.userAgent.slice(0, 140)})
+      });
       const j = await res.json().catch(() => ({}));
       if(!res.ok || String(j.success)==='false') throw new Error('send');
-      fbClear();
       myrxSheet(`<h2 class="sheet-title" id="sheetTitle">Спасибо!</h2><p class="sheet-text">Предложение отправлено. Мы обязательно его прочитаем.</p>${CLOSE_BTN}`);
     }catch(_){   // нет сети или сервис не ответил: письмо откроется в почтовом приложении, текст не потеряется
       el.disabled = false; el.textContent = 'Отправить';
-      say('Не удалось отправить напрямую. Открываю почту: останется нажать «Отправить» в письме' + (fbFiles.length ? ' (фото придётся прикрепить там самим).' : '.'));
+      say('Не удалось отправить напрямую. Открываю почту: останется нажать «Отправить» в письме.');
       location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(text);
     }
   },
@@ -3553,6 +3580,12 @@ const ACTIONS = {
     setTimeout(() => { if(el.isConnected) el.textContent = old; }, 1600);
   },
   theme: el => { setTheme(!isDark()); el.textContent = isDark() ? '☀ Светлая тема' : '☾ Тёмная тема'; },
+  tour: el => {                                                // сбрасывает все подсказки: они покажутся при заходе на экраны
+    Object.values(TOURS).forEach(T => store.del(T.key)); TOURS_OLD_KEYS.forEach(k => store.del(k));
+    if(!el) return;
+    const t = el.textContent; el.textContent = 'Подсказки покажутся заново';
+    setTimeout(() => { if(el.isConnected) el.textContent = t; }, 2500);
+  },
   resetSection: el => askResetSection(el.dataset.sec),
   topicsToggle: el => {
     topicsOpen = !topicsOpen;
@@ -3647,7 +3680,6 @@ document.addEventListener('change', e => {
     const st = $id('myrxStatus'); if(st) st.hidden = true;
     return;
   }
-  if(t && t.id==='fbFile'){ const l = Array.from(t.files || []); setTimeout(() => { try{ t.value = ''; }catch(_){} }, 0); if(l.length) fbAddFiles(l); return; }
   if(!t || t.id!=='myrxFile' || !t.files || !t.files[0]) return;
   const file = t.files[0];
   setTimeout(() => { try{ t.value = ''; }catch(_){} }, 0);   // чтобы тот же файл можно было выбрать повторно
@@ -3879,6 +3911,43 @@ function edgeFallback(){
 }
 
 
+/* =========================================================
+   ПОДСКАЗКИ (ОБУЧЕНИЕ)
+   Накопительные: шаги идут по одному, а уже показанные элементы остаются подсвеченными.
+   Каждый экран показывает свои подсказки один раз — при первом заходе: «Мои рецепты», «Тесты»,
+   «Тест» и «Впиши сам». Общее для тестов (кнопка «i», свайпы) показывается один раз на оба режима.
+   На главном экране, в справочнике, в «Как писать рецепты» и в работе над ошибками подсказок нет.
+   Ссылка «Показать обучение» внизу главного экрана сбрасывает все: подсказки покажутся заново при заходе на экраны.
+   ========================================================= */
+const TOURS = {
+  myrx: {key:'pharma_tour_myrx_v1', scope:'.my-new, .my-xfer > *, .my-groups', steps:[
+    {sel:'.my-new', t:'Новый рецепт', x:'Свой рецепт собирается на бланке. Можно взять препарат из справочника — поля заполнятся сами.'},
+    {sel:'[data-act="myrxImportOpen"]', t:'Загрузить рецепты', x:'Файл или текст: JSON либо обычный рецепт. Чего не хватает — приложение спросит по шагам.'},
+    {sel:'[data-act="myrxExportOpen"]', t:'Отправить рецепты', x:'Все, выбранные или целая папка. Файл уйдёт через «Поделиться» или скачается.'}
+  ]},
+  tests: {key:'pharma_tour_tests_v1', scope:'.rx-rows', steps:[
+    {t:'Тесты', x:'Зачёты по семестрам, экзамен и карточки по темам. В каждом зачёте есть «Тест» и «Впиши сам» — начните с любого.'}
+  ]},
+  quiz: {key:'pharma_tour_quiz_v2', scope:'.card > *, #topSub, #backBtn', steps:[
+    {sel:'.card > .drug', t:'Препарат', x:'Вверху — препарат и номер вопроса. Нужно определить его дозу, путь введения и группу.'},
+    {sel:'.card .field', t:'Ответ', x:'В каждом блоке выберите один из трёх вариантов: концентрацию и форму, способ введения, фармакологическую группу.'},
+    {sel:'#primary', t:'Проверить', x:'Включается, когда выбраны все три ответа. Верные варианты загорятся зелёным, неверные — красным, а кнопка станет «Далее».'},
+    {sel:'#topSub', t:'Шкала и счёт', x:'Полоса — ваш прогресс по кругу, а ✓ и ✕ — число верных и неверных ответов.'}
+  ]},
+  write: {key:'pharma_tour_write_v1', scope:'.card > *, #topSub, #backBtn', steps:[
+    {sel:'.card > .drug', t:'Препарат', x:'Видно только русское название. Латинское название, концентрацию и группу вы вписываете сами.'},
+    {sel:'.card .field', t:'Поля', x:'Латынь пишется в родительном падеже, например Labetaloli. Группу можно выбрать из подсказок.'},
+    {sel:'.card .wr-chips', t:'Быстрая вставка', x:'Кнопки %, мл, МЕ и гр вставляют единицы в поле — клавиатуру переключать не нужно.'},
+    {sel:'#primary', t:'Проверить', x:'Включается, когда заполнены все три поля. Потом карточка перевернётся и покажет эталонный рецепт.'},
+    {sel:'#topSub', t:'Шкала и счёт', x:'Полоса — ваш прогресс по кругу, а ✓ и ✕ — число верных и неверных ответов.'}
+  ]},
+  common: {key:'pharma_tour_common_v1', scope:'.card > *, #topSub, #backBtn', steps:[
+    {sel:'.card .btn-info', t:'Кнопка «i»', x:'Справка о препарате: фармакокинетика, действие, показания. Ответа она не выдаёт.'},
+    {sel:'.card', t:'Свайп влево и вправо', x:'Смахните карточку влево — вопрос пропустится, к нему можно вернуться. Вправо — вернётесь к предыдущему вопросу.'}
+  ]}
+};
+const TOURS_OLD_KEYS = ['pharma_tour_v1', 'pharma_tour_quiz_v1'];   // ключи прежнего единого обучения
+
 // Строки рецепта не переносятся: размер шрифта подбирается так, чтобы самая длинная строка помещалась целиком
 /* Целевой размер рецепта задаёт CSS (.blank .rxd). Короткие рецепты остаются на нём, длинные чуть уменьшаются (до FIT_MIN),
    и только если и так не помещается — переходят на сокращения (Rp.:, D.t.d.n., S.:) и снова стремятся к целевому размеру */
@@ -3904,10 +3973,188 @@ function fitRx(){
 }
 addEventListener('resize', fitRx);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitRx);
+let tour = null;     // {ids, key, steps, scope, i}
+const tourSeen = id => store.has(TOURS[id].key);
+const tourMark = id => store.set(TOURS[id].key, 1);
+const tourUnseen = ids => ids.filter(id => !tourSeen(id));
+// Подсказки одного экрана: список разделов склеивается в одну последовательность шагов
+function tourBuild(ids){
+  return {ids, key: ids.join('+'), steps: ids.flatMap(id => TOURS[id].steps),
+    scope: [...new Set(ids.flatMap(id => TOURS[id].scope.split(',').map(x => x.trim())))].join(', ')};
+}
+function tourTargets(step){
+  if(!step.sel) return [];
+  const top = step.sel.split(',').filter(x => /^\s*#(topSub|backBtn)/.test(x)).join(',');
+  return [...view.querySelectorAll(step.sel), ...(top ? document.querySelectorAll(top) : [])]
+    .filter((el, k, a) => a.indexOf(el) === k)
+    .map(el => el.closest('.rx-rows > *') || el);
+}
+function tourEnsureUi(){
+  if(!$id('tourBlock')){
+    const b = document.createElement('div'); b.id = 'tourBlock'; b.className = 'tour-block'; document.body.appendChild(b);
+    const c = document.createElement('div'); c.id = 'tourCard'; c.className = 'tour-card'; c.setAttribute('role','dialog'); c.setAttribute('aria-live','polite'); document.body.appendChild(c);
+  }
+}
+// Обводка не должна заходить на соседние кнопки: отступ подбирается по расстоянию до ближайшего видимого соседа.
+// Обводка шире на толщину линии (3px) + отступ; оставляем 2px воздуха, а если места совсем нет — отступ 0 (лёгкое касание допустимо).
+const TOUR_LINE = 3, TOUR_AIR = 2, TOUR_OFF_MAX = 5, TOUR_PULSE_MAX = 3;
+function tourFitOutline(targets){
+  const others = [...document.querySelectorAll(tour.scope), ...document.querySelectorAll('#topSub, #backBtn')]
+    .filter((el, k, a) => a.indexOf(el) === k && !el.classList.contains('tour-dim'));
+  targets.forEach(t => {
+    const a = t.getBoundingClientRect();
+    let gap = Infinity;
+    others.forEach(o => {
+      if(o === t || o.contains(t) || t.contains(o)) return;
+      const b = o.getBoundingClientRect();
+      if(!b.width || !b.height) return;
+      const dx = Math.max(0, a.left - b.right, b.left - a.right), dy = Math.max(0, a.top - b.bottom, b.top - a.bottom);
+      if(dx === 0 && dy === 0) return;                 // перекрываются сами по себе (например, вложенные блоки) — не считаем
+      const d = Math.max(dx, dy);
+      gap = Math.min(gap, targets.includes(o) ? d / 2 : d);   // рядом тоже обведённый блок: место делим пополам
+    });
+    const off = Math.max(0, Math.min(TOUR_OFF_MAX, gap - TOUR_AIR - TOUR_LINE));
+    t.style.setProperty('--tour-off', off + 'px');
+    t.style.setProperty('--tour-pulse', Math.min(TOUR_PULSE_MAX, off) + 'px');
+  });
+}
+function tourApply(){
+  if(!tour) return;
+  const steps = tour.steps;
+  let step = steps[tour.i], targets = tourTargets(step);
+  // шаг про элемент, которого на экране нет (например, нет справки), пропускается
+  while(step.sel && !targets.length && tour.i < steps.length - 1){ tour.i++; step = steps[tour.i]; targets = tourTargets(step); }
+  // накопительно: видно всё, что показано на этом и прежних шагах; скрыто остальное в области обучения
+  const shown = steps.slice(0, tour.i + 1).flatMap(tourTargets).filter((el, k, a) => a.indexOf(el) === k);
+  const related = (a, b) => a === b || a.contains(b) || b.contains(a);
+  document.querySelectorAll(tour.scope).forEach(el => {
+    el.classList.toggle('tour-dim', !!step.sel && !shown.some(t => related(el, t)));
+  });
+  document.querySelectorAll('.tour-focus,.tour-seen').forEach(el => { el.classList.remove('tour-focus', 'tour-seen'); el.style.removeProperty('--tour-off'); el.style.removeProperty('--tour-pulse'); });
+  shown.forEach(el => el.classList.add(targets.includes(el) ? 'tour-focus' : 'tour-seen'));
+  tourFitOutline(targets);
+  const last = tour.i === steps.length - 1;
+  const card = $id('tourCard');
+  const n = steps.length;
+  card.classList.toggle('is-intro', !step.sel);
+  card.setAttribute('aria-modal', 'true'); card.setAttribute('aria-label', 'Подсказки');
+  card.innerHTML = `<div class="tour-top">
+      <span class="tour-count">${n > 1 ? `Шаг ${tour.i+1} из ${n}` : 'Подсказка'}</span>
+      ${last ? '' : '<button class="tour-skip" type="button" data-tour="skip">Пропустить</button>'}
+    </div>
+    ${n > 1 ? `<div class="tour-dots" aria-hidden="true">${steps.map((_,k) => `<i class="${k===tour.i ? 'on' : k<tour.i ? 'done' : ''}"></i>`).join('')}</div>` : ''}
+    <h2 class="tour-title">${esc(step.t)}</h2>
+    <p class="tour-text">${esc(step.x)}</p>
+    <div class="tour-actions">
+      ${tour.i === 0 ? '' : '<button class="btn btn-secondary tour-back" type="button" data-tour="back">Назад</button>'}
+      <button class="btn btn-primary tour-next" type="button" data-tour="next">${last ? 'Готово' : 'Далее'}</button>
+    </div>`;
+  { const nb = card.querySelector('.tour-next'); if(nb) try{ nb.focus({preventScroll:true}); }catch(_){} }
+  // карточка подсказки — на свободной половине экрана, не поверх выделенного
+  const first = targets[0];
+  const r = first && first.getBoundingClientRect();
+  card.classList.toggle('at-top', !!r && r.top + r.height/2 > innerHeight/2);
+  // если карточка всё равно закрывает выделенное — сдвигаем страницу, чтобы цель оказалась на свободной части экрана
+  if(first){
+    const cr = card.getBoundingClientRect(), tr = first.getBoundingClientRect();
+    if(tr.bottom > cr.top && tr.top < cr.bottom){
+      const dy = card.classList.contains('at-top') ? tr.top - (cr.bottom + 8) : tr.bottom - (cr.top - 8);
+      scrollBy({top:dy, behavior:'instant'});
+    }
+  }
+}
+function startTour(ids){
+  if(sheetRoot.childElementCount) closeSheet(true);
+  tour = {...tourBuild(ids), i:0};
+  setInert('tour', true);
+  document.body.classList.add('tour-on');
+  tourEnsureUi();
+  tourApply();
+  const n = document.querySelector('.tour-next'); if(n) n.focus({preventScroll:true});
+}
+// Конец подсказок: показанные разделы больше не появятся (пока не нажмут «Показать обучение»)
+function endTour(){
+  if(!tour) return;
+  const ids = tour.ids;
+  tour = null;
+  setInert('tour', false);
+  ids.forEach(tourMark);
+  document.body.classList.remove('tour-on');
+  ['tourBlock','tourCard'].forEach(x => { const e = $id(x); if(e) e.remove(); });
+  document.querySelectorAll('.tour-dim,.tour-focus,.tour-seen').forEach(el => { el.classList.remove('tour-dim','tour-focus','tour-seen'); el.style.removeProperty('--tour-off'); el.style.removeProperty('--tour-pulse'); });
+}
+function tourNext(){
+  if(!tour) return;
+  if(tour.i < tour.steps.length - 1){ tour.i++; tourApply(); return; }
+  endTour();
+}
+function tourBack(){
+  if(!tour || tour.i <= 0) return;
+  let k = tour.i - 1;
+  while(k > 0 && tour.steps[k].sel && !tourTargets(tour.steps[k]).length) k--;     // пропускаем шаги, которых на экране нет
+  tour.i = k; tourApply();
+}
+// Какие подсказки ещё не показаны на текущем экране (пусто — никаких)
+function tourFor(){
+  if(mode === 'myrx') return tourUnseen(['myrx']);
+  if(mode === 'tests') return tourUnseen(['tests']);
+  const cfg = SESSION[mode];
+  if(cfg && !cfg.dynamic){                                // «Тест» и «Впиши сам»; работа над ошибками — без подсказок
+    const S = cur();
+    if(!S || S.pos >= S.order.length) return [];          // итоги круга — без подсказок
+    return tourUnseen([cfg.kind === 'write' ? 'write' : 'quiz', 'common']);
+  }
+  return [];
+}
+let tourTimer = 0;
+function tourReady(ids){
+  const steps = tourBuild(ids).steps;
+  return steps.every(x => !x.sel) || steps.some(x => x.sel && tourTargets(x).length);
+}
+function tourRefresh(){
+  const ids = tourFor(), key = ids.join('+');
+  if(tour){
+    if(key !== tour.key) endTour(); else tourApply();
+    return;
+  }
+  if(!ids.length) return;
+  clearTimeout(tourTimer);
+  tourTimer = setTimeout(() => { if(!tour && tourFor().join('+') === key && tourReady(ids)) startTour(ids); }, 350);
+}
+function tourAutostart(){ tourRefresh(); }
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-tour]');
+  if(!b || !tour) return;
+  e.preventDefault(); e.stopPropagation();
+  if(b.dataset.tour === 'skip') return endTour();
+  if(b.dataset.tour === 'back') return tourBack();
+  tourNext();
+}, true);
+// Листание жестом: влево — дальше, вправо — назад
+let tourSwipe = null;
+document.addEventListener('pointerdown', e => {
+  tourSwipe = tour && e.target.closest && e.target.closest('#tourCard,#tourBlock') && !e.target.closest('[data-tour]') ? {x:e.clientX, y:e.clientY} : null;
+}, true);
+document.addEventListener('pointerup', e => {
+  if(!tourSwipe || !tour) return;
+  const dx = e.clientX - tourSwipe.x, dy = e.clientY - tourSwipe.y; tourSwipe = null;
+  if(Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  if(dx < 0) tourNext(); else tourBack();
+}, true);
+document.addEventListener('keydown', e => {
+  if(!tour) return;
+  if(e.key === 'Escape'){ e.stopPropagation(); return endTour(); }
+  if(e.key === 'Enter' || e.key === 'ArrowRight'){
+    e.preventDefault(); e.stopPropagation();
+    tourNext();
+  } else if(e.key === 'ArrowLeft'){ e.preventDefault(); e.stopPropagation(); tourBack(); }
+}, true);
+
 try{ history.replaceState({d:0}, ''); }catch{}
 edgeFallback();
 restoreView();
 render();
+tourAutostart();
 
 /* Работа без интернета: service worker кэширует страницу, данные, иконки и шрифты */
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){

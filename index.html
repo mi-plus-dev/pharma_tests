@@ -69,6 +69,30 @@ html.no-splash #splash{display:none}
 <script src="data.js"></script>
 <script src="recipe-bot.js"></script>
 <script src="app.js"></script>
+<script src="diag.js"></script><!-- ВРЕМЕННО: диагностика зависания, см. комментарий в diag.js; после поиска бага удалить -->
+<script>
+/* Счётчик посещений — GoatCounter (без cookie и личных данных). Статистика: https://<КОД>.goatcounter.com
+   Пока вместо КОД стоит заглушка, ничего не отправляется. Подробности — в README, раздел «Счётчик посещений». */
+(function(){
+  var CODE="miplus";   // ← сюда код сайта, который вы выбрали при регистрации на goatcounter.com
+  try{
+    if(/[?&]nocount=1/.test(location.search))localStorage.setItem("skipgc","t");   // откройте сайт один раз с ?nocount=1 — свои заходы на этом устройстве считаться не будут
+    if(localStorage.getItem("skipgc")==="t")return;
+  }catch(e){}
+  if(!/^[a-z0-9-]+$/i.test(CODE))return;
+  var q=new URLSearchParams(location.search),
+      app=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
+  window.goatcounter={
+    path:function(){return app?"/app":"/"},   // «/» — открыли в браузере, «/app» — запустили установленное приложение
+    referrer:function(){return q.get("ref")||q.get("utm_source")||document.referrer||undefined}   // ?ref=группа-1 в ссылке — видно, откуда пришли
+  };
+  var s=document.createElement("script");
+  s.async=true;s.src="https://gc.zgo.at/count.js";
+  s.setAttribute("data-goatcounter","https://"+CODE+".goatcounter.com/count");
+  document.head.appendChild(s);
+  addEventListener("appinstalled",function(){try{window.goatcounter.count({path:"install",title:"Установили на телефон",event:true,no_session:true})}catch(e){}});
+})();
+</script>
 <script>
 /* Анимацию запускаем, когда приложение уже нарисовало первый экран; на случай сбоя заставка уберётся сама */
 (function(){
