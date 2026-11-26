@@ -1601,7 +1601,6 @@ function viewMistakes(){
 }
 
 // Справочник: поиск по названию, латыни, группе и другим названиям
-const REF_EXAMPLE = 'Propranololi';
 const REF = DB.map(d => {
   const fields = [
     {label:'Название', value:d[0]},
@@ -1629,15 +1628,20 @@ function refRows(q){
 }
 function viewReference(){
   setTop({back:'Меню'});
-  return `<header class="page-head"><h1>Справочник</h1><p>Все ${count(DB.length)} по алфавиту. Нажмите на препарат, чтобы открыть его карточку.</p></header>
-    <div class="search ref-search">${ICON.search}<input class="input" id="refQuery" type="search" placeholder="Название, латынь или группа" aria-label="Поиск препарата"
+  return `<header class="page-head"><h1>Справочник</h1><p>Примеры поиска — «диуретики», «метопролол», «Metoprololi». Нажмите на найденный препарат, чтобы открыть карточку.</p></header>
+    <div class="search">${ICON.search}<input class="input" id="refQuery" type="search" placeholder="Фармгруппа, название или латынь" aria-label="Поиск по фармакологической группе, русскому или латинскому названию"
       autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></div>
-    <button class="ref-example" type="button" data-act="refExample">Попробовать <span lang="la">${REF_EXAMPLE}</span></button>
     <div id="refList">${refRows('')}</div>`;
 }
 
-function drugHead(name, latin, withInfo, counter, masked){
+function favoriteButton(d){
+  const fav = isFav(d);
+  return `<button class="fav-btn${fav ? ' is-on' : ''}" type="button" data-act="fav" data-d="${DB_INDEX.get(d)}" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из избранного' : 'Добавить в избранное'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.4l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9z"/></svg></button>`;
+}
+function drugHead(d, {withInfo, counter, masked, favorite} = {}){
+  const [name, , , , latin] = d;
   return `<header class="drug${counter ? ' has-count' : ''}${masked ? ' wr-nolatin' : ''}">${counter ? `<span class="drug-count" aria-label="Вопрос ${esc(counter.replace('/',' из '))}">${esc(counter)}</span>` : ''}
+    ${favorite ? favoriteButton(d) : ''}
     <div class="drug-row"><h2 class="drug-name">${esc(name)}</h2>${withInfo && INFO[name] ? '<button class="btn-info" type="button" data-act="info" aria-label="Подробнее о препарате">i</button>' : ''}</div>
     ${masked ? '' : `<div class="drug-latin" lang="la">${esc(latin)}</div>`}
   </header>`;
@@ -1716,7 +1720,7 @@ function viewWriteBack(d, st, counter, actions){
     : wrRes('Латынь', st.latinOk, st.typed.latin, d[4], st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1], doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d)) + wrFix([['Латынь', st.latinOk, d[4]], ['Концентрация', st.doseOk, d[1]], ['Группа', st.groupOk, grpText(d)]]);
   return `<article class="card wr-back" data-swipe>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
-    ${drugHead(d[0], d[4], true, counter)}
+    ${drugHead(d, {withInfo:true, counter, favorite:true})}
     <div class="blank wr-blank"><div class="rxd wr-rx" data-short="${esc(rxDoc(rxShort(rxLines)))}">${rxDoc(rxLines)}</div></div>
     ${rows}
     ${actions}
@@ -1769,7 +1773,7 @@ function viewSession(){
   if(cfg.kind==='choice') ensureOpts(S);
   const backLabel = cfg.grp ? myGrpName(S.block) : cfg.block ? 'Блоки' : cfg.dynamic ? 'Ошибки' : cfg.sem ? semName(S.sem) : mode==='quiz' ? 'Тест' : 'Впиши сам';
   setTop({back: backLabel, compact:true, score:t, progress:S.pos/n, count:`${S.pos+1} / ${n}`});
-  const d = S.order[S.pos], [name, , , , latin] = d;
+  const d = S.order[S.pos];
   const st = S.state[S.pos];
   const primary = st.checked
     ? `<button class="btn btn-primary" id="primary" type="button" data-act="next">${S.pos===n-1 ? 'Завершить' : 'Далее'}</button>`
@@ -1781,13 +1785,13 @@ function viewSession(){
     </div>`;
     if(st.checked) return viewWriteBack(d, st, '', actions);
     return `<article class="card" data-swipe>
-      ${drugHead(name, latin, true, '', true)}
+      ${drugHead(d, {withInfo:true, masked:true, favorite:true})}
       ${writeFields(st)}
       ${actions}
     </article>`;
   }
   return `<article class="card card-choice" data-swipe>
-    ${drugHead(name, latin, true, '')}
+    ${drugHead(d, {withInfo:true, favorite:true})}
     ${choiceFields(st, rightOf(d))}
     <div class="actions">
       <button class="btn btn-secondary" type="button" data-act="prev"${S.pos===0 ? ' disabled' : ''}>Назад</button>
@@ -1805,12 +1809,11 @@ function viewCards(){
   }
   cards.pos = Math.min(Math.max(cards.pos, 0), n-1);
   const d = b.items[cards.pos];
-  const fav = isFav(d);
   setTop({back: cardsBack==='groupList' ? 'Блоки' : cardsBack==='tests' ? 'Тесты' : cardsBack==='menu' ? 'Меню' : cardsBack==='myGroup' ? myGrpName(curGrp) : 'Темы', title: cardsBack==='groupList' ? `Блок ${b.num}` : b.title, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
   return `<article class="card card-study" data-swipe>
-    <button class="fav-btn${fav ? ' is-on' : ''}" type="button" data-act="fav" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из избранного' : 'Добавить в избранное'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.4l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9z"/></svg></button>
+    ${favoriteButton(d)}
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
-    ${drugHead(d[0], d[4], false)}
+    ${drugHead(d)}
     ${(() => { const mine = MY_SET.has(d) && MY_ACTIVE.find(m => m.d===d);
       return mine ? `<dl class="facts">${facts([[FIELDS.dose, d[1]], [FIELDS.route, d[2]]])}</dl><div class="my-prev">${myrxBlank(mine.r)}</div>` : drugFacts(d, true); })()}
     <p class="swipe-hint">Смахните карточку, чтобы перейти к соседней</p>
@@ -3314,11 +3317,6 @@ function askConfirm(title, text, ok, fn){
 const ACTIONS = {
   up: () => go(parentOf(mode)),
   go: el => go(el.dataset.mode),
-  refExample: () => {
-    const input = $id('refQuery');
-    input.value = REF_EXAMPLE;
-    input.dispatchEvent(new Event('input', {bubbles:true}));
-  },
   ins: el => {                                           // быстрая вставка единицы в поле дозировки
     const inp = $id('f-dose'); if(!inp) return;
     const add = el.dataset.ins, pre = (add === '%' || /[\s(]$/.test(inp.value.slice(0, inp.selectionStart ?? inp.value.length)) || !inp.value) ? '' : ' ';
@@ -3365,7 +3363,7 @@ const ACTIONS = {
   openTopic: el => { cardsBack = 'tests'; openBlock('groupCards', +el.dataset.i); },
   openFav: () => { favSnap = null; cardsBack = 'menu'; openBlock('groupCards', 'fav'); },
   fav: el => {   // звёздочка на карточке: обновляем кнопку на месте, без перерисовки карточки
-    const b = cardSet(cards.block), d = b && b.items[cards.pos];
+    const d = DB[+el.dataset.d];
     if(!d) return;
     const on = favToggle(d);
     el.classList.toggle('is-on', on);
@@ -3918,11 +3916,8 @@ function edgeFallback(){
 
 /* =========================================================
    ПОДСКАЗКИ (ОБУЧЕНИЕ)
-   Накопительные: шаги идут по одному, а уже показанные элементы остаются подсвеченными.
-   Каждый экран показывает свои подсказки один раз — при первом заходе: «Мои рецепты», «Тесты»,
-   «Тест» и «Впиши сам». Общее для тестов (кнопка «i», свайпы) показывается один раз на оба режима.
-   На главном экране, в справочнике, в «Как писать рецепты» и в работе над ошибками подсказок нет.
-   Ссылка «Показать обучение» внизу главного экрана сбрасывает все: подсказки покажутся заново при заходе на экраны.
+   При первом входе в «Мои рецепты» и в вопрос теста запускаются подсказки.
+   Кнопка «Показать обучение» позволяет снова увидеть их при входе в раздел.
    ========================================================= */
 const TOURS = {
   myrx: {key:'pharma_tour_myrx_v1', scope:'.my-new, .my-xfer > *, .my-groups', steps:[
@@ -3930,25 +3925,9 @@ const TOURS = {
     {sel:'[data-act="myrxImportOpen"]', t:'Загрузить рецепты', x:'Файл или текст: JSON либо обычный рецепт. Чего не хватает — приложение спросит по шагам.'},
     {sel:'[data-act="myrxExportOpen"]', t:'Отправить рецепты', x:'Все, выбранные или целая папка. Файл уйдёт через «Поделиться» или скачается.'}
   ]},
-  tests: {key:'pharma_tour_tests_v1', scope:'.rx-rows', steps:[
-    {t:'Тесты', x:'Зачёты по семестрам, экзамен и карточки по темам. В каждом зачёте есть «Тест» и «Впиши сам» — начните с любого.'}
-  ]},
-  quiz: {key:'pharma_tour_quiz_v2', scope:'.card > *, #topSub, #backBtn', steps:[
-    {sel:'.card > .drug', t:'Препарат', x:'Вверху — препарат и номер вопроса. Нужно определить его дозу, путь введения и группу.'},
-    {sel:'.card .field', t:'Ответ', x:'В каждом блоке выберите один из трёх вариантов: концентрацию и форму, способ введения, фармакологическую группу.'},
-    {sel:'#primary', t:'Проверить', x:'Включается, когда выбраны все три ответа. Верные варианты загорятся зелёным, неверные — красным, а кнопка станет «Далее».'},
-    {sel:'#topSub', t:'Шкала и счёт', x:'Полоса — ваш прогресс по кругу, а ✓ и ✕ — число верных и неверных ответов.'}
-  ]},
-  write: {key:'pharma_tour_write_v1', scope:'.card > *, #topSub, #backBtn', steps:[
-    {sel:'.card > .drug', t:'Препарат', x:'Видно только русское название. Латинское название, концентрацию и группу вы вписываете сами.'},
-    {sel:'.card .field', t:'Поля', x:'Латынь пишется в родительном падеже, например Labetaloli. Группу можно выбрать из подсказок.'},
-    {sel:'.card .wr-chips', t:'Быстрая вставка', x:'Кнопки %, мл, МЕ и гр вставляют единицы в поле — клавиатуру переключать не нужно.'},
-    {sel:'#primary', t:'Проверить', x:'Включается, когда заполнены все три поля. Потом карточка перевернётся и покажет эталонный рецепт.'},
-    {sel:'#topSub', t:'Шкала и счёт', x:'Полоса — ваш прогресс по кругу, а ✓ и ✕ — число верных и неверных ответов.'}
-  ]},
-  common: {key:'pharma_tour_common_v1', scope:'.card > *, #topSub, #backBtn', steps:[
-    {sel:'.card .btn-info', t:'Кнопка «i»', x:'Справка о препарате: фармакокинетика, действие, показания. Ответа она не выдаёт.'},
-    {sel:'.card', t:'Свайп влево и вправо', x:'Смахните карточку влево — вопрос пропустится, к нему можно вернуться. Вправо — вернётесь к предыдущему вопросу.'}
+  session: {key:'pharma_tour_session_v1', scope:'.drug .fav-btn', steps:[
+    {t:'Листайте вопросы', x:'Смахните влево, чтобы перейти дальше. Если не нажали «Проверить», вопрос останется пропущенным. Смахните вправо, чтобы вернуться. Подсказки тоже можно листать свайпом.'},
+    {sel:'.drug .fav-btn', t:'Сохраните препарат', x:'Нажмите звёздочку у названия. Препарат появится в «Избранном» в главном меню. Повторное нажатие уберёт его из списка.'}
   ]}
 };
 const TOURS_OLD_KEYS = ['pharma_tour_v1', 'pharma_tour_quiz_v1'];   // ключи прежнего единого обучения
@@ -4102,14 +4081,8 @@ function tourBack(){
 // Какие подсказки ещё не показаны на текущем экране (пусто — никаких)
 function tourFor(){
   if(mode === 'myrx') return tourUnseen(['myrx']);
-  if(mode === 'tests') return tourUnseen(['tests']);
-  const cfg = SESSION[mode];
-  if(cfg && !cfg.dynamic){                                // «Тест» и «Впиши сам»; работа над ошибками — без подсказок
-    const S = cur();
-    if(!S || S.pos >= S.order.length) return [];          // итоги круга — без подсказок
-    return tourUnseen([cfg.kind === 'write' ? 'write' : 'quiz', 'common']);
-  }
-  return [];
+  const S = cur();
+  return S && S.pos < S.order.length ? tourUnseen(['session']) : [];
 }
 let tourTimer = 0;
 function tourReady(ids){
@@ -4124,7 +4097,7 @@ function tourRefresh(){
   }
   if(!ids.length) return;
   clearTimeout(tourTimer);
-  tourTimer = setTimeout(() => { if(!tour && tourFor().join('+') === key && tourReady(ids)) startTour(ids); }, 350);
+  tourTimer = setTimeout(() => { if(!tour && !sheetRoot.childElementCount && tourFor().join('+') === key && tourReady(ids)) startTour(ids); }, 350);
 }
 function tourAutostart(){ tourRefresh(); }
 document.addEventListener('click', e => {
@@ -4149,6 +4122,7 @@ document.addEventListener('pointerup', e => {
 document.addEventListener('keydown', e => {
   if(!tour) return;
   if(e.key === 'Escape'){ e.stopPropagation(); return endTour(); }
+  if(e.key === 'Enter' && e.target.closest('[data-tour]')) return;
   if(e.key === 'Enter' || e.key === 'ArrowRight'){
     e.preventDefault(); e.stopPropagation();
     tourNext();
