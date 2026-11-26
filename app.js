@@ -4145,11 +4145,7 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
     updateReady = true;
     if(mode==='menu') render();
   });
-  addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-    // шрифты — в кэш для работы без интернета (один раз, не мешая запуску)
-    navigator.serviceWorker.ready.then(r => { if(r.active) setTimeout(() => r.active.postMessage('precache-fonts'), 3000); }).catch(() => {});
-  });
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 // Просим браузер не удалять сохранённые рецепты и прогресс при нехватке места (Chrome разрешает молча, Safari — для установленного приложения)
 try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); }catch{}

@@ -12,5 +12,5 @@ ES="npx --yes esbuild@0.25.0"
 for f in data.js recipe-bot.js app.js diag.js; do $ES "$f" --minify --charset=utf8 --legal-comments=none --log-level=warning --outfile="$OUT/$f"; done
 for f in style.css theme-dark.css; do $ES "$f" --minify --charset=utf8 --log-level=warning --outfile="$OUT/$f"; done
 cp index.html sw.js manifest.webmanifest .nojekyll "$OUT"/
-cp -r icons "$OUT"/icons
+cp -r icons fonts "$OUT"/
 echo "Готово: $OUT/"; du -sh "$OUT"
