@@ -93,8 +93,6 @@ h1,h2,h3{font-family:var(--display)}
 .rx-lbl{flex:1;min-width:0}
 .rx-pg{flex:none;margin:0 12px 0 8px;font-family:var(--display);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
 .rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
-.rx-ico-line{display:grid;place-items:center;flex:none;width:72px;height:56px;margin:0 2px 0 4px;color:var(--icon,var(--ink))}
-.rx-ico-line svg{width:44px;height:44px;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 .rx-i-cad{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
 .rx-i-book{-webkit-mask-size:54px 31px;mask-size:54px 31px;-webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
 .rx-i-scis{-webkit-mask-size:64px 49px;mask-size:64px 49px;-webkit-mask-image:url("icons/scis.svg");mask-image:url("icons/scis.svg")}
@@ -560,7 +558,6 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rxd .bl.in2 .v{padding-left:1.6em}
 .rxd .ru{font-size:1em}
 .ht-step .blank :is(.rxd,.side){font-family:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",var(--sans);font-size-adjust:none}
-.ht-step .rxd .v.wrap{font-size:.8125em}
 @media (max-width:350px){.ht-step .rxd .bl:first-child .v{white-space:normal;overflow-wrap:break-word}}
 .wr-rx{margin:2px 0 10px;font:500 15px/26px var(--sans);color:var(--ink)}
 .wr-rx .bl{font:inherit;color:inherit}
