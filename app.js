@@ -1493,7 +1493,7 @@ function viewMenu(){
   const upd = updateReady ? `<div class="upd-banner" role="status"><span>Вышла новая версия приложения.</span><button class="btn btn-primary" type="button" data-act="reloadApp">Обновить</button></div>` : '';
   return `
     <header class="rx-head">
-      <div class="rx-brand"><h1 class="rx-title"><span class="rx-r">Р</span>ецепты</h1></div>
+      <div class="rx-brand"><h1 class="rx-title"><span class="rx-r">Р</span>ецепты</h1><small>✓ v113</small></div>
     </header>
     ${upd}
     <div class="rx-rows rx-acc">
