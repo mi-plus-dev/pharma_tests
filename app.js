@@ -645,7 +645,7 @@ const MISTAKE_MODES = ['mistakesQuiz', 'mistakesWrite'];
 const LISTS = {
   studyList:      {target:'study',      title:'Тест по блокам',      desc:'Те же вопросы, что в тесте, но по одному тематическому блоку. Внутри блока препараты не повторяются.'},
   writeBlockList: {target:'writeBlock', title:'Впиши сам по блокам', desc:'Видно только русское название — латынь, концентрацию и группу вписываете сами, а карточка переворачивается и показывает рецепт. Внутри блока препараты не повторяются.'},
-  groupList:      {target:'groupCards', title:'Карточки',            desc:'Вся информация о препарате на одной карточке — для повторения, без вопросов.'}
+  groupList:      {target:'groupCards', title:'Карточки'}
 };
 // Куда ведёт «Назад»; всё, чего здесь нет, возвращает в меню
 const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
@@ -1560,15 +1560,16 @@ function viewExamScope(){
 }
 function viewList(){
   const L = LISTS[mode];
-  setTop({back: L.target==='groupCards' ? 'Меню' : mode==='studyList' ? 'Тест' : 'Впиши сам'});
+  const isCardList = L.target==='groupCards';
+  setTop({back: isCardList ? 'Меню' : mode==='studyList' ? 'Тест' : 'Впиши сам'});
   const rows = BLOCKS.map((b,i) => {
     let p = null;
-    if(L.target==='groupCards'){ const pos = cardsPos(i); if(pos>0) p = {}; }
+    if(isCardList){ const pos = cardsPos(i); if(pos>0) p = {}; }
     else p = progressOf(loadSession(L.target, i));
-    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(b.title), desc:esc(b.desc),
+    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(isCardList ? b.desc : b.title), desc:isCardList ? '' : esc(b.desc),
       meta:`<span>${count(b.items.length)}</span>${chip(p)}`, reset: p && `Сбросить прогресс блока ${b.num}`});
   }).join('');
-  return `<header class="page-head"><h1>${L.title}</h1><p>${L.desc}</p></header><div class="list">${rows}</div>`;
+  return `<header class="page-head"><h1>${L.title}</h1>${L.desc ? `<p>${L.desc}</p>` : ''}</header><div class="list">${rows}</div>`;
 }
 
 function viewMistakes(){
