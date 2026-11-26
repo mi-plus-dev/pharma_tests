@@ -525,13 +525,17 @@ function rxShort(lines){
     .replace(/in\u00a0flaconibus/, 'in\u00a0flac.');
   return lines.map(([t, c]) => [ab(t), c]);
 }
-function rxDoc(lines){
+function rxDoc(lines, firstLineNote = ''){
   const m = RX_KEY.exec(lines[0][0]);
   if(!m) return lines.map(([t, c]) => `<span class="bl${c ? ' ' + c : ''}">${t}</span>`).join('');
   // русский текст (Signa) оборачиваем в .ru — его размер подгоняется под визуальный размер латиницы
   const ru = v => v.split(/(<[^>]+>)/).map(x => x.charAt(0)==='<' ? x : x.replace(/[А-Яа-яЁё]+(?:[\s\u00a0.,;:\-–()\d\/]+[А-Яа-яЁё]+)*/g, '<span class="ru">$&</span>')).join('');
-  const row = (k, v, c) => `<span class="bl${c==='in2' ? ' in2' : ''}"><span class="k">${k}</span><span class="v${/^(Signa|Da\. Signa|S\.|D\.S\.)/.test(v) ? ' wrap' : ''}">${ru(v)}</span></span>`;
-  return row(m[1], lines[0][0].slice(m[0].length), '') + lines.slice(1).map(([t, c]) => row('', t, c)).join('');
+  const row = (k, v, c, note) => {
+    const cls = note ? ' with-side' : /^(Signa|Da\. Signa|S\.|D\.S\.)/.test(v) ? ' wrap' : '';
+    const value = note ? `<span>${ru(v)}</span><span class="side">${esc(note)}</span>` : ru(v);
+    return `<span class="bl${c==='in2' ? ' in2' : ''}"><span class="k">${k}</span><span class="v${cls}">${value}</span></span>`;
+  };
+  return row(m[1], lines[0][0].slice(m[0].length), '', firstLineNote) + lines.slice(1).map(([t, c]) => row('', t, c)).join('');
 }
 // Эталонный рецепт: строки бланка + название формы выпуска + число «Выпиши»
 function rxBuild(d){
@@ -1352,7 +1356,7 @@ function viewHowTo(){
   setTop({back:'Меню', title:'Как писать рецепты'});
   const step = (n, title, body) => `<section class="ht-step"><div class="ht-head"><span class="ht-no">${n}</span><h2>${title}</h2></div>${body}</section>`;
   // под словом Recipe ничего не пишется: остальные строки начинаются правее него (кроме примера-нарушения)
-  const blank = (lines, extra='') => `<div class="blank"><div class="rxd">${rxDoc(lines)}</div>${extra}</div>`;
+  const blank = (lines, firstLineNote) => `<div class="blank"><div class="rxd">${rxDoc(lines, firstLineNote)}</div></div>`;
   return `<header class="page-head ht-intro"><h1>Как писать рецепты</h1>
     <p>Рецепт — письменное обращение врача к фармацевтическому работнику с предписанием о выдаче или изготовлении лекарственного средства для конкретного пациента. Выписывается на латинском языке по установленной форме; только <i>Signa</i> пишется на русском.</p></header>
 
@@ -1414,7 +1418,7 @@ function viewHowTo(){
 
     ${step(7, 'Группа препарата', `
       <p>Важный момент для студентов: не забудьте указать <b>где-нибудь в сторонке</b>, к какой фармакологической группе принадлежит препарат (альфа-адреноблокатор, кардиотоник и так далее).</p>
-      ${blank([['Recipe: Tab. Labetaloli 0,1',''],['D.t.d.n. 30','in1'],['S.: внутрь, по 1 таб. 3 р/д','in1']], '<span class="side">α- и β-адреноблокатор</span>')}`)}
+      ${blank([['Recipe: Tab. Labetaloli 0,1',''],['D.t.d.n. 30','in1'],['S.: внутрь, по 1 таб. 3 р/д','in1']], 'α- и β-адреноблокатор')}`)}
 
     ${step(8, 'Кавычки: торговое название', `
       <p>Кавычки используются, когда пишем <b>торговое название</b> препарата. Таблетки «Афобазол» не содержат действующего вещества афобазол (такого вещества не существует), поэтому <b>нельзя</b> написать <i>Tabulettas Aphobazoli</i>. Пишем в <b>именительном падеже</b>:</p>
@@ -3934,11 +3938,12 @@ function fitRx(){
   view.querySelectorAll('.rxd').forEach(box => {
     if(box.dataset.short && !box.dataset.full) box.dataset.full = box.innerHTML;
     if(box.dataset.full) box.innerHTML = box.dataset.full;
-    box.style.fontSize = '';
+    const sized = box.querySelector('.with-side')?.parentElement || box;
+    sized.style.fontSize = '';
     const over = () => box.scrollWidth > box.clientWidth + 1;
     const shrink = min => {
-      let fs = parseFloat(getComputedStyle(box).fontSize) || 16;
-      while(over() && fs > min){ fs -= 0.5; box.style.fontSize = fs + 'px'; }
+      let fs = parseFloat(getComputedStyle(sized).fontSize) || 16;
+      while(over() && fs > min){ fs -= 0.5; sized.style.fontSize = fs + 'px'; }
     };
     shrink(box.dataset.short ? FIT_MIN : 10);
     if(box.dataset.short && over()){

@@ -526,7 +526,6 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .blank .ban{position:relative;display:block;width:fit-content;margin-top:-6px;padding:6px 6px 4px 0}
 .blank .ban::after{content:"";position:absolute;right:0;top:12px;bottom:4px;width:2px;border-radius:1px;background:var(--red)}
 .blank .ban-x{display:block;height:96px;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--red) 6px 8px)}
-.blank .side{display:block;margin:0;padding:0;text-align:right;color:var(--red);font:400 18px/32px "Marck Script",cursive}
 
 /* ===== «Впиши сам»: латынь, концентрация, форма — и переворот карточки с эталонным рецептом ===== */
 .wr-label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 2px 7px;font-size:13.5px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ink)}
@@ -557,8 +556,12 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rxd .v.wrap{white-space:normal;overflow-wrap:break-word}
 .rxd .bl.in2 .v{padding-left:1.6em}
 .rxd .ru{font-size:1em}
-.ht-step .blank :is(.rxd,.side){font-family:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",var(--sans);font-size-adjust:none}
+.ht-step .blank .rxd{font-family:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",var(--sans);font-size-adjust:none}
 @media (max-width:350px){.ht-step .rxd .bl:first-child .v{white-space:normal;overflow-wrap:break-word}}
+@media (max-width:350px){.ht-step .blank:has(.with-side){padding-inline:8px}}
+.rxd .v.with-side{display:flex;justify-content:space-between;gap:.4em;align-items:baseline}
+.rxd .with-side > span{white-space:nowrap}
+.rxd .side{color:var(--red)}
 .wr-rx{margin:2px 0 10px;font:500 15px/26px var(--sans);color:var(--ink)}
 .wr-rx .bl{font:inherit;color:inherit}
 .wr-rx .gap{color:var(--red)}
