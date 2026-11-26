@@ -3347,7 +3347,8 @@ const ACTIONS = {
     fb.innerHTML = `<b>${ok ? 'Верно!' : 'Не совсем.'}</b> ${it.e}`;
     fb.hidden = false;
     const next = st.querySelector('.htq-next'); next.hidden = false;
-    try{ next.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(_){}
+    next.focus({preventScroll:true});
+    next.scrollIntoView({block:'nearest'});
   },
   htqNext: el => {
     const root = el.closest('.htq'); if(!root) return;
