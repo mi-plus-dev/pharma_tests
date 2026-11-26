@@ -472,6 +472,7 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .ht-step p:last-child{margin-bottom:0}
 .ht-step b{color:var(--ink)}
 .ht-step i,.ht-intro i{font-family:inherit;font-size:inherit;font-style:italic;font-weight:700;color:inherit}
+.ht-step .ht-incorrect{text-decoration:line-through var(--bad) 2px}
 .ht-lat{font-family:var(--serif);font-style:italic;font-weight:500;color:var(--green)}
 .ht-note{margin:0 0 12px;padding:9px 12px;border:2px dashed var(--line);border-radius:var(--r-md);background:var(--inset);color:var(--muted);font-size:13.5px;line-height:1.45}
 .ht-note b{color:var(--ink)}
