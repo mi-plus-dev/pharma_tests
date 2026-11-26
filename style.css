@@ -863,7 +863,7 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 .card-study .drug{border-bottom:0;padding-bottom:0;margin-bottom:20px}
 /* сведения — отдельные плитки, подписи приглушённые */
 .card-study .facts{gap:10px;margin:0 0 16px;padding:0;border:0;border-radius:0;background:transparent}
-.card-study .fact{padding:14px 16px;border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--paper) 94%,var(--accent))}
+.card-study .fact{padding:14px 16px;border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--paper) 98%,var(--ink))}
 .card-study .fact dt{margin-bottom:4px;font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
 .card-study .fact dd{font-size:17px;line-height:1.45}
 @media (max-height:700px){.card-study .fact{padding:10px 14px}.card-study .fact dd{font-size:15.5px}.card-study .drug{margin-bottom:12px}}
