@@ -1277,9 +1277,9 @@ function tile(o){
   </div>`;
 }
 // Строка препарата в списке ошибок и справочнике
-function drugRow(d, note){
+function drugRow(d, {note, match} = {}){
   return `<button class="row" type="button" data-act="drug" data-d="${DB_INDEX.get(d)}">
-    <span class="row-main"><span class="row-title">${esc(d[0])}</span><span class="row-sub">${esc(grpText(d))}</span></span>${note ? `<span class="row-note">${note}</span>` : ''}
+    <span class="row-main"><span class="row-title">${esc(d[0])}</span><span class="row-sub">${esc(grpText(d))}</span>${match ? `<span class="row-sub">${esc(match)}</span>` : ''}</span>${note ? `<span class="row-note">${note}</span>` : ''}
   </button>`;
 }
 
@@ -1595,26 +1595,44 @@ function viewMistakes(){
     <h2 class="section-title">${count(items.length)} в списке</h2>
     <div class="rows">${items.map(d => {
       const n = mistakes[d[0]].n;
-      return drugRow(d, n>1 ? `${n} ${plural(n,'ошибка','ошибки','ошибок')}` : '');
+      return drugRow(d, {note:n>1 ? `${n} ${plural(n,'ошибка','ошибки','ошибок')}` : ''});
     }).join('')}</div>
     <button class="btn btn-secondary btn-block list-end" type="button" data-act="clearMistakes">Очистить список</button>`;
 }
 
 // Справочник: поиск по названию, латыни, группе и другим названиям
-const REF = DB.map(d => ({d, key: normalizeAnswer([d[0], d[4], d[3], INFO[d[0]]?.s].join(' '))}))
-  .sort((a,b) => a.d[0].localeCompare(b.d[0], 'ru'));
+const REF_EXAMPLE = 'Propranololi';
+const REF = DB.map(d => {
+  const fields = [
+    {label:'Название', value:d[0]},
+    {label:'Латинское название', value:d[4]},
+    {label:'Группа', value:d[3]},
+    {label:'Другое название', value:INFO[d[0]]?.s}
+  ].map(field => ({...field, key:normalizeAnswer(field.value)}));
+  return {d, fields, key:fields.map(field => field.key).filter(Boolean).join(' ')};
+}).sort((a,b) => a.d[0].localeCompare(b.d[0], 'ru'));
 function refRows(q){
   const nq = normalizeAnswer(q);
-  const hits = nq ? REF.filter(r => r.key.includes(nq)) : REF;
-  return hits.length
-    ? `<div class="rows">${hits.map(r => drugRow(r.d)).join('')}</div>`
+  const rows = REF.flatMap(({d, fields, key}) => {
+    if(!nq) return [drugRow(d)];
+    if(!key.includes(nq)) return [];
+    const field = fields.find(field => field.key.includes(nq));
+    if(!field) return [drugRow(d, {match:'Совпадение по нескольким полям'})];
+    const match = field.label === 'Название' || field.label === 'Группа'
+      ? `Совпадение по полю «${field.label}»`
+      : `${field.label}: ${field.value}`;
+    return [drugRow(d, {match})];
+  });
+  return rows.length
+    ? `<div class="rows">${rows.join('')}</div>`
     : '<p class="empty-text">Ничего не нашлось. Проверьте написание или поищите по группе.</p>';
 }
 function viewReference(){
   setTop({back:'Меню'});
   return `<header class="page-head"><h1>Справочник</h1><p>Все ${count(DB.length)} по алфавиту. Нажмите на препарат, чтобы открыть его карточку.</p></header>
-    <div class="search">${ICON.search}<input class="input" id="refQuery" type="search" placeholder="Название, латынь или группа" aria-label="Поиск препарата"
+    <div class="search ref-search">${ICON.search}<input class="input" id="refQuery" type="search" placeholder="Название, латынь или группа" aria-label="Поиск препарата"
       autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></div>
+    <button class="ref-example" type="button" data-act="refExample">Попробовать <span lang="la">${REF_EXAMPLE}</span></button>
     <div id="refList">${refRows('')}</div>`;
 }
 
@@ -3296,6 +3314,11 @@ function askConfirm(title, text, ok, fn){
 const ACTIONS = {
   up: () => go(parentOf(mode)),
   go: el => go(el.dataset.mode),
+  refExample: () => {
+    const input = $id('refQuery');
+    input.value = REF_EXAMPLE;
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+  },
   ins: el => {                                           // быстрая вставка единицы в поле дозировки
     const inp = $id('f-dose'); if(!inp) return;
     const add = el.dataset.ins, pre = (add === '%' || /[\s(]$/.test(inp.value.slice(0, inp.selectionStart ?? inp.value.length)) || !inp.value) ? '' : ' ';
