@@ -537,6 +537,10 @@ function rxDoc(lines, firstLineNote = ''){
   };
   return row(m[1], lines[0][0].slice(m[0].length), '', firstLineNote) + lines.slice(1).map(([t, c]) => row('', t, c)).join('');
 }
+function recipeBlank(lines, {firstLineNote, abbreviate = false} = {}){
+  const short = abbreviate ? ` data-short="${esc(rxDoc(rxShort(lines)))}"` : '';
+  return `<div class="blank"><div class="rxd"${short}>${rxDoc(lines, firstLineNote)}</div></div>`;
+}
 // Эталонный рецепт: строки бланка + название формы выпуска + число «Выпиши»
 function rxBuild(d){
   const [, dose, route, group, latin] = d;
@@ -1355,7 +1359,7 @@ function viewHowTo(){
   setTop({back:'Меню', title:'Как писать рецепты'});
   const step = (n, title, body) => `<section class="ht-step"><div class="ht-head"><span class="ht-no">${n}</span><h2>${title}</h2></div>${body}</section>`;
   // под словом Recipe ничего не пишется: остальные строки начинаются правее него (кроме примера-нарушения)
-  const blank = (lines, firstLineNote) => `<div class="blank"><div class="rxd">${rxDoc(lines, firstLineNote)}</div></div>`;
+  const blank = (lines, firstLineNote) => recipeBlank(lines, {firstLineNote});
   return `<header class="page-head ht-intro"><h1>Как писать рецепты</h1>
     <p>Рецепт — письменное обращение врача к фармацевтическому работнику с предписанием о выдаче или изготовлении лекарственного средства для конкретного пациента. Выписывается на латинском языке по установленной форме; только <i>Signa</i> пишется на русском.</p></header>
 
@@ -1714,7 +1718,7 @@ function viewWriteBack(d, st, counter, actions){
   return `<article class="card wr-back" data-swipe>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d, {withInfo:true, counter, favorite:true})}
-    <div class="blank wr-blank"><div class="rxd wr-rx" data-short="${esc(rxDoc(rxShort(rxLines)))}">${rxDoc(rxLines)}</div></div>
+    ${recipeBlank(rxLines, {abbreviate:true})}
     ${rows}
     ${actions}
   </article>`;
@@ -1984,10 +1988,8 @@ function myrxLines(r, plain){
   }
 }
 // Бланк с рецептом; в полной записи длинные строки сами переходят на сокращения (fitRx)
-function myrxBlank(r, noStamp){
-  const lines = myrxLines(r), short = rxShort(lines);
-  const body = `<div class="rxd wr-rx" data-short="${esc(rxDoc(short))}">${rxDoc(lines)}</div>`;   // сокращения включаются сами, если строка не помещается (fitRx)
-  return `<div class="blank wr-blank">${body}</div>`;
+function myrxBlank(r){
+  return recipeBlank(myrxLines(r), {abbreviate:true});
 }
 function myrxPlain(r){
   const lines = myrxLines(r);
@@ -2785,7 +2787,7 @@ function viewMyList(){
     return `<details class="my-row${bad ? ' is-bad' : ''}" data-rx="${esc(r.id)}"${myrxOpen.has(r.id) ? ' open' : ''}>
       <summary class="my-row-s"><span class="my-row-t"><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${bad ? '<span class="my-row-warn" role="img" aria-label="Нужно дополнить">!</span>' : ''}<span class="my-dd-arr" aria-hidden="true">${ICON.chevron}</span></summary>
       <div class="my-row-b">
-        <div class="my-prev">${myrxBlank(r, true)}</div>
+        <div class="my-prev">${myrxBlank(r)}</div>
         ${bad ? `<p class="my-meta is-bad">${esc(bad)}</p>` : `<p class="my-meta is-on">${esc(myrxTestsText(r))}</p>`}
         <div class="my-acts">
           <button class="btn btn-secondary" type="button" data-act="myrxEdit" data-id="${esc(r.id)}">Изменить</button>
@@ -3931,12 +3933,11 @@ const TOURS = {
 };
 const TOURS_OLD_KEYS = ['pharma_tour_v1', 'pharma_tour_quiz_v1'];   // ключи прежнего единого обучения
 
-// Строки рецепта не переносятся: размер шрифта подбирается так, чтобы самая длинная строка помещалась целиком
-/* Целевой размер рецепта задаёт CSS (.blank .rxd). Короткие рецепты остаются на нём, длинные чуть уменьшаются (до FIT_MIN),
-   и только если и так не помещается — переходят на сокращения (Rp.:, D.t.d.n., S.:) и снова стремятся к целевому размеру */
+// Длинные строки сначала укорачиваются за счёт сокращений, затем при необходимости переносятся.
 const FIT_MIN = 14.5, FIT_MIN_SHORT = 13.5;
 function fitRx(){
   view.querySelectorAll('.rxd').forEach(box => {
+    box.classList.remove('is-wrapping');
     if(box.dataset.short && !box.dataset.full) box.dataset.full = box.innerHTML;
     if(box.dataset.full) box.innerHTML = box.dataset.full;
     const sized = box.querySelector('.with-side')?.parentElement || box;
@@ -3951,7 +3952,10 @@ function fitRx(){
       box.innerHTML = box.dataset.short;
       box.style.fontSize = '';
       shrink(FIT_MIN_SHORT);
-      if(over()) shrink(10);
+      if(over()){
+        box.style.fontSize = '';
+        box.classList.add('is-wrapping');
+      }
     }
   });
 }

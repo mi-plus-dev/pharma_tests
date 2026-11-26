@@ -555,7 +555,7 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rxd{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:.5em;align-items:baseline;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 .rxd::-webkit-scrollbar{display:none}
 .rxd .bl{display:contents}
-.blank .rxd{font-size:16px;font-family:"IBM Plex Sans Condensed","Roboto Condensed","PT Sans Narrow","Arial Narrow",var(--sans);font-weight:500;font-stretch:condensed;font-size-adjust:.5;font-size-adjust:from-font}
+.blank .rxd{font:500 16px/32px "IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",var(--sans);font-stretch:condensed;font-size-adjust:none;color:var(--ink)}
 /* и латиница, и русский текст в Signa — один шрифт, один размер, один вес */
 .rxd .k,.rxd .v,.rxd .v.wrap{font-family:inherit;font-size:1em;font-weight:inherit;font-stretch:inherit;font-size-adjust:inherit;line-height:inherit}
 .blank .rxd .bl{font-size:inherit}
@@ -563,17 +563,15 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 /* «Recipe:» / «Rp.:» — красный текст без плашки и рамки */
 .rxd .k:not(:empty){align-self:baseline;justify-self:start;padding:0;border:0;border-radius:0;background:none;color:var(--red);font:inherit;font-weight:700;letter-spacing:normal}
 .rxd .v.wrap{white-space:normal;overflow-wrap:break-word}
+.rxd.is-wrapping .v{white-space:normal;overflow-wrap:anywhere}
 .rxd .bl.in2 .v{padding-left:1.6em}
 .rxd .ru{font-size:1em}
-.ht-step .blank .rxd{font-family:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",var(--sans);font-size-adjust:none}
-@media (max-width:350px){.ht-step .rxd .bl:first-child .v{white-space:normal;overflow-wrap:break-word}}
+@media (max-width:350px){.rxd:not([data-short]) .bl:first-child .v{white-space:normal;overflow-wrap:break-word}}
 @media (max-width:350px){.ht-step .blank:has(.with-side){padding-inline:8px}}
 .rxd .v.with-side{display:flex;justify-content:space-between;gap:.4em;align-items:baseline}
 .rxd .with-side > span{white-space:nowrap}
 .rxd .side{color:var(--red)}
-.wr-rx{margin:2px 0 10px;font:500 15px/26px var(--sans);color:var(--ink)}
-.wr-rx .bl{font:inherit;color:inherit}
-.wr-rx .gap{color:var(--red)}
+.rxd .gap{color:var(--red)}
 .wr-res{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;margin:0 0 6px;padding:9px 12px;border:0;border-radius:var(--r-md);background:none}
 .wr-res.is-ok{background:none}
 .wr-res.is-no{background:none}
@@ -597,7 +595,7 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .wr-fix-row span{font-size:14px;font-weight:700;line-height:1.3;color:var(--good);overflow-wrap:anywhere}
 .wr-note{flex-basis:100%;font-size:12.5px;font-weight:600;line-height:1.3;color:var(--muted)}
 .wr-res.is-no .wr-body .wr-note{grid-column:1;grid-row:3}
-@media (max-height:720px){.wr-rx{line-height:24px}.wr-res{padding:7px 11px;margin-bottom:4px}}
+@media (max-height:720px){.wr-res{padding:7px 11px;margin-bottom:4px}}
 @media (prefers-reduced-motion:reduce){.card.wr-flip-in{animation:none}}
 
 /* Предупреждение о пропущенных вопросах в итогах */
@@ -608,13 +606,9 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .skip-warn .mistake.skipped{color:#182721}
 .skip-warn .btn{min-height:44px}
 
-/* Оборот «Впиши сам»: рецепт на бланке — Recipe: слева, остальные строки начинаются правее него */
-.blank.wr-blank{margin:2px 0 10px;padding:14px 12px 10px 14px;overflow:visible}
-.blank .wr-rx{margin:0;font-weight:500;line-height:32px}
-/* Рецепты в «Как писать рецепты» — тот же шрифт, что и в «Впиши сам» (IBM Plex Sans Condensed) */
+/* Recipe слева, остальные строки начинаются правее него */
 .blank .bl{font:500 16px/32px "IBM Plex Sans Condensed","Roboto Condensed","PT Sans Narrow","Arial Narrow",var(--sans);font-stretch:condensed;color:var(--ink)}
 .blank .rxd .bl{font:inherit;color:inherit}
-.blank .rxd{line-height:32px}
 
 /* ===== Обучение для нового пользователя: подсвечена одна кнопка, остальные скрыты ===== */
 .tour-block{position:fixed;inset:0;z-index:1000;background:transparent;touch-action:none}
