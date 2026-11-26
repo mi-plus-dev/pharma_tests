@@ -1,6 +1,6 @@
 /* Service worker: приложение целиком работает без интернета.
    Чтобы выпустить обновление, увеличьте номер в CACHE (pharma-v1 -> pharma-v2). */
-const CACHE = 'pharma-v111';
+const CACHE = 'pharma-v112';
 const FONTS = 'pharma-fonts-v1';   // шрифты лежат отдельно и переживают обновление приложения
 const CORE = ['./', './index.html', './style.css', './theme-dark.css', './data.js', './app.js', './recipe-bot.js', './diag.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/splash-icon.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg'];
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Golos+Text:wght@400;500;600;800&family=Marck+Script&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap';   // тот же адрес, что в index.html
@@ -12,7 +12,7 @@ self.addEventListener('install', e => {
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== FONTS).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => /^pharma-v\d+$/.test(k) && k !== CACHE).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -49,20 +49,16 @@ self.addEventListener('fetch', e => {
   const external = url.origin !== location.origin;
   if(external && !EXTRA_HOSTS.includes(url.hostname)) return;
   e.respondWith((async () => {
-    const hit = await caches.match(req, {ignoreSearch: req.mode === 'navigate'});
-    // кэш сразу, обновление в фоне (если есть сеть)
-    const net = fetch(req).then(res => {
-      // «непрозрачный» ответ нельзя проверить на ошибку: им не затираем уже сохранённый хороший ответ
-      if(res && (res.ok || (res.type === 'opaque' && !hit))){
-        const copy = res.clone();
-        caches.open(external ? FONTS : CACHE).then(c => c.put(req, copy));
-      }
+    const cache = await caches.open(external ? FONTS : CACHE);
+    const hit = await cache.match(req, {ignoreSearch: !external});
+    if(hit) return hit;
+    try{
+      const res = await fetch(req);
+      if(external && (res.ok || res.type === 'opaque')) await cache.put(req, res.clone());
       return res;
-    }).catch(() => null);
-    if(hit){ e.waitUntil(net); return hit; }
-    const res = await net;
-    if(res) return res;
-    if(req.mode === 'navigate') return (await caches.match('./index.html')) || Response.error();
-    return Response.error();
+    }catch{
+      if(req.mode === 'navigate') return (await cache.match('./index.html')) || Response.error();
+      return Response.error();
+    }
   })());
 });

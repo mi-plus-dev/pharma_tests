@@ -44,8 +44,7 @@
     if(log.length > LOG_MAX) log.shift();
   }
   function stateFlags(){
-    return 'nav=' + safe(() => navBusy ? 1 : 0, '?') +
-      ' inert=' + safe(() => document.querySelector('.app').inert ? 1 : 0, '?') +
+    return 'inert=' + safe(() => document.querySelector('.app').inert ? 1 : 0, '?') +
       ' tour=' + safe(() => tour ? 1 : 0, '?') +
       ' sheet=' + safe(() => sheetRoot.childElementCount, '?');
   }
@@ -91,19 +90,18 @@
       const panel = document.getElementById('diagPanel');
       if(panel && !panel.hidden) return;
       if(document.getElementById('tourBlock') || document.querySelector('.overlay') || document.body.classList.contains('is-locked')) return;
-      if(typeof navBusy !== 'undefined' && navBusy) return;
       const b = [...view.querySelectorAll('button, [data-act]')].find(e => { const r = e.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(e).visibility === 'visible'; });
       if(!b) return;
       const r = b.getBoundingClientRect(), x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
       const stack = document.elementsFromPoint(x, y);
-      const ok = stack.some(e => e === b || b.contains(e) || e.contains(b) && e !== document.documentElement && e !== document.body && e !== document.querySelector('.app') && e !== view);
+      const ok = b.contains(stack[0] || null);
       const btn = document.getElementById('diagBtn');
       if(!ok){
         if(!wasBroken){
           wasBroken = true;
           broken.push({t: stamp(), why, mode: safe(() => mode), body: document.body.className, line: desc(b) + ' в (' + x + ',' + y + ')', stack: stack.map(desc).join(' > '), chain: chainOf(b), recent: log.slice(-8)});
           if(broken.length > 5) broken.shift();
-          note('⚠⚠ HIT-TEST СЛОМАН: ' + desc(b) + ' не в стеке; сверху ' + desc(stack[0]));
+          note('⚠⚠ HIT-TEST СЛОМАН: ' + desc(b) + ' не получает касание; сверху ' + desc(stack[0]));
         }
         if(btn && !/⚠/.test(btn.textContent)) btn.textContent = '🐞 Диагностика ⚠';
       } else if(wasBroken){
@@ -135,7 +133,6 @@
     add('inertState', safe(() => JSON.stringify(inertState)));
     add('.app inert', safe(() => app.inert));
     add('окно снизу (sheet)', safe(() => sheetRoot.childElementCount + ' эл.'));
-    add('navBusy (навигация занята)', safe(() => navBusy));
     add('histIgnore / histWait', safe(() => histIgnore + ' / ' + histWait));
     add('история: длина / state', safe(() => history.length + ' / ' + JSON.stringify(history.state)));
     add('body class', safe(() => document.body.className || '(пусто)'));
@@ -196,13 +193,15 @@
         const r = b.getBoundingClientRect();
         const x = Math.round(Math.min(W - 1, Math.max(0, r.left + r.width / 2))), y = Math.round(Math.min(H - 1, Math.max(0, r.top + r.height / 2)));
         const top = document.elementFromPoint(x, y);
-        const ok = top === b || b.contains(top) || (top && top.contains(b));
+        const ok = b.contains(top);
         L.push((ok ? 'OK       ' : 'ПЕРЕКРЫТА ') + desc(b) + ' (' + x + ',' + y + ') поверх: ' + desc(top) + ' pe=' + getComputedStyle(b).pointerEvents + (b.closest('[inert]') ? ' [inert]' : '') + (b.disabled ? ' [disabled]' : ''));
       });
       if(!btns.length) L.push('(кнопок в области видимости нет)');
     });
     safe(() => {
-      const b = document.getElementById('backBtn'), r = b.getBoundingClientRect();
+      const b = document.getElementById('backBtn');
+      if(b.hidden) return;
+      const r = b.getBoundingClientRect();
       const top = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
       L.push('кнопка «назад»/«Меню» → поверх: ' + desc(top) + (b.closest('[inert]') ? ' [inert]' : ''));
     });

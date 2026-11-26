@@ -942,8 +942,7 @@ function saveView(){
   lastViewJson = j;
   store.set(KEYS.view, v);
 }
-function restoreView(){
-  const v = objOf(store.get(KEYS.view));
+function restoreView(v = objOf(store.get(KEYS.view))){
   const okIdx = i => Number.isInteger(i) && i>=0 && i<BLOCKS.length;
   if(okIdx(v.studyBlockIdx)) lastBlock.study = v.studyBlockIdx;
   if(okIdx(v.wbBlockIdx)) lastBlock.writeBlock = v.wbBlockIdx;
@@ -3189,7 +3188,6 @@ function draw(){
     } else if(scrollY > 0) scrollTo({top:0, behavior:'instant'});   // другой экран — сразу с начала
   }
   else if(Math.abs(scrollY - keepY) > 1) scrollTo({top:keepY, behavior:'instant'});   // тот же вопрос (например, после «Проверить») — экран не двигаем
-  enterScreen();
   fitRx();
   view.querySelectorAll('textarea[data-my]').forEach(autosizeArea);
   myrxNeedUpdate();
@@ -3204,18 +3202,7 @@ function draw(){
   }
 }
 function render(){ kbBarHide(); draw(); syncHistory(); }
-// Переход между экранами: старый уходит в сторону, новый въезжает — направление зависит от глубины
 const canAnimate = () => !!view.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-let shownMode = null, navBusy = false;
-function enterScreen(){
-  const from = shownMode;
-  shownMode = mode;
-  if(from===null || from===mode || !canAnimate()) return;
-  const dir = depthOf(mode) >= depthOf(from) ? 1 : -1;
-  view.animate([{transform:`translateX(${dir*34}px)`, opacity:0}, {transform:'none', opacity:1}], {duration:230, easing:'cubic-bezier(.2,.8,.25,1)'});
-}
-const NAV_ACTS = new Set(['up','go','howWrite','openSemTest','openSem','open','openTopic','openFav','openMistakes','myGrpOpen','myGrpTest']);
-
 /* ===================== Нижнее окно: сведения и подтверждения ===================== */
 const sheetRoot = $id('sheetRoot');
 let sheetOpener = null, onConfirm = null;
@@ -3599,25 +3586,7 @@ document.addEventListener('click', e => {
   if(!el || el.disabled) return;
   const act = el.dataset.act, fn = ACTIONS[act];
   if(!fn) return;
-  if(NAV_ACTS.has(act) && canAnimate() && !sheetRoot.childElementCount){
-    if(navBusy) return;
-    navBusy = true;
-    const out = view.animate([{transform:'none', opacity:1}, {transform:`translateX(${act==='up' ? 22 : -22}px)`, opacity:0}], {duration:110, easing:'ease-in', fill:'forwards'});
-    // Переход выполняется ровно один раз: по окончанию анимации, по её отмене (например, вкладка скрыта)
-    // или по страховочному таймеру 400 мс — что наступит раньше. Иначе navBusy остался бы true и навигация зависла.
-    let done = false;
-    const go = () => {
-      if(done) return;
-      done = true;
-      clearTimeout(guard);
-      out.onfinish = out.oncancel = null;
-      try{ fn(el, e); } finally { try{ out.cancel(); }catch(_){} navBusy = false; }
-    };
-    const guard = setTimeout(go, 400);
-    out.onfinish = go;
-    out.oncancel = go;
-    return;
-  }
+
   fn(el, e);
 });
 function autosizeArea(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 4 + 'px'; }
@@ -3862,19 +3831,27 @@ function syncHistory(){
     let c = histCur();
     if(d > c){
       if(!userActive()){ deferSync(); return; }
-      while(c < d){ c++; history.pushState({d:c}, ''); }
+      const route = JSON.parse(lastViewJson);
+      const path = [mode];
+      while(path.length <= d) path.unshift(parentOf(path[0]));
+      while(c < d){
+        c++;
+        history.pushState({d:c, route:{...route, mode:path[c]}}, '');
+      }
     } else if(d < c){
       if(histIgnore > 0) return;      // предыдущий переход по истории ещё не завершился — второй не запускаем
       histIgnore++;
       setTimeout(() => { histIgnore = 0; }, 600);
       history.go(d - c);
+    } else if(JSON.stringify(history.state?.route) !== lastViewJson){
+      history.replaceState({d, route:JSON.parse(lastViewJson)}, '');
     }
   }catch{}
 }
 addEventListener('popstate', e => {
-  if(histIgnore > 0){ histIgnore--; refreshDocTitle(); return; }
+  if(histIgnore > 0){ histIgnore--; syncHistory(); refreshDocTitle(); return; }
   if(closeSheet()){ // открыто окно «i» — закрываем его и остаёмся на экране
-    try{ history.pushState({d: depthOf(mode)}, ''); }catch{}
+    try{ history.pushState({d: depthOf(mode), route:JSON.parse(lastViewJson)}, ''); }catch{}
     return;
   }
   const target = (e.state && typeof e.state.d==='number') ? e.state.d : 0;
@@ -3882,6 +3859,11 @@ addEventListener('popstate', e => {
     flushSave();
     while(depthOf(mode) > target) mode = parentOf(mode);
     draw();
+  } else if(target > depthOf(mode)){
+    flushSave();
+    if(e.state?.route) restoreView(e.state.route);
+    draw();
+    if(depthOf(mode) !== target) history.replaceState({d:depthOf(mode), route:JSON.parse(lastViewJson)}, '');
   }
 });
 
@@ -4150,7 +4132,7 @@ document.addEventListener('keydown', e => {
   } else if(e.key === 'ArrowLeft'){ e.preventDefault(); e.stopPropagation(); tourBack(); }
 }, true);
 
-try{ history.replaceState({d:0}, ''); }catch{}
+
 edgeFallback();
 restoreView();
 render();
@@ -4158,9 +4140,11 @@ tourAutostart();
 
 /* Работа без интернета: service worker кэширует страницу, данные, иконки и шрифты */
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
-  const hadController = !!navigator.serviceWorker.controller;
+  let hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(!hadController || updateReady) return;   // первая установка — не обновление
+    if(!navigator.serviceWorker.controller) return;
+    if(!hadController){ hadController = true; return; }
+    if(updateReady) return;   // первая установка — не обновление
     updateReady = true;
     if(mode==='menu') render();
   });
