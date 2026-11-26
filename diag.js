@@ -68,12 +68,24 @@
   addEventListener('unhandledrejection', e => note('⚠ необработанный promise: ' + (e.reason && e.reason.message || e.reason)));
 
   /* ---------- Сторож: сам ловит момент, когда кнопки перестают принимать касания ----------
-     После каждого касания/перехода (через 450 мс, когда анимации закончились) берёт первую видимую кнопку
-     экрана и проверяет, есть ли она вообще в стеке elementsFromPoint. Если нет — записывает стек, цепочку
+     После касания или перехода берёт первую кнопку с доступным центром и проверяет верх стека elementsFromPoint.
+     Если сверху оказался посторонний элемент — записывает стек, цепочку
      родителей и последние строки журнала касаний в отдельный список (он не вытесняется журналом на 30 строк)
      и добавляет ⚠ на кнопку «Диагностика». Окна, подсказка и сама панель диагностики за поломку не считаются. */
   const broken = [];
   let wasBroken = false, wdTimer = 0;
+  function* visibleControlCenters(view, selector){
+    const topbar = document.querySelector('.topbar')?.getBoundingClientRect();
+    for(const b of view.querySelectorAll(selector)){
+      const r = b.getBoundingClientRect();
+      if(!r.width || !r.height) continue;
+      const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      if(x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) continue;
+      // При прокрутке список закономерно уходит под закреплённую панель.
+      if(topbar && x >= topbar.left && x < topbar.right && y >= topbar.top && y < topbar.bottom) continue;
+      if(getComputedStyle(b).visibility === 'visible') yield {b, x, y};
+    }
+  }
   function chainOf(b){
     const out = [];
     for(let e = b; e && e.nodeType === 1; e = e.parentElement){
@@ -90,9 +102,9 @@
       const panel = document.getElementById('diagPanel');
       if(panel && !panel.hidden) return;
       if(document.getElementById('tourBlock') || document.querySelector('.overlay') || document.body.classList.contains('is-locked')) return;
-      const b = [...view.querySelectorAll('button, [data-act]')].find(e => { const r = e.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(e).visibility === 'visible'; });
-      if(!b) return;
-      const r = b.getBoundingClientRect(), x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      const [target] = visibleControlCenters(view, 'button, [data-act]');
+      if(!target) return;
+      const {b, x, y} = target;
       const stack = document.elementsFromPoint(x, y);
       const ok = b.contains(stack[0] || null);
       const btn = document.getElementById('diagBtn');
@@ -166,9 +178,9 @@
 
     L.push('', '=== СТЕК В ТОЧКЕ ПЕРВОЙ КНОПКИ (elementsFromPoint) ===');
     safe(() => {
-      const b0 = [...view.querySelectorAll('button, [data-act]')].find(b => { const r = b.getBoundingClientRect(); return r.width && r.height && r.top >= 0 && r.bottom <= innerHeight; });
-      if(!b0){ L.push('(кнопок нет)'); return; }
-      const r = b0.getBoundingClientRect(), x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      const [target] = visibleControlCenters(view, 'button, [data-act]');
+      if(!target){ L.push('(центры кнопок вне доступной области экрана)'); return; }
+      const {b:b0, x, y} = target;
       L.push('кнопка ' + desc(b0) + ' в (' + x + ',' + y + ')');
       L.push('стек сверху вниз: ' + document.elementsFromPoint(x, y).map(desc).join(' > '));
       const chain = []; for(let e = b0; e && e.nodeType === 1; e = e.parentElement){ const c = getComputedStyle(e); chain.push(desc(e) + ' pe=' + c.pointerEvents + ' vis=' + c.visibility + ' pos=' + c.position + ' z=' + c.zIndex + ' tf=' + c.transform + ' op=' + c.opacity + ' cv=' + c.contentVisibility + ' ct=' + c.contain + (e.hasAttribute('inert') ? ' [INERT]' : '') + (e.inert ? ' [inert=true]' : '') + ' ' + Math.round(e.getBoundingClientRect().top) + '..' + Math.round(e.getBoundingClientRect().bottom)); }
@@ -188,15 +200,14 @@
     });
     L.push('--- центры кнопок на экране ---');
     safe(() => {
-      const btns = [...view.querySelectorAll('button, [data-act], a, input')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.height && r.bottom > 0 && r.top < H; }).slice(0, 8);
-      btns.forEach(b => {
-        const r = b.getBoundingClientRect();
-        const x = Math.round(Math.min(W - 1, Math.max(0, r.left + r.width / 2))), y = Math.round(Math.min(H - 1, Math.max(0, r.top + r.height / 2)));
+      let count = 0;
+      for(const {b, x, y} of visibleControlCenters(view, 'button, [data-act], a, input')){
         const top = document.elementFromPoint(x, y);
         const ok = b.contains(top);
         L.push((ok ? 'OK       ' : 'ПЕРЕКРЫТА ') + desc(b) + ' (' + x + ',' + y + ') поверх: ' + desc(top) + ' pe=' + getComputedStyle(b).pointerEvents + (b.closest('[inert]') ? ' [inert]' : '') + (b.disabled ? ' [disabled]' : ''));
-      });
-      if(!btns.length) L.push('(кнопок в области видимости нет)');
+        if(++count === 8) break;
+      }
+      if(!count) L.push('(центры кнопок вне доступной области экрана)');
     });
     safe(() => {
       const b = document.getElementById('backBtn');
