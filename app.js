@@ -1315,13 +1315,8 @@ const HTQ = [
    e:'Для инъекций пишут, сколько ампул выдать. Без этого сразу идёт Da. Signa: — выдаётся один стандартный флакон (например, капли).'}
 ];
 function htqHtml(){
-  return `<div class="htq" data-i="-1" data-res="">
-    <div class="htq-intro">
-      <p>Шесть коротких вопросов по этому разделу — по одному на экране. После ответа сразу видно, верно ли, и почему.</p>
-      <button class="btn btn-primary btn-block" type="button" data-act="htqStart">Начать тест</button>
-    </div>
-    <div class="htq-stage" aria-live="polite" hidden></div>
-  </div>`;
+  return `<p>Шесть коротких вопросов по этому разделу.</p>
+    <button class="btn btn-primary btn-block" type="button" data-act="htqStart">Начать тест</button>`;
 }
 // Отрисовка текущего шага теста (вопрос или итог); состояние хранится в data-атрибутах корня
 function htqRender(root){
@@ -1350,24 +1345,20 @@ function htqRender(root){
     <button class="btn btn-primary btn-block htq-next" type="button" data-act="htqNext" hidden>${i === n - 1 ? 'Показать результат' : 'Далее'}</button>`;
 }
 function htqScroll(root){
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  try{ root.scrollIntoView({block:'start', behavior: calm ? 'auto' : 'smooth'}); }catch(_){}
-  const t = root.querySelector('.htq-t'); if(t) try{ t.focus({preventScroll:true}); }catch(_){}
+  root.closest('.sheet').scrollTop = 0;
+  root.querySelector('.htq-t, [data-act="htqStart"]').focus({preventScroll:true});
 }
 function viewHowTo(){
   setTop({back:'Меню', title:'Как писать рецепты'});
   const step = (n, title, body) => `<section class="ht-step"><div class="ht-head"><span class="ht-no">${n}</span><h2>${title}</h2></div>${body}</section>`;
   // под словом Recipe ничего не пишется: остальные строки начинаются правее него (кроме примера-нарушения)
-  const blank = (lines, extra='', cls='') => cls.includes('is-struck')
-    ? `<div class="blank${cls ? ' '+cls : ''}">${extra}${lines.map(([t,c]) => `<span class="bl${c ? ' '+c : ''}">${t}</span>`).join('')}</div>`
-    : `<div class="blank${cls ? ' '+cls : ''}">${extra}<div class="rxd">${rxDoc(lines)}</div></div>`;
-  return `<header class="page-head"><h1>Как писать рецепты</h1>
+  const blank = (lines, extra='') => `<div class="blank"><div class="rxd">${rxDoc(lines)}</div>${extra}</div>`;
+  return `<header class="page-head ht-intro"><h1>Как писать рецепты</h1>
     <p>Рецепт — письменное обращение врача к фармацевтическому работнику с предписанием о выдаче или изготовлении лекарственного средства для конкретного пациента. Выписывается на латинском языке по установленной форме; только <i>Signa</i> пишется на русском.</p></header>
 
     ${step(1, 'Начинается с Recipe:', `
       <p>Каждый рецепт начинается со слова <i>Recipe:</i> (то есть «Возьми:»). Иногда сокращают как <i>Rp.:</i></p>
-      <p class="ht-note"><b>Уточните у преподавателя,</b> можно ли использовать сокращения. На экзамене сокращать крайне нежелательно.</p>
-      <p><b>Под</b> <i>Rp.</i> / <i>Recipe</i> нельзя ничего писать на всём протяжении рецепта.</p>
+      <p>Под <i>Rp.</i> / <i>Recipe</i> нельзя ничего писать на всём протяжении рецепта.</p>
       <div class="blank is-struck"><div class="ban"><span class="bl">Recipe:</span><span class="ban-x" role="img" aria-label="Под словом Recipe писать нельзя"></span></div></div>`)}
 
     ${step(2, 'Лекарственная форма', `
@@ -1384,9 +1375,9 @@ function viewHowTo(){
       <p>Есть рецепты, в которых форма в начале не указывается — их разберём ниже (шаг 9).</p>`)}
 
     ${step(3, 'Препарат и дозировка', `
-      <p>Допустим, пишем рецепт на препарат <b>лабеталол</b>. Название препарата тоже пишется на латыни — <b>с заглавной буквы</b> и в <b>косвенном падеже</b> (родительном, <i>Genitivus</i>).</p>
+      <p>Допустим, пишем рецепт на препарат лабеталол. Название препарата тоже пишется на латыни — с заглавной буквы и в родительном падеже.</p>
       ${blank([['Recipe: Tabulettas Labetaloli 0,1','']])}
-      <p>Дозировки, например таблеток, пишутся в граммах: 100 миллиграмм — это десятая доля грамма, то есть <b>0,1</b>.</p>
+      <p>Дозировки, например таблеток, пишутся в граммах: 100 миллиграмм — это десятая доля грамма, то есть 0,1.</p>
       <p>Количество вещества пишется в правой части строки:</p>
       <div class="ht-key">
         <div><span class="ht-lat">1,0</span>1 г</div>
@@ -1399,35 +1390,34 @@ function viewHowTo(){
 
     ${step(4, 'Da tales doses или Da. Signa', `
       <p>Затем следуют либо слова <i>Da tales doses numero</i>, либо <i>Da. Signa:</i></p>
-      <p class="ht-note">Это указание фармацевту — <i>Subscriptio</i>.</p>
       <div class="ht-key">
-        <div><span class="ht-lat">D.t.d.n.</span>Da tales doses numero — «Выдай такие дозы числом» (в таком количестве); встречается и написание <i>D.t.d. N.</i></div>
-        <div><span class="ht-lat">D.S.:</span>Da. Signa: — «Выдай. Обозначь.» (после — двоеточие)</div>
+        <div><span class="ht-lat">D.t.d.n.</span><i>Da tales doses numero</i> — «Выдай такие дозы числом» (в таком количестве); встречается и написание <i>D.t.d. N.</i></div>
+        <div><span class="ht-lat">D.S.:</span><i>Da. Signa:</i> — «Выдай. Обозначь.» (после — двоеточие)</div>
       </div>
       <p>Если форму нужно уточнить, после числа добавляют её название: <i>in tabulettis</i> («в таблетках»), <i>in ampullis</i> («в ампулах»).</p>
       ${blank([['Recipe: Tabulettas Labetaloli 0,1',''],['Da tales doses numero 30','in1']])}`)}
 
     ${step(5, 'Signa — инструкция', `
-      <p>Последний пункт рецепта — <i>Signa</i>. После этого слова с двоеточием идёт инструкция для пациента на русском языке. Также может быть инструкция для фармацевта (<i>сначала разведи препарат так-то, затем отдай больному и объясни, что с ним делать</i>).</p>
-      <p>В <i>Signa</i> указывают: <b>путь введения, дозу, кратность</b> и, если это важно, <b>время приёма относительно еды</b> (до еды, после еды, во время еды).</p>
-      <p class="ht-note">Некоторые преподаватели считают обязательным указывать здесь <b>в первую очередь путь введения</b>: внутрь, сублингвально, внутримышечно, подкожно и т. д.</p>
-      ${blank([['Recipe: Tab. Labetaloli 0,1',''],['D.t.d.n. 30','in1'],['Signa: внутрь, по 1 таблетке','in1'],['3 раза в день','in2']])}
-      <p>Этот рецепт предписывает выдать таблетки лабеталола по 100 мг в количестве 30 штук; пациенту принимать по одной трижды в день.</p>`)}
+      <p>Последний пункт рецепта — <i>Signa</i>. После этого слова с двоеточием идёт инструкция для пациента на русском языке.</p>
+      <p>В <i>Signa</i> указывают: путь введения, дозу, кратность и, если это важно, время приёма относительно еды (до еды, после еды, во время еды).</p>
+      <p>Обязательно указывайте здесь путь введения: внутрь, сублингвально, в/м (внутримышечно), п/к (подкожно) и т. д.</p>
+      ${blank([['Recipe: Tab. Labetaloli 0,1',''],['D.t.d.n. 30','in1'],['Signa: внутрь, по 1 таблетке 3 раза в день','in1']])}
+      <p class="ht-note">Этот рецепт предписывает выдать таблетки лабеталола по 100 мг в количестве 30 штук; пациенту принимать по одной трижды в день.</p>`)}
 
     ${step(6, 'Раствор: флакон и ампулы', `
-      <p>Теперь не таблетки, а раствор. Концентрация указывается <b>первой</b>, затем тире и объём.</p>
-      ${blank([['Recipe: Solutionis Naphazolini 0,1% — 10 ml',''],['Da. Signa: интраназально, по 1–2','in1'],['капли 3 р/д','in2']])}
-      <p>Здесь не указано количество и не указано, в чём должен быть раствор. Сразу пишется <i>Da. Signa:</i> — фармацевту понятно, что нужно выдать один стандартный заводской флакон (сосудосуживающие капли в нос).</p>
-      <p>Но если раствор для <b>инъекций или капельных вливаний</b>, обязательно пишем, что нужно выдать определённое число ампул:</p>
+      <p>Теперь не таблетки, а раствор. Концентрация указывается первой, затем тире и объём.</p>
+      ${blank([['Recipe: Solutionis Naphazolini 0,1% — 10 ml',''],['Da. Signa: интраназально, по 1–2 капли 3 р/д','in1']])}
+      <p>Здесь не указано количество и не указано, в чём должен быть раствор. Сразу пишется <i>Da. Signa:</i> — фармацевту понятно, что нужно выдать один стандартный заводской флакон.</p>
+      <p>Но если раствор для инъекций или капельных вливаний, обязательно пишем, что нужно выдать определённое число ампул:</p>
       ${blank([['Rp.: Solutionis Coffeini natrii benzoatis 10% — 1 ml',''],['Da tales doses numero 6 in ampullis','in1'],['S.: подкожно, по 1 мл 2 р/д','in1']])}
-      <p class="ht-note"><b>Сокращать — так сокращать.</b> Если вы сократили <i>Recipe</i> до <i>Rp.</i>, сокращайте и дальше в этом рецепте. Либо сокращаете всё, что можно, либо пишете полностью. (В примере выше этот принцип мы проигнорировали.)</p>`)}
+      <p class="ht-note">Сокращать — так сокращать. Если вы сократили <i>Recipe</i> до <i>Rp.</i>, сокращайте и дальше в этом рецепте. Либо сокращаете всё, что можно, либо пишете полностью. (В примере выше этот принцип мы проигнорировали.)</p>`)}
 
     ${step(7, 'Группа препарата', `
       <p>Важный момент для студентов: не забудьте указать <b>где-нибудь в сторонке</b>, к какой фармакологической группе принадлежит препарат (альфа-адреноблокатор, кардиотоник и так далее).</p>
       ${blank([['Recipe: Tab. Labetaloli 0,1',''],['D.t.d.n. 30','in1'],['S.: внутрь, по 1 таб. 3 р/д','in1']], '<span class="side">α- и β-адреноблокатор</span>')}`)}
 
     ${step(8, 'Кавычки: торговое название', `
-      <p>Кавычки используются, когда пишем <b>торговое название</b> препарата. Таблетки «Афобазол» не содержат действующего вещества афобазол (такого вещества не существует), поэтому нельзя написать <i>таблетки афобазола</i> — пишем в <b>именительном падеже</b>:</p>
+      <p>Кавычки используются, когда пишем <b>торговое название</b> препарата. Таблетки «Афобазол» не содержат действующего вещества афобазол (такого вещества не существует), поэтому <b>нельзя</b> написать <i>Tabulettas Aphobazoli</i>. Пишем в <b>именительном падеже</b>:</p>
       ${blank([['Rp.: Tabulettas «Aphobazolum» 0,01',''],['D.t.d.n. 50','in1'],['S.: внутрь, по 1 таб. 2 р/д','in1']])}`)}
 
     ${step(9, 'Форма не в начале', `
@@ -3246,11 +3236,11 @@ function setInert(key, on){
   const app = document.querySelector('.app');
   if(app) app.inert = inertState.sheet || inertState.tour;
 }
-function openSheet(inner){
+function openSheet(inner, {centered = false} = {}){
   onConfirm = null;
   sheetOpener = document.activeElement;
-  sheetRoot.innerHTML = `<div class="overlay" data-act="overlay">
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1"><div class="sheet-handle"></div>${inner}</div>
+  sheetRoot.innerHTML = `<div class="overlay${centered ? ' overlay-centered' : ''}" data-act="overlay">
+    <div class="sheet${centered ? ' sheet-centered' : ''}" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">${centered ? '' : '<div class="sheet-handle"></div>'}${inner}</div>
   </div>`;
   document.body.classList.add('is-locked');
   setInert('sheet', true);
@@ -3337,11 +3327,15 @@ const ACTIONS = {
     inp.setRangeText(pre + add, a, b, 'end');
     inp.dispatchEvent(new Event('input', {bubbles:true}));
   },
-  htqStart: el => {                                      // тест открывается по кнопке (и перезапускается ею же)
-    const root = el.closest('.htq'); if(!root) return;
+  htqStart: el => {
+    if(!el.closest('.htq')){
+      openSheet(`<div class="htq-head">
+        <h2 class="sheet-title" id="sheetTitle">Проверь себя</h2>
+        <button class="htq-close" type="button" data-act="close" aria-label="Закрыть тест">×</button>
+      </div><div class="htq"><div class="htq-stage" aria-live="polite"></div></div>`, {centered:true});
+    }
+    const root = sheetRoot.querySelector('.htq');
     root.dataset.i = '0'; root.dataset.res = '';
-    root.querySelector('.htq-intro').hidden = true;
-    root.querySelector('.htq-stage').hidden = false;
     htqRender(root); htqScroll(root);
   },
   htq: el => {                                           // ответ на вопрос
