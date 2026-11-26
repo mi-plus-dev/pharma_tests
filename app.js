@@ -1328,7 +1328,7 @@ function htqRender(root){
   delete st.dataset.answered;
   const i = +root.dataset.i, res = root.dataset.res || '', n = HTQ.length;
   root.closest('.sheet').querySelector('.htq-dots').innerHTML = Array.from({length:n}, (_, k) =>
-    `<span class="htq-dot${res[k] === 'c' ? ' is-ok' : res[k] === 'w' ? ' is-no' : k === i ? ' is-cur' : ''}"></span>`).join('');
+    `<span class="htq-dot${res[k] === 'c' ? ' is-ok' : res[k] === 'w' ? ' is-no' : ''}"></span>`).join('');
   if(i >= n){
     const good = (res.match(/c/g) || []).length;
     const msg = good === n ? 'Отлично, всё верно!' : good >= n - 2 ? 'Хороший результат. Разберите ошибки ниже.' : 'Стоит перечитать раздел и пройти тест ещё раз.';
@@ -3341,7 +3341,7 @@ const ACTIONS = {
       if(j === it.a) b.classList.add('is-correct'); else if(j === pick) b.classList.add('is-wrong');
     });
     const dot = root.closest('.sheet').querySelectorAll('.htq-dot')[i];
-    if(dot){ dot.classList.remove('is-cur'); dot.classList.add(ok ? 'is-ok' : 'is-no'); }
+    if(dot) dot.classList.add(ok ? 'is-ok' : 'is-no');
     const fb = st.querySelector('.htq-fb');
     fb.className = 'htq-fb ' + (ok ? 'is-ok' : 'is-no');
     fb.innerHTML = `<b>${ok ? 'Верно!' : 'Не совсем.'}</b> ${it.e}`;
