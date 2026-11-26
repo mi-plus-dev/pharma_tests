@@ -1327,14 +1327,14 @@ function htqRender(root){
   const st = root.querySelector('.htq-stage');
   delete st.dataset.answered;
   const i = +root.dataset.i, res = root.dataset.res || '', n = HTQ.length;
-  const dots = Array.from({length:n}, (_, k) =>
+  root.closest('.sheet').querySelector('.htq-dots').innerHTML = Array.from({length:n}, (_, k) =>
     `<span class="htq-dot${res[k] === 'c' ? ' is-ok' : res[k] === 'w' ? ' is-no' : k === i ? ' is-cur' : ''}"></span>`).join('');
   if(i >= n){
     const good = (res.match(/c/g) || []).length;
     const msg = good === n ? 'Отлично, всё верно!' : good >= n - 2 ? 'Хороший результат. Разберите ошибки ниже.' : 'Стоит перечитать раздел и пройти тест ещё раз.';
     const missed = HTQ.map((it, k) => res[k] === 'w'
       ? `<li><span class="htq-mq">${it.q}</span><span class="htq-ma">Верно: ${it.o[it.a]}</span></li>` : '').join('');
-    st.innerHTML = `<div class="htq-top"><span class="htq-count">Результат</span><span class="htq-dots" aria-hidden="true">${dots}</span></div>
+    st.innerHTML = `<div class="htq-top"><span class="htq-count">Результат</span></div>
       <p class="htq-big">${good}<small> из ${n}</small></p>
       <p class="htq-msg">${msg}</p>
       ${missed ? `<p class="htq-sub">Над чем стоит подумать:</p><ul class="htq-miss">${missed}</ul>` : ''}
@@ -1342,8 +1342,7 @@ function htqRender(root){
     return;
   }
   const it = HTQ[i], L = ['А', 'Б', 'В', 'Г'];
-  st.innerHTML = `<div class="htq-top"><span class="htq-count">Вопрос ${i + 1} из ${n}</span><span class="htq-dots" aria-hidden="true">${dots}</span></div>
-    <p class="htq-t" tabindex="-1">${it.q}</p>
+  st.innerHTML = `<p class="htq-t" tabindex="-1"><span class="sr-only">Вопрос ${i + 1} из ${n}. </span>${it.q}</p>
     <div class="htq-opts">${it.o.map((t, j) => `<button class="opt" type="button" data-act="htq" data-o="${j}"><span class="htq-ltr">${L[j]}</span><span class="htq-txt">${t}</span></button>`).join('')}</div>
     <div class="htq-fb" hidden></div>
     <button class="btn btn-primary btn-block htq-next" type="button" data-act="htqNext" hidden>${i === n - 1 ? 'Показать результат' : 'Далее'}</button>`;
@@ -3323,6 +3322,7 @@ const ACTIONS = {
     if(!el.closest('.htq')){
       openSheet(`<div class="htq-head">
         <h2 class="sheet-title" id="sheetTitle">Проверь себя</h2>
+        <div class="htq-dots" aria-hidden="true"></div>
         <button class="htq-close" type="button" data-act="close" aria-label="Закрыть тест">×</button>
       </div><div class="htq"><div class="htq-stage" aria-live="polite"></div></div>`, {centered:true});
     }
@@ -3340,7 +3340,7 @@ const ACTIONS = {
       b.disabled = true;
       if(j === it.a) b.classList.add('is-correct'); else if(j === pick) b.classList.add('is-wrong');
     });
-    const dot = st.querySelectorAll('.htq-dot')[i];
+    const dot = root.closest('.sheet').querySelectorAll('.htq-dot')[i];
     if(dot){ dot.classList.remove('is-cur'); dot.classList.add(ok ? 'is-ok' : 'is-no'); }
     const fb = st.querySelector('.htq-fb');
     fb.className = 'htq-fb ' + (ok ? 'is-ok' : 'is-no');
