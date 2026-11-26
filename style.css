@@ -84,7 +84,7 @@ h1,h2,h3{font-family:var(--display)}
 .rx-head{margin:22px 2px 0}
 .rx-sec{display:flex;align-items:center;gap:.8rem;margin:34px 2px 16px;font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--green)}.rx-sec::after{content:"";flex:1;border-top:2px solid var(--line)}.rx-brand{display:flex;align-items:center;gap:14px;margin-top:0}
 .rx-title{margin:0;font-family:var(--display);font-size:clamp(35px,10.9vw,45.5px);line-height:1.05;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
-.rx-r{color:var(--red)}
+.rx-r{color:var(--icon,#2465AF)}
 .rx-rows{display:grid;gap:14px;padding:0 5px 5px 0}
 .rx-row{position:relative;display:flex;align-items:center;width:100%;min-height:58px;padding:0 0 0 18px;border:2px solid var(--edge);border-radius:var(--r-md);overflow:hidden;background:var(--card);color:var(--ink);text-align:left;font-family:var(--sans);font-size:16px;font-weight:600;line-height:1.25;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,background .15s}
 @media (hover:hover){.rx-row:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}}
@@ -93,6 +93,8 @@ h1,h2,h3{font-family:var(--display)}
 .rx-lbl{flex:1;min-width:0}
 .rx-pg{flex:none;margin:0 12px 0 8px;font-family:var(--display);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
 .rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+.rx-ico-line{display:grid;place-items:center;flex:none;width:72px;height:56px;margin:0 2px 0 4px;color:var(--icon,var(--ink))}
+.rx-ico-line svg{width:44px;height:44px;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 .rx-i-cad{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
 .rx-i-book{-webkit-mask-size:54px 31px;mask-size:54px 31px;-webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
 .rx-i-scis{-webkit-mask-size:64px 49px;mask-size:64px 49px;-webkit-mask-image:url("icons/scis.svg");mask-image:url("icons/scis.svg")}

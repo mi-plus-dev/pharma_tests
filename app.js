@@ -1449,9 +1449,21 @@ function viewHowTo(){
     <button class="btn btn-secondary btn-block list-end" type="button" data-act="up">К меню</button>`;
 }
 
-function rxRow(attrs, no, title, icon){
+const HOME_ICONS = {
+  clip:'<path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8M14 4h3a2 2 0 0 1 2 2v6M8 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H8zM6 10l1.5 1.5L10 9m2 1h4M6 15l1.5 1.5L10 14"/><rect x="13" y="16" width="10" height="5" rx="2.5" transform="rotate(-45 18 18.5)"/><path d="m16.2 16.7 3.6 3.6"/>',
+  book:'<path d="M12 6c-2.6-2.2-6.1-3-10-2v15c3.9-1 7.4-.2 10 2 2.6-2.2 6.1-3 10-2V4c-3.9-1-7.4-.2-10 2zm0 0v15M5 8c1.5-.2 3 .1 4 1m-4 3c1.5-.2 3 .1 4 1m10-5c-1.5-.2-3 .1-4 1m4 3c-1.5-.2-3 .1-4 1"/>',
+  star:'<path d="m12 2.5 2.9 5.9 6.5 1-4.7 4.6 1.1 6.5-5.8-3.1-5.8 3.1 1.1-6.5-4.7-4.6 6.5-1z"/>',
+  cad:'<circle cx="12" cy="3.5" r="1.5"/><path d="M12 5v17M10 7C7 7 7 4 2 5c1 3 4 4 7 4m5-2c3 0 3-3 8-2-1 3-4 4-7 4M8 10c-3 0-3 3 0 4l8 2c2 .5 2 2.4 0 3l-4 1.5M16 10c3 0 3 3 0 4l-8 2c-2 .5-2 2.4 0 3l4 1.5"/>',
+  scis:'<circle cx="6" cy="18.5" r="3"/><circle cx="18" cy="18.5" r="3"/><path d="M8 16.2 20 3c0 4-2.9 8.3-6 11m2 2.2L4 3c0 4 2.9 8.3 6 11"/>',
+  pen:'<path d="M3 21l1.2-5.2L16.7 3.3a2.8 2.8 0 0 1 4 4L8.2 19.8 3 21zm11.8-15.8 4 4"/>',
+  search:'<circle cx="10" cy="10" r="6.8"/><path d="m15 15 5.6 5.6"/>'
+};
+function homeIcon(icon){
+  return `<span class="rx-ico-line" aria-hidden="true"><svg viewBox="0 0 24 24">${HOME_ICONS[icon]}</svg></span>`;
+}
+function rxRow(attrs, no, title, icon, iconHtml){
   return `<button class="rx-row" type="button" ${attrs}>
-      ${icon ? '' : `<span class="rx-no">${no}</span>`}<span class="rx-lbl">${title}</span>${icon ? `<span class="rx-ico rx-i-${icon}" aria-hidden="true"></span><span class="rx-go" aria-hidden="true">${ICON.chevron}</span>` : ''}</button>`;
+      ${icon ? '' : `<span class="rx-no">${no}</span>`}<span class="rx-lbl">${title}</span>${icon ? `${iconHtml || `<span class="rx-ico rx-i-${icon}" aria-hidden="true"></span>`}<span class="rx-go" aria-hidden="true">${ICON.chevron}</span>` : ''}</button>`;
 }
 // Экран «Тесты»: зачёты по семестрам, экзамен и карточки по темам
 function viewTests(){
@@ -1489,7 +1501,7 @@ function setTheme(dark){
 }
 function viewMenu(){
   setTop({});
-  const row = rxRow;
+  const row = (attrs, no, title, icon) => rxRow(attrs, no, title, icon, homeIcon(icon));
   const upd = updateReady ? `<div class="upd-banner" role="status"><span>Вышла новая версия приложения.</span><button class="btn btn-primary" type="button" data-act="reloadApp">Обновить</button></div>` : '';
   return `
     <header class="rx-head">
@@ -2565,7 +2577,7 @@ function myGrpOk(){ return myGrpLoad().some(x => x.id===curGrp); }   // папк
 const myGrpNewId = () => (Date.now().toString(36).slice(-6) + Math.random().toString(36).slice(2, 6)).slice(0, 12);
 function myGrpMenuHtml(){
   const rows = myGrpLoad().map(g => ({g, n:myGrpPool(g.id).length})).filter(x => x.n).map(({g, n}) =>
-    `<button class="rx-row" type="button" data-act="myGrpOpen" data-g="${esc(g.id)}"><span class="rx-lbl">${esc(g.name)}</span><span class="rx-pg">${n}</span><span class="rx-ico rx-i-pen" aria-hidden="true"></span><span class="rx-go" aria-hidden="true">${ICON.chevron}</span></button>`).join('');
+    `<button class="rx-row" type="button" data-act="myGrpOpen" data-g="${esc(g.id)}"><span class="rx-lbl">${esc(g.name)}</span><span class="rx-pg">${n}</span>${homeIcon('pen')}<span class="rx-go" aria-hidden="true">${ICON.chevron}</span></button>`).join('');
   return rows ? `<h2 class="rx-sec" style="margin-top:42px">Мои папки</h2><div class="rx-rows">${rows}</div>` : '';
 }
 // Экран папки: добавить рецепты, пройти тест / «Впиши сам» / карточки, посмотреть и убрать рецепты
