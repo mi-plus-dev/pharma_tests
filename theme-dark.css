@@ -40,6 +40,12 @@ html[data-theme="dark"]{
 /* Иконки на кнопках главного экрана — сине-бирюзовые */
 html[data-theme="dark"] .rx-ico{background:var(--icon);opacity:1}
 
+/* Рамки скрыты в тёмной теме; клавиатурный фокус остаётся видимым.
+   Приоритет нужен для кнопок диагностики и анимированных ответов. */
+html[data-theme="dark"] :is(button,[role="button"],a.btn,summary,.my-row,.my-dest,.my-tog,.my-drop,.card-spoiler-setting){
+  border-color:transparent !important;
+}
+
 /* Ссылка «Показать обучение» и переключатель темы */
 html[data-theme="dark"] .rx-tourlink button{color:#7DB9EC;background:var(--card)}
 html[data-theme="dark"] .rx-tourlink button::before{background:#2F7FC0;color:#fff}

@@ -107,11 +107,6 @@ h1,h2,h3{font-family:var(--display)}
 @media (prefers-reduced-motion:reduce){.rx-chev{transition:none}}
 button,input{font:inherit;color:inherit;margin:0}
 button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-/* Рамки скрыты в обеих темах, размеры кнопок и клавиатурный фокус сохраняются.
-   Приоритет нужен для кнопок диагностики и анимированных ответов. */
-:is(button,[role="button"],a.btn,summary,.my-row,.my-dest,.my-tog,.my-drop,.card-spoiler-setting){
-  border-color:transparent !important;
-}
 button:disabled{cursor:default}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 svg{display:block;flex:none}
@@ -415,7 +410,7 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 
 /* Общая кнопка сброса прогресса */
 .rx-wrap,.rx-subitem,.tile-wrap{position:relative}
-.reset-button{position:absolute;top:-9px;right:-1px;z-index:3;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid transparent;border-radius:50%;background:color-mix(in srgb,var(--red) 24%,var(--card));color:var(--red)}
+.reset-button{position:absolute;top:-9px;right:-1px;z-index:3;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid var(--red);border-radius:50%;background:color-mix(in srgb,var(--red) 24%,var(--card));color:var(--red)}
 .reset-button::after{content:"";position:absolute;inset:-5px -8px -7px;border-radius:50%}
 .reset-button:active{background:color-mix(in srgb,var(--red) 32%,var(--card))}
 .reset-button svg{width:19px;height:19px;stroke-width:2.4}
