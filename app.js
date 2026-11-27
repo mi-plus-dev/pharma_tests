@@ -57,16 +57,6 @@ const grpText = d => [d[3], ...grpExtra(d)].join(' / ');
 const DB_INDEX = new Map(DB.map((d,i)=>[d,i]));   // только для разметки текущего экрана; в хранилище препараты записываются по НАЗВАНИЮ
 const DB_BY_NAME = new Map(DB.map(d=>[d[0],d]));
 
-/* ---- Фон: бегущая строка с латинскими названиями препаратов ---- */
-(function(){
-  const names = DB.filter((_,i) => i % 9 === 0).map(d => d[4].split('(')[0].trim().toUpperCase());
-  const half = names.map(t => `<span>✚ ${t.replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';')}</span>`).join('');
-  const track = document.getElementById('tickerTrack');
-  track.innerHTML = half + half;
-  track.style.setProperty('--tick-dur', Math.round(names.join('').length * 0.32) + 's');
-})();
-
-
 /* =========================================================
    ЕДИНЫЕ ТЕМАТИЧЕСКИЕ БЛОКИ — общие для «Теста по блокам»,
    «Впиши сам по блокам» и «Карточек». Внутри блока препараты идут
@@ -647,7 +637,7 @@ const LISTS = {
   groupList:      {target:'groupCards', title:'Карточки'}
 };
 // Куда ведёт «Назад»; всё, чего здесь нет, возвращает в меню
-const PARENT = {study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
+const PARENT = {...PROFILE_PARENT, study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
   semQuiz:'semMenu', semWrite:'semMenu', tests:'menu', semMenu:'tests', exam:'tests',
   quiz:'examQuiz', write:'examWrite', studyList:'examQuiz', writeBlockList:'examWrite', examQuiz:'exam', examWrite:'exam',
   myrx:'menu', myrxEdit:'myrx', myGroup:'menu', grpQuiz:'myGroup', grpWrite:'myGroup'};
@@ -967,7 +957,7 @@ function restoreView(v = objOf(store.get(KEYS.view))){
   for(const k of OLD_BLOCK_KEYS) if(store.has(k)){ store.del(k); migrated = true; }
   if(migrated && LISTS[PARENT[m]]) m = PARENT[m];
   if(m==='semQuiz' || m==='semWrite'){ const S = loadSession(m); if(S){ semSess = S; mode = m; } }
-  else if(m==='quiz' || m==='write' || m==='tests' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
+  else if(Object.hasOwn(PROFILE_PARENT, m) || m==='quiz' || m==='write' || m==='tests' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
   else if(m==='myGroup'){ if(myGrpOk()) mode = m; }
   else if(SESSION[m]?.grp){ if(myGrpOk() && myGrpPool(curGrp).length) openBlock(m, curGrp, true); }
   else if(m==='groupCards' && typeof v.cardsKey==='string' && v.cardsKey){ const cs = cardSet(v.cardsKey); if(cs && cs.items.length) openBlock('groupCards', v.cardsKey, true); }
@@ -3086,7 +3076,7 @@ function myrxCopyText(text){
   });
 }
 
-const VIEWS = {tests: viewTests, semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
+const VIEWS = {...Object.fromEntries(Object.keys(PROFILE_PARENT).map(id => [id, viewProfile])), tests: viewTests, semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
   howto: viewHowTo};
 
 // Плавный подъём к началу страницы (около полсекунды, с замедлением к концу)
@@ -3194,6 +3184,7 @@ function afterDraw(sig, firstDraw){
   lastScreenId = screenId; lastKey = key;
 }
 function draw(){
+  mode = resolveProfileRoute(mode);
   if(myrxSeries.dirty && mode!=='myrxEdit'){ myrxSeriesReload(); return; }   // серия закончена: перезагрузка, чтобы рецепты попали в тесты
   if(mode!=='myrx' && myrxSel.on) myrxSelLeave();
   if(ORPHAN_MODES.has(mode) || (!VIEWS[mode] && !LISTS[mode] && !SESSION[mode])) mode = 'menu';
@@ -3210,7 +3201,9 @@ function draw(){
   const focusSig = focusSignature();
   const firstDraw = lastScreenId === '';
   view.innerHTML = (VIEWS[mode] || (LISTS[mode] ? viewList : viewSession))();
-  document.body.classList.toggle('rx-home', mode==='menu');
+  const hasTabs = mode==='menu' || mode==='profile';
+  document.body.classList.toggle('has-main-tabs', hasTabs);
+  if(hasTabs) view.insertAdjacentHTML('beforeend', profileNav(mode));
   fitOpts();
   // новый экран или другой препарат — показываем его с начала, а не с места прокрутки прошлого
   const S = cur();
