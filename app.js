@@ -637,7 +637,7 @@ const LISTS = {
   groupList:      {target:'groupCards', title:'Карточки'}
 };
 // Куда ведёт «Назад»; всё, чего здесь нет, возвращает в меню
-const PARENT = {...PROFILE_PARENT, study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
+const PARENT = {...PROFILE_PARENT, ranking:'menu', study:'studyList', writeBlock:'writeBlockList', groupCards:'groupList', mistakesQuiz:'mistakes', mistakesWrite:'mistakes',
   semQuiz:'semMenu', semWrite:'semMenu', tests:'menu', semMenu:'tests', exam:'tests',
   quiz:'examQuiz', write:'examWrite', studyList:'examQuiz', writeBlockList:'examWrite', examQuiz:'exam', examWrite:'exam',
   myrx:'menu', myrxEdit:'myrx', myGroup:'menu', grpQuiz:'myGroup', grpWrite:'myGroup'};
@@ -774,13 +774,13 @@ function loadSession(mode, block){
   }
   const clamp = v => Number.isInteger(v) ? Math.min(Math.max(v, 0), n) : 0;
   const K = KIND[cfg.kind];
-  return {mode, block, sem: cfg.sem ? semIdx : undefined, order, pos: clamp(cfg.block ? sv.pos : sv.idx), furthest: clamp(sv.furthest),
+  return {runId:sv.runId || studyRunId(), mode, block, sem: cfg.sem ? semIdx : undefined, order, pos: clamp(cfg.block ? sv.pos : sv.idx), furthest: clamp(sv.furthest),
           state: sv.state.map((st,i) => K.restore(st, order[i]))};
 }
 function newSession(mode, block){
   const cfg = SESSION[mode];
   const order = shuffle(itemsOf(mode, block));
-  return {mode, block, sem: cfg.sem ? semIdx : undefined, order, pos:0, furthest:0,
+  return {runId:studyRunId(), mode, block, sem: cfg.sem ? semIdx : undefined, order, pos:0, furthest:0,
           state: order.map(() => KIND[cfg.kind].blank())};
 }
 let saveTimer = 0, pendingSave = null;
@@ -789,16 +789,16 @@ function saveSession(S){
   const order = S.order.map(d => d[0]);
   if(SESSION[S.mode].sem){                       // зачёт по семестру: ключ + номер семестра
     const all = semRead(S.mode);
-    all[S.sem] = {order, idx:S.pos, furthest:S.furthest, state:S.state};
+    all[S.sem] = {runId:S.runId, order, idx:S.pos, furthest:S.furthest, state:S.state};
     store.set(KEYS[S.mode], all);
     return;
   }
   if(SESSION[S.mode].block){
     const all = readAll(KEYS[S.mode]);
-    all[S.block] = {order, pos:S.pos, furthest:S.furthest, state:S.state};
+    all[S.block] = {runId:S.runId, order, pos:S.pos, furthest:S.furthest, state:S.state};
     store.set(KEYS[S.mode], all);
   } else {
-    store.set(KEYS[S.mode], {order, idx:S.pos, furthest:S.furthest, state:S.state});
+    store.set(KEYS[S.mode], {runId:S.runId, order, idx:S.pos, furthest:S.furthest, state:S.state});
   }
 }
 // Ввод текста сохраняется с небольшой задержкой, а не на каждую букву
@@ -957,7 +957,7 @@ function restoreView(v = objOf(store.get(KEYS.view))){
   for(const k of OLD_BLOCK_KEYS) if(store.has(k)){ store.del(k); migrated = true; }
   if(migrated && LISTS[PARENT[m]]) m = PARENT[m];
   if(m==='semQuiz' || m==='semWrite'){ const S = loadSession(m); if(S){ semSess = S; mode = m; } }
-  else if(Object.hasOwn(PROFILE_PARENT, m) || m==='quiz' || m==='write' || m==='tests' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
+  else if(Object.hasOwn(PROFILE_PARENT, m) || m==='ranking' || m==='quiz' || m==='write' || m==='tests' || m==='exam' || m==='examQuiz' || m==='examWrite' || m==='mistakes' || m==='reference' || m==='allRx' || m==='semesters' || m==='semester' || m==='topics' || m==='howto' || m==='myrx' || m==='semMenu' || LISTS[m]) mode = m;
   else if(m==='myGroup'){ if(myGrpOk()) mode = m; }
   else if(SESSION[m]?.grp){ if(myGrpOk() && myGrpPool(curGrp).length) openBlock(m, curGrp, true); }
   else if(m==='groupCards' && typeof v.cardsKey==='string' && v.cardsKey){ const cs = cardSet(v.cardsKey); if(cs && cs.items.length) openBlock('groupCards', v.cardsKey, true); }
@@ -1112,6 +1112,7 @@ function check(){
   if(S.pos+1 > S.furthest) S.furthest = S.pos+1;
   checkedAt = Date.now();
   saveSession(S);
+  if(!SESSION[S.mode].grp && !MY_SET.has(dd)) recordStudyAnswer(S, isWrite, st.correct);
   noteAnswer(S.order[S.pos], st.correct);
   const card = view.querySelector('.card');
   if(isWrite){
@@ -3076,7 +3077,7 @@ function myrxCopyText(text){
   });
 }
 
-const VIEWS = {...Object.fromEntries(Object.keys(PROFILE_PARENT).map(id => [id, viewProfile])), tests: viewTests, semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
+const VIEWS = {ranking:viewRanking, ...Object.fromEntries(Object.keys(PROFILE_PARENT).map(id => [id, viewProfile])), tests: viewTests, semMenu: viewSemMenu, myGroup: viewMyGroup, myrx: viewMyList, myrxEdit: viewMyEdit, menu: viewMenu, exam: viewExam, examQuiz: viewExamScope, examWrite: viewExamScope, mistakes: viewMistakes, reference: viewReference, groupCards: viewCards,
   howto: viewHowTo};
 
 // Плавный подъём к началу страницы (около полсекунды, с замедлением к концу)
@@ -3201,7 +3202,7 @@ function draw(){
   const focusSig = focusSignature();
   const firstDraw = lastScreenId === '';
   view.innerHTML = (VIEWS[mode] || (LISTS[mode] ? viewList : viewSession))();
-  const hasTabs = mode==='menu' || mode==='profile';
+  const hasTabs = mode==='menu' || mode==='profile' || mode==='ranking';
   document.body.classList.toggle('has-main-tabs', hasTabs);
   if(hasTabs) view.insertAdjacentHTML('beforeend', profileNav(mode));
   fitOpts();

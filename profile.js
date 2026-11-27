@@ -18,24 +18,11 @@ function resolveProfileRoute(route){
 
 function profileNav(active){
   const tab = (route, label, path) => `<button type="button" data-act="go" data-mode="${route}"${active===route?' aria-current="page"':''}>${svgIcon(path)}<span>${label}</span></button>`;
-  return `<nav class="profile-nav" aria-label="Основные разделы">${tab('menu','Главная','<path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z"/>')}${tab('profile','Профиль','<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>')}</nav>`;
+  return `<nav class="profile-nav" aria-label="Основные разделы">${tab('menu','Главная','<path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z"/>')}${tab('ranking','Рейтинг','<path d="M4 14h5v6H4zm5-5h6v11H9zm6 3h5v8h-5z"/><path d="m10 4 2-2 2 2"/>')}${tab('profile','Профиль','<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>')}</nav>`;
 }
 function profileAvatar(account){
   const initials = account.name.trim().split(/\s+/).slice(0,2).map(word=>Array.from(word)[0]).join('').toUpperCase();
   return `<span class="profile-avatar" aria-hidden="true">${account.avatar ? `<img alt="" src="${esc(account.avatar)}">` : esc(initials)}</span>`;
-}
-function deviceStats(){
-  let answers = 0, correct = 0;
-  for(const [id, cfg] of Object.entries(SESSION)){
-    const sessions = cfg.sem ? Object.values(semRead(id)) : cfg.block ? Object.values(readAll(KEYS[id])) : [store.get(KEYS[id])];
-    for(const session of sessions){
-      if(!Array.isArray(session?.state)) continue;
-      for(const answer of session.state){
-        if(answer?.checked){ answers++; if(answer.correct) correct++; }
-      }
-    }
-  }
-  return [[answers,'Проверено ответов'],[correct,'Верных ответов'],[favRead().length,'В избранном'],[mistakeCount(),'На повторение']];
 }
 const profileLink = (route, label) => `<button type="button" class="btn btn-secondary btn-block" data-act="go" data-mode="${route}">${label}</button>`;
 function profileField(label, name, props, value=''){
@@ -48,7 +35,7 @@ function viewProfile(){
     if(profileAuth.status==='idle') profileAuth.load();
     return `<header class="page-head"><h1>Профиль</h1></header><section class="profile-panel">${profileAuth.status==='error'
       ? `<p role="alert">${esc(profileAuth.loadError)}</p><button type="button" class="btn btn-primary" data-profile-action="retry">Повторить</button>`
-      : '<p role="status">Загружаем профиль…</p>'}</section>`;
+      : '<p role="status">Загружаем профиль…</p>'}</section>${profileAuth.status==='error' && mode==='profile' ? studyPanel() : ''}`;
   }
   const getCode=remote?'Отправить код на почту':'Получить тестовый код';
   const account = profileAuth.current(), challenge = profileAuth.challenge();
@@ -82,13 +69,12 @@ function viewProfile(){
   }
   if(!account) return form('Профиль',notice || (remote?'Войдите с почтой и паролем. Учиться можно и без профиля.':'Вход по почте на этом устройстве. Учиться можно и без профиля.'),
     email+password(false),'Войти',profileLink('profileRegister','Создать профиль')+
-    '<button type="button" data-act="go" data-mode="profileForgot" class="profile-link">Забыли пароль?</button>');
+    '<button type="button" data-act="go" data-mode="profileForgot" class="profile-link">Забыли пароль?</button>') + studyPanel();
   return `<header class="page-head"><h1>Профиль</h1></header>
     <section class="profile-panel"><div class="profile-identity">${profileAvatar(account)}<div><h2>${esc(account.name)}</h2>
     ${account.nick?`<p>@${esc(account.nick)}</p>`:''}<p>${esc(account.email)}</p></div></div>
     ${profileLink('profileEdit','Редактировать профиль')}</section>
-    <section class="profile-panel"><h2>Учёба на устройстве</h2><p>По текущему сохранённому прогрессу в этом браузере.</p>
-    <dl class="profile-stats">${deviceStats().map(([n,label])=>`<div><dt>${label}</dt><dd>${n}</dd></div>`).join('')}</dl></section>
+    ${studyPanel()}
     <button class="profile-link" type="button" data-profile-action="logout">Выйти из профиля</button>`;
 }
 async function profilePhoto(file){

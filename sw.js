@@ -1,7 +1,7 @@
 /* Service worker: приложение целиком работает без интернета.
    Чтобы выпустить обновление, увеличьте номер в CACHE (pharma-v1 -> pharma-v2). */
-const CACHE = 'pharma-v145';
-const CORE = ['./', './index.html', './style.css', './theme-dark.css', './data.js', './app.js', './profile-config.js', './profile-cloud.js', './vendor/auth.js', './profile-auth.js', './profile.js', './recipe-bot.js', './diag.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/splash-icon.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg', './icons/pencil.svg', './icons/star.svg',
+const CACHE = 'pharma-v146';
+const CORE = ['./', './index.html', './style.css', './theme-dark.css', './data.js', './app.js', './profile-config.js', './profile-cloud.js', './vendor/auth.js', './profile-auth.js', './profile.js', './study-stats.js', './recipe-bot.js', './diag.js', './manifest.webmanifest', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/splash-icon.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/cad.svg', './icons/book.svg', './icons/scis.svg', './icons/search.svg', './icons/clip.svg', './icons/pencil.svg', './icons/star.svg',
   './fonts/fonts.css',
   './fonts/golos-text-cyrillic-ext.woff2',
   './fonts/golos-text-cyrillic.woff2',

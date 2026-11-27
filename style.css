@@ -1014,3 +1014,33 @@ html.kb-open body .app{padding-bottom:calc(var(--vv-bottom, 0px) + 24px)}
 .profile-stats div{display:flex;flex-direction:column-reverse;justify-content:flex-end;padding:12px;background:var(--inset);border-radius:10px}
 .profile-stats dd{margin:0;font:700 22px var(--display)}
 .profile-stats dt{font-size:13px;color:var(--muted)}
+
+/* Профиль и рейтинг */
+.profile-nav button{min-width:0}
+.study-panel .profile-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.study-panel .profile-stats div{padding:10px}
+.study-panel small,.ranking-results>p{color:var(--muted)}
+.rank-tabs{display:flex;gap:4px;padding:4px;margin:0 0 22px;border-radius:14px;background:var(--inset)}
+.rank-tabs button{flex:1;min-height:42px;border:0;border-radius:10px;color:var(--muted);background:transparent;font:inherit;font-weight:600}
+.rank-tabs button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px var(--line)}
+.ranking-results h2{font:700 18px var(--display);margin:0 0 7px}
+.ranking-results>p{margin:0 0 16px;font-size:14px}
+.ranking-results [role=status]:empty,.ranking-results [hidden]{display:none}
+.rank-podium,.rank-list{list-style:none;padding:0;margin:0}
+.rank-podium{display:flex;align-items:flex-end;justify-content:center;gap:5px}
+.rank-podium:not(:empty){margin:22px 0 18px}
+.podium-member{flex:0 1 32%;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center}
+.place-1{order:2;--medal:#e9bc58;--step:65px}
+.place-2{order:1;--medal:#bbc9ce;--step:46px}
+.place-3{order:3;--medal:#d29d7c;--step:34px}
+.rank-avatar{display:grid;place-items:center;width:43px;height:43px;margin:0 0 8px;border:3px double var(--medal);border-radius:50%;color:var(--ink);background:var(--card);font-weight:700}
+.place-1 .rank-avatar{width:50px;height:50px;box-shadow:0 0 0 3px color-mix(in srgb,var(--medal) 30%,transparent)}
+.rank-name{min-width:0;overflow-wrap:anywhere;font-size:14px;font-weight:600}
+.rank-name small{font-size:11px;color:var(--accent)}
+.rank-score{font-variant-numeric:tabular-nums}
+.podium-member .rank-score{margin:3px 0 8px;font-size:13px;color:var(--muted)}
+.rank-step{width:100%;min-height:var(--step);display:grid;place-items:center;border-radius:10px 10px 3px 3px;background:linear-gradient(to bottom,var(--medal),color-mix(in srgb,var(--medal) 73%,var(--card)));color:#242720;font:700 23px var(--display)}
+.rank-row{display:grid;grid-template-columns:2ch 1fr auto;align-items:center;gap:12px;padding:13px 8px;border-bottom:1px solid var(--line)}
+.rank-position{font-variant-numeric:tabular-nums;color:var(--muted)}
+.ranking-results [data-rank-more]{width:100%;margin-top:16px}
+@media(max-width:380px){.profile-nav button{flex-direction:column;gap:2px;font-size:12px}.study-panel .profile-stats{grid-template-columns:1fr}.study-panel .profile-stats div{flex-direction:row;justify-content:space-between;align-items:center}}

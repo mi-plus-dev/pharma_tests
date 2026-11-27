@@ -101,6 +101,12 @@ function createCloudProfileAuth(config){
   }
   return {
     remote:true, sessionKey, challenge, load,
+    async studyRpc(name, args, owner){
+      const auth=await client();
+      const session=data(await auth.getSession()).session;
+      if(owner && session?.user.id!==owner) throw new Error('Войдите в профиль ещё раз.');
+      return request('/rest/v1/rpc/'+name,'POST',session?.access_token,args);
+    },
     get status(){ return status; }, get loadError(){ return loadError; },
     current:()=>account, cancel(){ if(challenge()) remember(null); },
     invalidate(){ generation++; account=null; status='idle'; },
