@@ -528,7 +528,6 @@ function rxShort(lines){
 function rxDoc(lines, firstLineNote = ''){
   const m = RX_KEY.exec(lines[0][0]);
   if(!m) return lines.map(([t, c]) => `<span class="bl${c ? ' ' + c : ''}">${t}</span>`).join('');
-  // русский текст (Signa) оборачиваем в .ru — его размер подгоняется под визуальный размер латиницы
   const ru = v => v.split(/(<[^>]+>)/).map(x => x.charAt(0)==='<' ? x : x.replace(/[А-Яа-яЁё]+(?:[\s\u00a0.,;:\-–()\d\/]+[А-Яа-яЁё]+)*/g, '<span class="ru">$&</span>')).join('');
   const row = (k, v, c, note) => {
     const cls = note ? ' with-side' : /^(Signa|Da\. Signa|S\.|D\.S\.)/.test(v) ? ' wrap' : '';
@@ -3964,29 +3963,14 @@ const TOURS = {
 const TOURS_OLD_KEYS = ['pharma_tour_v1', 'pharma_tour_quiz_v1'];   // ключи прежнего единого обучения
 
 // Длинные строки сначала укорачиваются за счёт сокращений, затем при необходимости переносятся.
-const FIT_MIN = 14.5, FIT_MIN_SHORT = 13.5;
 function fitRx(){
-  view.querySelectorAll('.rxd').forEach(box => {
+  view.querySelectorAll('.rxd[data-short]').forEach(box => {
     box.classList.remove('is-wrapping');
-    if(box.dataset.short && !box.dataset.full) box.dataset.full = box.innerHTML;
-    if(box.dataset.full) box.innerHTML = box.dataset.full;
-    const sized = box.querySelector('.with-side')?.parentElement || box;
-    sized.style.fontSize = '';
-    const over = () => box.scrollWidth > box.clientWidth + 1;
-    const shrink = min => {
-      let fs = parseFloat(getComputedStyle(sized).fontSize) || 16;
-      while(over() && fs > min){ fs -= 0.5; sized.style.fontSize = fs + 'px'; }
-    };
-    shrink(box.dataset.short ? FIT_MIN : 10);
-    if(box.dataset.short && over()){
-      box.innerHTML = box.dataset.short;
-      box.style.fontSize = '';
-      shrink(FIT_MIN_SHORT);
-      if(over()){
-        box.style.fontSize = '';
-        box.classList.add('is-wrapping');
-      }
-    }
+    if(!box.dataset.full) box.dataset.full = box.innerHTML;
+    box.innerHTML = box.dataset.full;
+    if(box.scrollWidth <= box.clientWidth + 1) return;
+    box.innerHTML = box.dataset.short;
+    if(box.scrollWidth > box.clientWidth + 1) box.classList.add('is-wrapping');
   });
 }
 addEventListener('resize', fitRx);
