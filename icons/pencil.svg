@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<title>pencil</title>
+<g fill="none" stroke="#26352F" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M 180 880 L 208 724 L 700 232 Q 730 202 760 232 L 828 300 Q 858 330 828 360 L 336 852 Z"/>
+  <path d="M 208 724 L 336 852"/>
+  <path d="M 700 232 L 828 360"/>
+  <path d="M 180 880 L 223 867"/>
+</g>
+</svg>
