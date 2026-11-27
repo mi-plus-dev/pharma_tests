@@ -1,5 +1,5 @@
 // Локальная реализация входа. Демокод доступен на устройстве и не подтверждает владение почтой.
-const profileAuth = (() => {
+const localProfileAuth = (() => {
   const prefix = 'pharma_profile_account_v1:';
   const sessionKey = 'pharma_profile_login_v1';
   const iterations = 600000;
@@ -107,3 +107,5 @@ const profileAuth = (() => {
     logout(){ save(sessionKey, null); setPending(null); }
   };
 })();
+
+const profileAuth = profileServer.url || profileServer.publishableKey ? createCloudProfileAuth(profileServer) : localProfileAuth;

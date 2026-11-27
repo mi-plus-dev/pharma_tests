@@ -1,0 +1,14 @@
+{
+  "name": "pharma-auth-browser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild entry.js --bundle --minify --format=esm --target=es2020 --supported:template-literal=false --legal-comments=eof --outfile=../../vendor/auth.js"
+  },
+  "dependencies": {
+    "@supabase/auth-js": "2.119.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

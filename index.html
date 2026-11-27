@@ -63,6 +63,8 @@ html.no-splash #splash{display:none}
 
 <script src="data.js"></script>
 <script src="recipe-bot.js"></script>
+<script src="profile-config.js"></script>
+<script src="profile-cloud.js"></script>
 <script src="profile-auth.js"></script>
 <script src="profile.js"></script>
 <script src="app.js"></script>
@@ -71,6 +73,7 @@ html.no-splash #splash{display:none}
 /* Счётчик посещений — GoatCounter (без cookie и личных данных). Статистика: https://<КОД>.goatcounter.com
    Пока вместо КОД стоит заглушка, ничего не отправляется. Подробности — в README, раздел «Счётчик посещений». */
 (function(){
+  if(profileServer.url || profileServer.publishableKey) return;
   var CODE="miplus";   // ← сюда код сайта, который вы выбрали при регистрации на goatcounter.com
   try{
     if(/[?&]nocount=1/.test(location.search))localStorage.setItem("skipgc","t");   // откройте сайт один раз с ?nocount=1 — свои заходы на этом устройстве считаться не будут

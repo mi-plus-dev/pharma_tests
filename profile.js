@@ -7,7 +7,7 @@ let profileMessage = '';
 function resolveProfileRoute(route){
   const challenge = profileAuth.challenge();
   if(route !== 'profileConfirm' && route !== 'profileCode' && route !== 'profilePassword') profileAuth.cancel();
-  if(!Object.hasOwn(PROFILE_PARENT, route)) return route;
+  if(!Object.hasOwn(PROFILE_PARENT, route) || (profileAuth.remote && profileAuth.status!=='ready')) return route;
   if(profileAuth.current()) return route === 'profileEdit' ? route : 'profile';
   if(route === 'profileEdit') return 'profile';
   if(route === 'profileConfirm' && challenge?.purpose !== 'register') return 'profileRegister';
@@ -42,6 +42,15 @@ function profileField(label, name, props, value=''){
   return `<label class="profile-field">${label}<input class="input" name="${name}" ${props} value="${esc(value)}"></label>`;
 }
 function viewProfile(){
+  const remote=profileAuth.remote;
+  if(remote && profileAuth.status!=='ready'){
+    setTop({back:'Главная'});
+    if(profileAuth.status==='idle') profileAuth.load();
+    return `<header class="page-head"><h1>Профиль</h1></header><section class="profile-panel">${profileAuth.status==='error'
+      ? `<p role="alert">${esc(profileAuth.loadError)}</p><button type="button" class="btn btn-primary" data-profile-action="retry">Повторить</button>`
+      : '<p role="status">Загружаем профиль…</p>'}</section>`;
+  }
+  const getCode=remote?'Отправить код на почту':'Получить тестовый код';
   const account = profileAuth.current(), challenge = profileAuth.challenge();
   const form = (title, intro, fields, submit, extra='') => `<header class="page-head"><h1>${title}</h1>${intro ? `<p>${intro}</p>` : ''}</header>
     <form class="profile-form" data-profile-form="${mode}" method="post">
@@ -56,12 +65,12 @@ function viewProfile(){
   profileMessage = '';
   setTop(mode==='profile' ? {} : {back:'Назад'});
   switch(mode){
-    case 'profileRegister': return form('Создать профиль','Профиль сохранится в этом браузере. Для пробного входа придумайте отдельный пароль.',
-      name()+nick()+email+password(true),'Получить тестовый код');
-    case 'profileForgot': return form('Восстановить пароль','Введите почту локального профиля. Тестовый код появится на следующем экране.',email,'Получить тестовый код');
+    case 'profileRegister': return form('Создать профиль',remote?'Мы пришлём код подтверждения на вашу почту.':'Профиль сохранится в этом браузере. Для пробного входа придумайте отдельный пароль.',
+      name()+nick()+email+password(true),getCode);
+    case 'profileForgot': return form('Восстановить пароль',remote?'Введите почту, с которой вы зарегистрировались.':'Введите почту локального профиля. Тестовый код появится на следующем экране.',email,getCode);
     case 'profileConfirm':
     case 'profileCode': return form('Введите код',esc(challenge.email),
-      `<div class="profile-demo">В демонстрационном режиме письмо не отправляется. Код действует 10 минут.<strong>${challenge.code}</strong></div>`+
+      `<div class="profile-demo">${remote?'Проверьте почту и папку «Спам». Код из письма действует 10 минут.':`В демонстрационном режиме письмо не отправляется. Код действует 10 минут.<strong>${esc(challenge.code)}</strong>`}</div>`+
       profileField('Шестизначный код','code','inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required'),
       mode==='profileConfirm'?'Подтвердить и войти':'Подтвердить код',
       '<button type="button" data-profile-action="resend" class="profile-link">Получить новый код</button>');
@@ -71,7 +80,7 @@ function viewProfile(){
       <label class="profile-restore"><input type="checkbox" name="initials"> Использовать инициалы</label>`+
       name(account.name)+nick(account.nick),'Сохранить');
   }
-  if(!account) return form('Профиль',notice || 'Вход по почте на этом устройстве. Учиться можно и без профиля.',
+  if(!account) return form('Профиль',notice || (remote?'Войдите с почтой и паролем. Учиться можно и без профиля.':'Вход по почте на этом устройстве. Учиться можно и без профиля.'),
     email+password(false),'Войти',profileLink('profileRegister','Создать профиль')+
     '<button type="button" data-act="go" data-mode="profileForgot" class="profile-link">Забыли пароль?</button>');
   return `<header class="page-head"><h1>Профиль</h1></header>
@@ -114,7 +123,7 @@ document.addEventListener('submit', async event => {
         if(!value('name')) throw new Error('Введите имя.');
         await profileAuth.register(value('name'),value('nick').replace(/^@+/,''),value('email'),password); next='profileConfirm'; break;
       case 'profileConfirm': await profileAuth.verify(value('code')); break;
-      case 'profileForgot': profileAuth.recover(value('email')); next='profileCode'; break;
+      case 'profileForgot': await profileAuth.recover(value('email')); next='profileCode'; break;
       case 'profileCode': await profileAuth.verify(value('code')); next='profilePassword'; break;
       case 'profilePassword': await profileAuth.reset(password); profileMessage='Пароль обновлён. Войдите с новым паролем.'; break;
       case 'profileEdit': {
@@ -133,11 +142,34 @@ document.addEventListener('submit', async event => {
     error.textContent=e.message; error.hidden=false;
   }finally{ button.disabled=false; }
 });
-document.addEventListener('click', event=>{
-  const action = event.target.closest('[data-profile-action]')?.dataset.profileAction;
-  if(action==='resend'){ profileAuth.resend(); render(); announce('Выдан новый тестовый код'); }
-  if(action==='logout'){ profileAuth.logout(); go('profile'); }
+document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-profile-action]');
+  if(!button || button.disabled) return;
+  button.disabled=true;
+  try{
+    switch(button.dataset.profileAction){
+      case 'retry': await profileAuth.load(); break;
+      case 'resend':
+        await profileAuth.resend();
+        if(button.isConnected){ render(); announce(profileAuth.remote?'Запрошено новое письмо':'Выдан новый тестовый код'); }
+        break;
+      case 'logout': await profileAuth.logout(); go('profile'); break;
+    }
+  }catch(error){
+    const message=view.querySelector('[role="alert"]') || view.appendChild(document.createElement('p'));
+    message.setAttribute('role','alert'); message.textContent=error.message; message.hidden=false;
+  }finally{ button.disabled=false; }
+});
+addEventListener('profile-session-change', ()=>{
+  if(Object.hasOwn(PROFILE_PARENT,mode)) render();
 });
 addEventListener('storage', event=>{
-  if(Object.hasOwn(PROFILE_PARENT,mode) && (!event.key || event.key===profileAuth.sessionKey || event.key.startsWith(profileAuth.prefix))) render();
+  if(profileAuth.remote){
+    if(event.key && event.key!==profileAuth.sessionKey) return;
+    try{
+      if(event.key && JSON.parse(event.oldValue)?.user?.id===JSON.parse(event.newValue)?.user?.id) return;
+    }catch{ /* Перечитаем сессию через SDK. */ }
+    profileAuth.invalidate();
+  }else if(event.key && event.key!==profileAuth.sessionKey && !event.key.startsWith(profileAuth.prefix)) return;
+  if(Object.hasOwn(PROFILE_PARENT,mode)) render();
 });

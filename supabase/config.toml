@@ -1,0 +1,56 @@
+project_id = "pharma-recipes"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 100
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.seed]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 8
+
+[auth.rate_limit]
+# Только локальный Mailpit. Проверка создаёт два аккаунта и запрашивает восстановление.
+email_sent = 60
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 600
+max_frequency = "1m"
+
+[auth.email.template.confirmation]
+subject = "Код регистрации в приложении «Рецепты»"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Код восстановления пароля в приложении «Рецепты»"
+content_path = "./supabase/templates/recovery.html"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[studio]
+enabled = false
+[analytics]
+enabled = false
+[realtime]
+enabled = false
+[storage]
+enabled = false
+[edge_runtime]
+enabled = false
