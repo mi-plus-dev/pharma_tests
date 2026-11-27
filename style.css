@@ -415,19 +415,14 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .reset-button:active{background:var(--bad-soft)}
 .reset-button svg{width:15px;height:15px;stroke-width:2.4}
 .block-list{grid-template-columns:minmax(0,1fr)}
-.block-row{padding-block:10px}
+.block-row{gap:8px;padding-block:10px}
 .block-row .rx-lbl{overflow-wrap:anywhere}
 .block-row small{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:5px;color:var(--muted);font-size:13px;font-weight:400}
-.block-roman{flex:none;display:grid;place-items:center;width:72px;height:56px;margin:0 2px 0 4px;color:var(--icon,var(--ink))}
-.block-roman svg{width:46px;height:46px;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
 .card-list-head{margin-bottom:14px;padding-bottom:0;border-bottom:0}
 .card-block-list{gap:12px;padding-right:3px}
 .card-block-list .block-row{gap:6px;min-height:76px;padding:11px 8px 11px 14px;border-width:1px;box-shadow:2px 2px 0 var(--hardc);font-size:15px;line-height:1.35}
 .card-block-list .block-row:hover,.card-block-list .block-row:active{transform:none;background:var(--inset)}
 .card-block-list .block-row small{margin-top:4px}
-.card-block-list :is(.rx-ico,.block-roman){width:44px;height:44px;margin:0}
-.card-block-list .rx-ico{mask-size:40px}
-.card-block-list .block-roman svg{width:40px;height:40px}
 .card-block-list .rx-go{width:22px;margin:0;color:var(--muted)}
 
 /* Подвал главного экрана */

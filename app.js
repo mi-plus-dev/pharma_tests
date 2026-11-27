@@ -1558,12 +1558,6 @@ function viewExamScope(){
         meta:`<span>${BLOCKS.length} ${plural(BLOCKS.length,'блок','блока','блоков')}</span>`})}
     </div>`;
 }
-// Контурные римские цифры для списка блоков, I и II используют иконки семестров.
-const BLOCK_ROMAN = {
-  3: 'M0 8h15v6h-4v22h4v6H0v-6h4V14H0z M17.5 8h15v6h-4v22h4v6h-15v-6h4V14h-4z M35 8h15v6h-4v22h4v6H35v-6h4V14h-4z',
-  4: 'M2 8h17v6h-4v22h4v6H2v-6h4V14H2z M22 8h12v6h-3l5 17 5-17h-3V8h10v6h-2l-9 28h-6l-9-28z',
-  5: 'M8 8h15v6h-4l6 18 6-18h-4V8h15v6h-4L28 42h-6L12 14H8z'
-};
 const CARD_SPOILER_KEY = 'pharma_card_spoiler';
 function cardSpoilerSetting(){
   return `<label class="card-spoiler-setting">
@@ -1579,13 +1573,10 @@ function viewList(){
     const progress = isCardList ? cardsPos(i) : progressOf(loadSession(L.target, i));
     const detail = isCardList && progress ? `Карточка ${progress + 1} из ${b.items.length}` : count(b.items.length);
     const attrs = `data-mode="${L.target}" data-i="${i}"`;
-    const icon = b.num <= 2
-      ? `<span class="rx-ico rx-i-r${b.num}" aria-hidden="true"></span>`
-      : `<span class="block-roman" aria-hidden="true"><svg viewBox="0 0 50 50"><path d="${BLOCK_ROMAN[b.num]}"/></svg></span>`;
     return `<div class="rx-wrap">
       <button class="rx-row block-row" type="button" data-act="open" ${attrs}>
         <span class="rx-lbl">${esc(b.desc)}<small>${detail}${chip(progress)}</small></span>
-        ${icon}<span class="rx-go" aria-hidden="true">${ICON.chevron}</span>
+        <span class="rx-go" aria-hidden="true">${ICON.chevron}</span>
       </button>${progress ? resetButton(`data-act="reset" ${attrs}`, `Сбросить прогресс блока ${b.num}`) : ''}
     </div>`;
   }).join('');
