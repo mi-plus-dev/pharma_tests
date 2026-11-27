@@ -1567,26 +1567,31 @@ const BLOCK_ROMAN = {
 };
 const CARD_SPOILER_KEY = 'pharma_card_spoiler';
 function cardSpoilerSetting(){
-  return `<label class="card-spoiler-setting"><input type="checkbox" id="cardSpoilerSetting"${store.get(CARD_SPOILER_KEY) ? ' checked' : ''}> Скрывать сведения на карточках</label>`;
+  return `<label class="card-spoiler-setting">
+    <span>Скрывать сведения на карточках</span>
+    <input class="sr-only" type="checkbox" role="switch" id="cardSpoilerSetting"${store.get(CARD_SPOILER_KEY) ? ' checked' : ''}>
+    <span class="card-spoiler-track" aria-hidden="true"></span>
+  </label>`;
 }
 function viewList(){
   const L = LISTS[mode], isCardList = L.target==='groupCards';
   setTop({back: isCardList ? 'Меню' : mode==='studyList' ? 'Тест' : 'Впиши сам'});
   const rows = BLOCKS.map((b,i) => {
     const progress = isCardList ? cardsPos(i) : progressOf(loadSession(L.target, i));
+    const detail = isCardList && progress ? `Карточка ${progress + 1} из ${b.items.length}` : count(b.items.length);
     const attrs = `data-mode="${L.target}" data-i="${i}"`;
     const icon = b.num <= 2
       ? `<span class="rx-ico rx-i-r${b.num}" aria-hidden="true"></span>`
       : `<span class="block-roman" aria-hidden="true"><svg viewBox="0 0 50 50"><path d="${BLOCK_ROMAN[b.num]}"/></svg></span>`;
     return `<div class="rx-wrap">
       <button class="rx-row block-row" type="button" data-act="open" ${attrs}>
-        <span class="rx-lbl">${esc(b.desc)}<small>${count(b.items.length)}${chip(progress)}</small></span>
+        <span class="rx-lbl">${esc(b.desc)}<small>${detail}${chip(progress)}</small></span>
         ${icon}<span class="rx-go" aria-hidden="true">${ICON.chevron}</span>
       </button>${progress ? resetBadgeButton(`data-act="reset" ${attrs}`, `Сбросить прогресс блока ${b.num}`) : ''}
     </div>`;
   }).join('');
-  return `<header class="page-head"><h1>${L.title}</h1>${L.desc ? `<p>${L.desc}</p>` : ''}</header>
-    ${isCardList ? cardSpoilerSetting() : ''}<div class="rx-rows block-list">${rows}</div>`;
+  return `<header class="page-head${isCardList ? ' card-list-head' : ''}"><h1>${L.title}</h1>${L.desc ? `<p>${L.desc}</p>` : ''}</header>
+    ${isCardList ? cardSpoilerSetting() : ''}<div class="rx-rows block-list${isCardList ? ' card-block-list' : ''}">${rows}</div>`;
 }
 
 function viewMistakes(){

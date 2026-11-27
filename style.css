@@ -429,6 +429,16 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .block-row small{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:5px;color:var(--muted);font-size:13px;font-weight:400}
 .block-roman{flex:none;display:grid;place-items:center;width:72px;height:56px;margin:0 2px 0 4px;color:var(--icon,var(--ink))}
 .block-roman svg{width:46px;height:46px;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
+.card-list-head{margin-bottom:14px;padding-bottom:0;border-bottom:0}
+.card-block-list{gap:12px;padding-right:3px}
+.card-block-list .block-row{gap:6px;min-height:76px;padding:11px 8px 11px 14px;border-width:1px;box-shadow:2px 2px 0 var(--hardc);font-size:15px;line-height:1.35}
+.card-block-list .block-row:hover,.card-block-list .block-row:active{transform:none;background:var(--inset)}
+.card-block-list .block-row small{margin-top:4px}
+.card-block-list :is(.rx-ico,.block-roman){width:44px;height:44px;margin:0}
+.card-block-list .rx-ico{mask-size:40px}
+.card-block-list .block-roman svg{width:40px;height:40px}
+.card-block-list .rx-go{width:22px;margin:0;color:var(--muted)}
+.card-block-list .rx-badge{top:-3px;right:-1px;width:26px;height:26px;border-width:1px;box-shadow:none}
 
 /* Подвал главного экрана */
 .rx-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 10px;margin:38px 2px 6px;padding-top:16px;border-top:2px solid transparent;text-align:center;font-size:13.5px;line-height:1.4;color:var(--muted)}
@@ -869,8 +879,11 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 .card-study .fact{padding:14px 16px;border:0;border-radius:var(--r-md);background:var(--paper)}
 .card-study .fact dt{margin-bottom:4px;font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
 .card-study .fact dd{font-size:17px;line-height:1.45}
-.card-spoiler-setting{display:flex;align-items:center;gap:8px;min-height:44px;margin:0 4px 10px;font-size:14px;color:var(--muted);cursor:pointer}
-.card-spoiler-setting input{width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.card-spoiler-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;margin:0 3px 14px 0;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.card-spoiler-track{display:flex;align-items:center;flex:none;width:44px;height:24px;padding:3px;border-radius:99px;background:var(--muted)}
+.card-spoiler-track::before{content:"";width:18px;height:18px;border-radius:50%;background:#fff}
+.card-spoiler-setting input:checked+.card-spoiler-track{justify-content:flex-end;background:var(--btn)}
+.card-spoiler-setting input:focus-visible+.card-spoiler-track{outline:2px solid var(--accent);outline-offset:3px}
 .card-spoiler summary{min-height:48px;margin-bottom:14px;padding:14px;border:1px dashed var(--edge);border-radius:var(--r-md);background:var(--paper);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
 .card-spoiler[open] .spoiler-show,.card-spoiler:not([open]) .spoiler-hide{display:none}
 .card-spoiler .drug-latin{text-align:center;margin:0 0 16px}
