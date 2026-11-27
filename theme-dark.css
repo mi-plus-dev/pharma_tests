@@ -40,15 +40,14 @@ html[data-theme="dark"]{
 /* Иконки на кнопках главного экрана — сине-бирюзовые */
 html[data-theme="dark"] .rx-ico{background:var(--icon);opacity:1}
 
-/* Кнопки: мягкая тень вместо жёсткой смещённой */
-html[data-theme="dark"] .rx-row,
-html[data-theme="dark"] .tile,
-html[data-theme="dark"] .btn,
-html[data-theme="dark"] .btn-back,
-html[data-theme="dark"] .opt{border-color:var(--edge)}
+/* Скрываем рамки, сохраняя размеры кнопок и обводку клавиатурного фокуса.
+   Правило также применяется к кнопкам диагностики и анимированным ответам. */
+html[data-theme="dark"] :is(button,[role="button"],a.btn,summary,.my-row,.my-dest,.my-tog,.my-drop,.card-spoiler-setting){
+  border-color:transparent !important;
+}
 
 /* Ссылка «Показать обучение» и переключатель темы */
-html[data-theme="dark"] .rx-tourlink button{color:#7DB9EC;background:var(--card);border-color:var(--edge)}
+html[data-theme="dark"] .rx-tourlink button{color:#7DB9EC;background:var(--card)}
 html[data-theme="dark"] .rx-tourlink button::before{background:#2F7FC0;color:#fff}
 
 /* Рукописные строки и линейка в «Впиши сам» */
@@ -56,7 +55,7 @@ html[data-theme="dark"] .bl{color:#8DB8F0}
 html[data-theme="dark"] .rx-title{color:var(--ink)}
 
 /* Активная вкладка в «Мои рецепты» */
-html[data-theme="dark"] .my-tabs .tab.is-active{background:#2F7FC0;border-color:#5BA3DB;color:#fff}
+html[data-theme="dark"] .my-tabs .tab.is-active{background:#2F7FC0;color:#fff}
 
 /* Янтарные элементы остаются светлыми — текст на них тёмный */
 html[data-theme="dark"] .my-plan-i.is-cut .my-plan-m{color:#E0A23E}
@@ -66,25 +65,20 @@ html[data-theme="dark"] ::selection{background:#2F7FC0;color:#fff}
 .theme-toggle{display:flex;justify-content:center;margin:14px 0 4px}
 .theme-toggle button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 16px;border:2px solid var(--line);border-radius:99px;background:var(--card);color:var(--green);font-size:13.5px;font-weight:700}
 .theme-toggle button:active{background:var(--inset)}
-html[data-theme="dark"] .theme-toggle button{color:#7DB9EC;border-color:var(--edge)}
+html[data-theme="dark"] .theme-toggle button{color:#7DB9EC}
 
 /* «Пропущено вопросов»: тёмная плашка с янтарной рамкой вместо сплошной янтарной заливки, чипсы с препаратами читаются */
 html[data-theme="dark"] .skip-warn{background:var(--inset);border-color:var(--amber);color:var(--ink)}
 html[data-theme="dark"] .skip-warn b{color:var(--amber)}
 html[data-theme="dark"] .skip-warn p{color:var(--muted)}
-html[data-theme="dark"] .skip-warn .mistake.skipped{color:var(--ink);border-color:var(--edge)}
+html[data-theme="dark"] .skip-warn .mistake.skipped{color:var(--ink)}
 
 /* Буква «Р» в заголовке — того же синего, что и иконки */
 html[data-theme="dark"] .rx-r{color:var(--icon)}
 
-/* Спокойная карточка вопроса: тонкие нейтральные контуры вместо контрастных */
-html[data-theme="dark"] .card .opt,
-html[data-theme="dark"] .card .btn,
+/* Состояние выбора читается по заливке. Рамки полей ввода остаются видимыми. */
+html[data-theme="dark"] .opt.is-selected:not(.is-correct,.is-wrong){background:color-mix(in srgb,var(--accent) 24%,var(--paper))}
 html[data-theme="dark"] .card .input{border-color:var(--edge)}
-html[data-theme="dark"] .card .opt.is-selected{border-color:var(--accent)}
-html[data-theme="dark"] .card .opt.is-correct{border-color:var(--good)}
-html[data-theme="dark"] .card .opt.is-wrong{border-color:var(--bad)}
 html[data-theme="dark"] .card .input:focus{border-color:var(--accent)}
 html[data-theme="dark"] .card-study .fact{background:color-mix(in srgb,var(--paper) 98%,var(--ink))}
-html[data-theme="dark"] .topbar.is-session .btn-back{border-color:var(--line)}
-html[data-theme="dark"] .btn-back{border-color:var(--line);background:var(--card)}
+html[data-theme="dark"] .btn-back{background:var(--card)}
