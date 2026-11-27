@@ -102,11 +102,8 @@ h1,h2,h3{font-family:var(--display)}
 .rx-row[aria-expanded="true"] .rx-chev{transform:rotate(180deg)}
 .rx-acc{display:grid;gap:14px}
 .rx-sub{display:grid;gap:12px;padding:0 5px 5px 14px}
-.rx-subitem{display:flex;align-items:center;gap:10px}
 .rx-subitem .rx-row{min-height:50px;padding-left:14px;font-size:15px;background:var(--paper)}
-.rx-reset{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
-.rx-reset:active{transform:translate(2px,2px);box-shadow:none}
-.rx-reset svg{width:17px;height:17px}
+.rx-subitem:has(>.reset-button) .rx-row{padding-right:38px}
 @media (prefers-reduced-motion:reduce){.rx-chev{transition:none}}
 button,input{font:inherit;color:inherit;margin:0}
 button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
@@ -124,7 +121,7 @@ svg{display:block;flex:none}
 .topbar.is-empty{padding-top:var(--safe-t);padding-bottom:0;background:transparent;border-bottom:0}
 .topbar.is-empty .topbar-row{display:none}
 .btn-back{grid-column:1;justify-self:start;display:inline-flex;align-items:center;gap:2px;height:36px;padding:0 14px 0 8px;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
-.btn-back:active,.topbar .icon-btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn-back:active{transform:translate(2px,2px);box-shadow:none}
 .btn-back svg{width:18px;height:18px}
 .topbar-title{grid-column:2;display:flex;align-items:baseline;justify-content:center;min-width:0;font-family:var(--display);font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--green);text-align:center}
 .topbar-title span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -155,19 +152,14 @@ svg{display:block;flex:none}
 
 /* ================= Списки: режимы и блоки ================= */
 .list{display:grid;gap:14px;padding:0 5px 5px 0}
-.tile-wrap{position:relative}
 .tile{display:flex;align-items:flex-start;gap:14px;width:100%;padding:16px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);text-align:left;transition:transform .15s,box-shadow .15s}
-.tile.has-reset{padding-right:60px}
+.tile-wrap:has(>.reset-button) .tile{padding-right:44px}
 .tile-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border:2px solid var(--edge);border-radius:10px;background:var(--paper);color:var(--green);font-family:var(--display);font-size:15px;font-weight:800}
 .tile-icon svg{width:22px;height:22px}
 .tile-body{flex:1;min-width:0}
 .tile-title{display:block;font-size:16px;font-weight:700;line-height:1.3}
 .tile-desc{display:block;margin-top:3px;font-size:13.5px;line-height:1.4;color:var(--muted)}
 .tile-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
-.tile-reset{position:absolute;top:12px;right:12px}
-.icon-btn{display:grid;place-items:center;width:36px;height:36px;padding:0;border:2px solid var(--edge);border-radius:var(--r-sm);background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--hardc);transition:transform .15s,box-shadow .15s}
-.icon-btn:active{transform:translate(2px,2px);box-shadow:none}
-.icon-btn svg{width:18px;height:18px}
 .chip{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:1px 10px;border:2px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.3}
 .chip.is-good{background:var(--green);color:var(--on-btn)}
 
@@ -242,7 +234,6 @@ svg{display:block;flex:none}
   .opt:hover:not(:disabled):not(.is-selected){transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--hardc);background:var(--lift)}
   .btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
   .btn-back:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--hardc)}
-  .icon-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--hardc)}
   .btn-info:hover{background:var(--green);color:var(--on-btn)}
   .row:hover{background:var(--inset)}
   .mistake:hover{background:var(--red);color:var(--on-red)}
@@ -417,12 +408,12 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rx-chev.rx-go{width:30px;height:30px}
 .rx-chev.rx-go svg{width:20px;height:20px}
 
-/* Значок сброса прогресса раздела — на правом верхнем углу строки */
-.rx-wrap{position:relative}
-.rx-badge{position:absolute;top:-13px;right:-5px;z-index:3;display:grid;place-items:center;width:30px;height:30px;padding:0;border:2px solid var(--red);border-radius:50%;background:var(--card);color:var(--red);box-shadow:2px 2px 0 var(--hardc,#182721);transition:transform .15s,box-shadow .15s}
-.rx-badge::after{content:"";position:absolute;inset:-9px}
-.rx-badge:active{transform:translate(2px,2px);box-shadow:none}
-.rx-badge svg{width:15px;height:15px;stroke-width:2.4}
+/* Общая кнопка сброса прогресса */
+.rx-wrap,.rx-subitem,.tile-wrap{position:relative}
+.reset-button{position:absolute;top:-3px;right:-1px;z-index:3;display:grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid var(--red);border-radius:50%;background:var(--card);color:var(--red)}
+.reset-button::after{content:"";position:absolute;inset:-9px}
+.reset-button:active{background:var(--bad-soft)}
+.reset-button svg{width:15px;height:15px;stroke-width:2.4}
 .block-list{grid-template-columns:minmax(0,1fr)}
 .block-row{padding-block:10px}
 .block-row .rx-lbl{overflow-wrap:anywhere}
@@ -438,7 +429,6 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .card-block-list .rx-ico{mask-size:40px}
 .card-block-list .block-roman svg{width:40px;height:40px}
 .card-block-list .rx-go{width:22px;margin:0;color:var(--muted)}
-.card-block-list .rx-badge{top:-3px;right:-1px;width:26px;height:26px;border-width:1px;box-shadow:none}
 
 /* Подвал главного экрана */
 .rx-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 10px;margin:38px 2px 6px;padding-top:16px;border-top:2px solid transparent;text-align:center;font-size:13.5px;line-height:1.4;color:var(--muted)}
@@ -929,7 +919,7 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 
 /* Кнопка «Меню / Назад» в шапке: плоская «таблетка» с тонкой рамкой, без тени (везде одинаково) */
 .btn-back{border:1px solid var(--line);border-radius:999px;box-shadow:none;background:var(--card);font-weight:600;padding:0 16px 0 10px}
-.btn-back:active,.topbar .icon-btn:active{transform:none;opacity:.8}
+.btn-back:active{transform:none;opacity:.8}
 @media (hover:hover){.btn-back:hover{transform:none;box-shadow:none;background:var(--lift,var(--card))}}
 .topbar{border-bottom:1px solid var(--line)}
 .topbar.is-session{border-bottom:0}

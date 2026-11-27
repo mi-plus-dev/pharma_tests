@@ -1065,9 +1065,9 @@ const hasProgressCached = id => {
   badgeCache[id] = {gen: store.gen, v};
   return v;
 };
-const resetBadgeButton = (attrs, label) => `<button class="rx-badge" type="button" ${attrs} title="Сбросить прогресс" aria-label="${esc(label)}">${ICON.reset}</button>`;
+const resetButton = (attrs, label) => `<button class="reset-button" type="button" ${attrs} title="Сбросить прогресс" aria-label="${esc(label)}">${ICON.reset}</button>`;
 const resetBadge = id => hasProgressCached(id)
-  ? resetBadgeButton(`data-act="resetSection" data-sec="${id}"`, `Сбросить прогресс: ${RESET_SECTIONS[id].title}`) : '';
+  ? resetButton(`data-act="resetSection" data-sec="${id}"`, `Сбросить прогресс: ${RESET_SECTIONS[id].title}`) : '';
 const withReset = (id, html) => `<div class="rx-wrap">${html}${resetBadge(id)}</div>`;
 function askClearMistakes(){
   askConfirm('Очистить список ошибок?', 'Все препараты уйдут из списка. Прогресс в тестах и блоках не изменится.', 'Очистить', () => {
@@ -1278,11 +1278,10 @@ const count = n => `${n} ${plural(n,'препарат','препарата','п�
 function tile(o){
   const attrs = `data-mode="${o.m}"${o.i!=null ? ` data-i="${o.i}"` : ''}`;
   return `<div class="tile-wrap">
-    <button class="tile${o.reset ? ' has-reset' : ''}" type="button" data-act="${o.act || 'go'}" ${attrs}>
+    <button class="tile" type="button" data-act="${o.act || 'go'}" ${attrs}>
       <span class="tile-icon">${o.icon}</span>
       <span class="tile-body"><span class="tile-title">${o.title}</span>${o.desc ? `<span class="tile-desc">${o.desc}</span>` : ''}${o.meta ? `<span class="tile-meta">${o.meta}</span>` : ''}</span>
-    </button>${o.reset ? `
-    <button class="icon-btn tile-reset" type="button" data-act="reset" ${attrs} title="Сбросить прогресс" aria-label="${o.reset}">${ICON.reset}</button>` : ''}
+    </button>${o.reset ? resetButton(`data-act="reset" ${attrs}`, o.reset) : ''}
   </div>`;
 }
 // Строка препарата в списке ошибок и справочнике
@@ -1462,7 +1461,7 @@ function viewTests(){
   ].join('');
   const subs = BLOCKS.map((b,i) => {
     const pos = cardsPos(i);
-    const reset = pos>0 ? `<button class="rx-reset" type="button" data-act="reset" data-mode="groupCards" data-i="${i}" title="Сбросить прогресс" aria-label="Сбросить прогресс темы «${esc(b.title)}»">${ICON.reset}</button>` : '';
+    const reset = pos>0 ? resetButton(`data-act="reset" data-mode="groupCards" data-i="${i}"`, `Сбросить прогресс темы «${b.title}»`) : '';
     return `<div class="rx-subitem">${row(`data-act="openTopic" data-mode="groupCards" data-i="${i}"`, b.num, esc(b.title), '')}${reset}</div>`;
   }).join('');
   return `<header class="page-head"><h1>Тесты</h1></header>
@@ -1587,7 +1586,7 @@ function viewList(){
       <button class="rx-row block-row" type="button" data-act="open" ${attrs}>
         <span class="rx-lbl">${esc(b.desc)}<small>${detail}${chip(progress)}</small></span>
         ${icon}<span class="rx-go" aria-hidden="true">${ICON.chevron}</span>
-      </button>${progress ? resetBadgeButton(`data-act="reset" ${attrs}`, `Сбросить прогресс блока ${b.num}`) : ''}
+      </button>${progress ? resetButton(`data-act="reset" ${attrs}`, `Сбросить прогресс блока ${b.num}`) : ''}
     </div>`;
   }).join('');
   return `<header class="page-head${isCardList ? ' card-list-head' : ''}"><h1>${L.title}</h1>${L.desc ? `<p>${L.desc}</p>` : ''}</header>

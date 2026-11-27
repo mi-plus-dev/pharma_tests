@@ -45,7 +45,6 @@ html[data-theme="dark"] .rx-row,
 html[data-theme="dark"] .tile,
 html[data-theme="dark"] .btn,
 html[data-theme="dark"] .btn-back,
-html[data-theme="dark"] .icon-btn,
 html[data-theme="dark"] .opt{border-color:var(--edge)}
 
 /* Ссылка «Показать обучение» и переключатель темы */
