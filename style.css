@@ -91,7 +91,6 @@ h1,h2,h3{font-family:var(--display)}
 .rx-row:active{transform:translate(3px,3px);box-shadow:none}
 .rx-no{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 12px 0 -4px;border:2px solid var(--edge);border-radius:50%;background:var(--paper);font-family:var(--display);font-size:12px;font-weight:800;color:var(--ink)}
 .rx-lbl{flex:1;min-width:0}
-.rx-pg{flex:none;margin:0 12px 0 8px;font-family:var(--display);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
 .rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
 .rx-i-cad{-webkit-mask-size:50px 50px;mask-size:50px 50px;-webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
 .rx-i-book{-webkit-mask-size:54px 31px;mask-size:54px 31px;-webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
@@ -424,6 +423,12 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rx-badge::after{content:"";position:absolute;inset:-9px}
 .rx-badge:active{transform:translate(2px,2px);box-shadow:none}
 .rx-badge svg{width:15px;height:15px;stroke-width:2.4}
+.block-list{grid-template-columns:minmax(0,1fr)}
+.block-row{padding-block:10px}
+.block-row .rx-lbl{overflow-wrap:anywhere}
+.block-row small{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:5px;color:var(--muted);font-size:13px;font-weight:400}
+.block-roman{flex:none;display:grid;place-items:center;width:72px;height:56px;margin:0 2px 0 4px;color:var(--icon,var(--ink))}
+.block-roman svg{width:46px;height:46px;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
 
 /* Подвал главного экрана */
 .rx-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 10px;margin:38px 2px 6px;padding-top:16px;border-top:2px solid transparent;text-align:center;font-size:13.5px;line-height:1.4;color:var(--muted)}
@@ -584,27 +589,25 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .wr-body span{font-weight:600;overflow-wrap:anywhere}
 .wr-body em{flex-basis:100%;font-style:normal;font-weight:700;font-size:13px;color:var(--good)}
 .wr-res.is-no .wr-body span{text-decoration:line-through;text-decoration-color:rgba(184,58,32,.5)}
-/* верный вариант — справа в строке с названием поля, ошибочный ответ — под ним */
+/* Ошибочный ответ остаётся под названием поля */
 .wr-res.is-no .wr-body{display:grid;grid-template-columns:minmax(0,1fr);row-gap:1px;align-items:start}
 .wr-res.is-no .wr-body b{grid-column:1;grid-row:1;white-space:nowrap}
 .wr-res.is-no .wr-body span{grid-column:1;grid-row:2}
 .wr-fix{margin:6px 0 8px;padding:10px 12px;border:2px solid var(--line);border-radius:var(--r-md)}
-.wr-fix-h{margin:0 0 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.wr-fix-row{display:flex;flex-direction:column;gap:1px;margin:0 0 8px}
-.wr-fix-row:last-child{margin-bottom:0}
-.wr-fix-row b{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.wr-fix-row span{font-size:14px;font-weight:700;line-height:1.3;color:var(--good);overflow-wrap:anywhere}
+.wr-fix .wr-res{padding:0;color:var(--ink)}
+.wr-fix .wr-res:last-child{margin-bottom:0}
+.wr-fix .wr-body{display:grid;gap:1px}
 .wr-note{flex-basis:100%;font-size:12.5px;font-weight:600;line-height:1.3;color:var(--muted)}
 .wr-res.is-no .wr-body .wr-note{grid-column:1;grid-row:3}
 @media (max-height:720px){.wr-res{padding:7px 11px;margin-bottom:4px}}
 @media (prefers-reduced-motion:reduce){.card.wr-flip-in{animation:none}}
 
 /* Предупреждение о пропущенных вопросах в итогах */
-.skip-warn{margin:0 0 16px;padding:12px;border:2px solid var(--edge);border-radius:var(--r-md);background:var(--amber);color:#182721;box-shadow:var(--shadow-sm)}
+.skip-warn{margin:0 0 16px;padding:12px;border:2px solid var(--amber);border-radius:var(--r-md);background:none;color:var(--ink)}
 .skip-warn b{display:block;font-family:var(--display);font-size:13.5px;font-weight:800}
 .skip-warn p{margin:6px 0 10px;font-size:13.5px;line-height:1.4}
 .skip-warn .mistakes{margin-bottom:10px;max-height:160px}
-.skip-warn .mistake.skipped{color:#182721}
+.skip-warn .mistake.skipped{color:var(--ink)}
 .skip-warn .btn{min-height:44px}
 
 /* Recipe слева, остальные строки начинаются правее него */
@@ -866,6 +869,11 @@ textarea.my-area{font-family:inherit;resize:none;overflow:hidden;line-height:1.3
 .card-study .fact{padding:14px 16px;border:0;border-radius:var(--r-md);background:var(--paper)}
 .card-study .fact dt{margin-bottom:4px;font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
 .card-study .fact dd{font-size:17px;line-height:1.45}
+.card-spoiler-setting{display:flex;align-items:center;gap:8px;min-height:44px;margin:0 4px 10px;font-size:14px;color:var(--muted);cursor:pointer}
+.card-spoiler-setting input{width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.card-spoiler summary{min-height:48px;margin-bottom:14px;padding:14px;border:1px dashed var(--edge);border-radius:var(--r-md);background:var(--paper);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.card-spoiler[open] .spoiler-show,.card-spoiler:not([open]) .spoiler-hide{display:none}
+.card-spoiler .drug-latin{text-align:center;margin:0 0 16px}
 @media (max-height:700px){.card-study .fact{padding:10px 14px}.card-study .fact dd{font-size:15.5px}.card-study .drug{margin-bottom:12px}}
 
 /* =========================================================
@@ -990,6 +998,7 @@ html.kb-open body .app{padding-bottom:calc(var(--vv-bottom, 0px) + 24px)}
 .fav-btn.is-on svg{fill:var(--amber,#F2B83B)}
 .fav-btn:focus-visible{outline:3px solid var(--accent);outline-offset:-2px}
 .card-study > .fav-btn::after{content:"";position:absolute;inset:-6px}
-.drug .fav-btn{top:-8px;left:-6px;right:auto}
+.drug .fav-btn{top:-8px;right:-6px}
+.drug:has(>.fav-btn) .drug-row .btn-info{position:absolute;top:0;left:2px;margin:0}
 .card-study .card-tag{padding:0 40px}   /* чтобы длинное название группы не залезало под звезду */
 .rx-i-star{-webkit-mask-size:44px 44px;mask-size:44px 44px;-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.1' stroke-linejoin='round'><path d='M12 3.4l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.1' stroke-linejoin='round'><path d='M12 3.4l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9z'/></svg>")}

@@ -643,7 +643,7 @@ const SESSION = {
 const MISTAKE_MODES = ['mistakesQuiz', 'mistakesWrite'];
 // Списки блоков и экран, который открывается из каждого
 const LISTS = {
-  studyList:      {target:'study',      title:'Тест по блокам',      desc:'Те же вопросы, что в тесте, но по одному тематическому блоку. Внутри блока препараты не повторяются.'},
+  studyList:      {target:'study',      title:'Тест по блокам',      desc:'Внутри блока препараты не повторяются.'},
   writeBlockList: {target:'writeBlock', title:'Впиши сам по блокам', desc:'Видно только русское название — латынь, концентрацию и группу вписываете сами, а карточка переворачивается и показывает рецепт. Внутри блока препараты не повторяются.'},
   groupList:      {target:'groupCards', title:'Карточки'}
 };
@@ -1065,8 +1065,9 @@ const hasProgressCached = id => {
   badgeCache[id] = {gen: store.gen, v};
   return v;
 };
+const resetBadgeButton = (attrs, label) => `<button class="rx-badge" type="button" ${attrs} title="Сбросить прогресс" aria-label="${esc(label)}">${ICON.reset}</button>`;
 const resetBadge = id => hasProgressCached(id)
-  ? `<button class="rx-badge" type="button" data-act="resetSection" data-sec="${id}" title="Сбросить прогресс" aria-label="Сбросить прогресс: ${RESET_SECTIONS[id].title}">${ICON.reset}</button>` : '';
+  ? resetBadgeButton(`data-act="resetSection" data-sec="${id}"`, `Сбросить прогресс: ${RESET_SECTIONS[id].title}`) : '';
 const withReset = (id, html) => `<div class="rx-wrap">${html}${resetBadge(id)}</div>`;
 function askClearMistakes(){
   askConfirm('Очистить список ошибок?', 'Все препараты уйдут из списка. Прогресс в тестах и блоках не изменится.', 'Очистить', () => {
@@ -1464,7 +1465,7 @@ function viewTests(){
     const reset = pos>0 ? `<button class="rx-reset" type="button" data-act="reset" data-mode="groupCards" data-i="${i}" title="Сбросить прогресс" aria-label="Сбросить прогресс темы «${esc(b.title)}»">${ICON.reset}</button>` : '';
     return `<div class="rx-subitem">${row(`data-act="openTopic" data-mode="groupCards" data-i="${i}"`, b.num, esc(b.title), '')}${reset}</div>`;
   }).join('');
-  return `<header class="page-head"><h1>Тесты</h1><p>Зачёты по семестрам, экзамен и карточки по темам.</p></header>
+  return `<header class="page-head"><h1>Тесты</h1></header>
     <div class="rx-rows rx-acc">
       ${exams}
       <div class="rx-wrap">
@@ -1524,24 +1525,24 @@ function footerHtml(){
 // «Экзамен»: сначала формат — тест или «Впиши сам»
 // Зачёт по семестру: тот же выбор формата, что и в экзамене
 function viewSemMenu(){
-  const name = semName(semIdx), sem = SEMESTERS[semIdx] || SEMESTERS[0], n = semItems().length;
+  const name = semName(semIdx), n = semItems().length;
   setTop({back:'Тесты', title:name});
   const one = (m, icon, title, desc) => {
     const p = progressOf(loadSession(m));
     return tile({m, act:'openSem', i:semIdx, icon, title, desc, meta:chip(p), reset: p && 'Сбросить прогресс'});
   };
-  return `<header class="page-head"><h1>${name}</h1><p>${sem.short}: ${esc(sem.desc)}. В зачёте ${n} ${plural(n,'рецепт','рецепта','рецептов')}.</p></header>
+  return `<header class="page-head"><h1>${name}</h1><p>В зачёте ${n} ${plural(n,'рецепт','рецепта','рецептов')}.</p></header>
     <div class="list">${
-      one('semQuiz', ICON.choice, 'Тест', 'Выбираете дозу, путь введения и группу из трёх вариантов.')}${
-      one('semWrite', ICON.pen, 'Впиши сам', 'Видно только название — латынь, концентрацию и группу вписываете сами. Карточка переворачивается и показывает рецепт.')}
+      one('semQuiz', ICON.choice, 'Тест', 'Выбираете дозу, путь введения и группу.')}${
+      one('semWrite', ICON.pen, 'Впиши сам', 'Видно только название — латынь, концентрацию и группу вписываете сами.')}
     </div>`;
 }
 function viewExam(){
   setTop({back:'Тесты', title:'Экзамен'});
-  return `<header class="page-head"><h1>Экзамен</h1><p>Выберите формат подготовки.</p></header>
+  return `<header class="page-head"><h1>Экзамен</h1></header>
     <div class="list">${
-      tile({m:'examQuiz',  icon:ICON.choice, title:'Тест',       desc:'Выбираете дозу, путь введения и группу из трёх вариантов.'})}${
-      tile({m:'examWrite', icon:ICON.pen,    title:'Впиши сам',  desc:'Видно только название — латынь, концентрацию и группу вписываете сами. Карточка переворачивается и показывает рецепт.'})}
+      tile({m:'examQuiz',  icon:ICON.choice, title:'Тест',       desc:'Выбираете дозу, путь введения и группу.'})}${
+      tile({m:'examWrite', icon:ICON.pen,    title:'Впиши сам',  desc:'Видно только название — латынь, концентрацию и группу вписываете сами.'})}
     </div>`;
 }
 // Объём: все рецепты подряд или по частям (темам)
@@ -1558,18 +1559,34 @@ function viewExamScope(){
         meta:`<span>${BLOCKS.length} ${plural(BLOCKS.length,'блок','блока','блоков')}</span>`})}
     </div>`;
 }
+// Контурные римские цифры для списка блоков, I и II используют иконки семестров.
+const BLOCK_ROMAN = {
+  3: 'M0 8h15v6h-4v22h4v6H0v-6h4V14H0z M17.5 8h15v6h-4v22h4v6h-15v-6h4V14h-4z M35 8h15v6h-4v22h4v6H35v-6h4V14h-4z',
+  4: 'M2 8h17v6h-4v22h4v6H2v-6h4V14H2z M22 8h12v6h-3l5 17 5-17h-3V8h10v6h-2l-9 28h-6l-9-28z',
+  5: 'M8 8h15v6h-4l6 18 6-18h-4V8h15v6h-4L28 42h-6L12 14H8z'
+};
+const CARD_SPOILER_KEY = 'pharma_card_spoiler';
+function cardSpoilerSetting(){
+  return `<label class="card-spoiler-setting"><input type="checkbox" id="cardSpoilerSetting"${store.get(CARD_SPOILER_KEY) ? ' checked' : ''}> Скрывать сведения на карточках</label>`;
+}
 function viewList(){
-  const L = LISTS[mode];
-  const isCardList = L.target==='groupCards';
+  const L = LISTS[mode], isCardList = L.target==='groupCards';
   setTop({back: isCardList ? 'Меню' : mode==='studyList' ? 'Тест' : 'Впиши сам'});
   const rows = BLOCKS.map((b,i) => {
-    let p = null;
-    if(isCardList){ const pos = cardsPos(i); if(pos>0) p = {}; }
-    else p = progressOf(loadSession(L.target, i));
-    return tile({act:'open', m:L.target, i, icon:String(b.num), title:esc(isCardList ? b.desc : b.title), desc:isCardList ? '' : esc(b.desc),
-      meta:`<span>${count(b.items.length)}</span>${chip(p)}`, reset: p && `Сбросить прогресс блока ${b.num}`});
+    const progress = isCardList ? cardsPos(i) : progressOf(loadSession(L.target, i));
+    const attrs = `data-mode="${L.target}" data-i="${i}"`;
+    const icon = b.num <= 2
+      ? `<span class="rx-ico rx-i-r${b.num}" aria-hidden="true"></span>`
+      : `<span class="block-roman" aria-hidden="true"><svg viewBox="0 0 50 50"><path d="${BLOCK_ROMAN[b.num]}"/></svg></span>`;
+    return `<div class="rx-wrap">
+      <button class="rx-row block-row" type="button" data-act="open" ${attrs}>
+        <span class="rx-lbl">${esc(b.desc)}<small>${count(b.items.length)}${chip(progress)}</small></span>
+        ${icon}<span class="rx-go" aria-hidden="true">${ICON.chevron}</span>
+      </button>${progress ? resetBadgeButton(`data-act="reset" ${attrs}`, `Сбросить прогресс блока ${b.num}`) : ''}
+    </div>`;
   }).join('');
-  return `<header class="page-head"><h1>${L.title}</h1>${L.desc ? `<p>${L.desc}</p>` : ''}</header><div class="list">${rows}</div>`;
+  return `<header class="page-head"><h1>${L.title}</h1>${L.desc ? `<p>${L.desc}</p>` : ''}</header>
+    ${isCardList ? cardSpoilerSetting() : ''}<div class="rx-rows block-list">${rows}</div>`;
 }
 
 function viewMistakes(){
@@ -1580,15 +1597,15 @@ function viewMistakes(){
     dropMistakeSessions();
     return head + `<div class="empty">${ICON.target}<p>Ошибок нет. Препараты, на которых вы ошибётесь, появятся здесь.</p></div>`;
   }
-  const sTile = (m, icon, title, desc) => {
+  const sTile = (m, icon, title) => {
     const S = sess[m] || loadSession(m);
     const p = S && S.pos < S.order.length ? progressOf(S) : null;
-    return tile({act:'openMistakes', m, icon, title, desc, meta:chip(p), reset: p && 'Начать повторение заново'});
+    return tile({act:'openMistakes', m, icon, title, meta:chip(p), reset: p && 'Начать повторение заново'});
   };
   return head + `
     <div class="list">
-      ${sTile('mistakesQuiz', ICON.choice, 'Тест', 'Три варианта ответа на дозу, путь введения и группу')}
-      ${sTile('mistakesWrite', ICON.pen, 'Впиши сам', 'Латынь, концентрацию и группу вписываете без подсказок')}
+      ${sTile('mistakesQuiz', ICON.choice, 'Тест')}
+      ${sTile('mistakesWrite', ICON.pen, 'Впиши сам')}
     </div>
     <h2 class="section-title">${count(items.length)} в списке</h2>
     <div class="rows">${items.map(d => {
@@ -1691,7 +1708,7 @@ function wrMarkSvg(ok){
     ? '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4l2.4 2.4 4.6-5.2"/></svg>'
     : '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>';
 }
-function wrRes(label, ok, typed, right, note){
+function wrRes(label, ok, typed, note){
   return `<div class="wr-res ${ok ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(ok)}</span>
     <div class="wr-body"><b>${label}</b><span>${esc(String(typed).trim() || '—')}</span>${note ? `<small class="wr-note">${esc(note)}</small>` : ''}</div></div>`;
 }
@@ -1699,7 +1716,7 @@ function wrRes(label, ok, typed, right, note){
 function wrFix(items){
   const bad = items.filter(x => !x[1]);
   if(!bad.length) return '';
-  return `<div class="wr-fix"><div class="wr-fix-h">Правильные ответы</div>${bad.map(x => `<div class="wr-fix-row"><b>${x[0]}</b><span>${esc(String(x[2]))}</span></div>`).join('')}</div>`;
+  return `<div class="wr-fix" aria-label="Правильные ответы" role="group">${bad.map(([label,, right]) => wrRes(label, true, right)).join('')}</div>`;
 }
 // Концентрацию всегда пишут в граммах: если вписали миллиграммы или микрограммы — подсказка с пересчётом
 function doseUnitNote(typed){
@@ -1715,7 +1732,7 @@ function viewWriteBack(d, st, counter, actions){
   const legacy = st.v !== 3;
   const rows = legacy
     ? `<div class="wr-res ${st.correct ? 'is-ok' : 'is-no'}"><span class="wr-mark" aria-hidden="true">${wrMarkSvg(st.correct)}</span><div class="wr-body"><b>Ответ</b><span>${st.correct ? 'Верно' : 'Есть неточности'}</span></div></div>`
-    : wrRes('Латынь', st.latinOk, st.typed.latin, d[4], st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, d[1], doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group, grpText(d)) + wrFix([['Латынь', st.latinOk, d[4]], ['Концентрация', st.doseOk, d[1]], ['Группа', st.groupOk, grpText(d)]]);
+    : wrRes('Латынь', st.latinOk, st.typed.latin, st.latinOk && st.latinTypo ? `Принято, но в написании опечатка — верно: ${d[4]}` : '') + wrRes('Концентрация', st.doseOk, st.typed.dose, doseUnitNote(st.typed.dose)) + wrRes('Группа', st.groupOk, st.typed.group) + wrFix([['Латынь', st.latinOk, d[4]], ['Концентрация', st.doseOk, d[1]], ['Группа', st.groupOk, grpText(d)]]);
   return `<article class="card wr-back" data-swipe>
     <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
     ${drugHead(d, {withInfo:true, counter, favorite:true})}
@@ -1808,12 +1825,20 @@ function viewCards(){
   cards.pos = Math.min(Math.max(cards.pos, 0), n-1);
   const d = b.items[cards.pos];
   setTop({back: cardsBack==='groupList' ? 'Блоки' : cardsBack==='tests' ? 'Тесты' : cardsBack==='menu' ? 'Меню' : cardsBack==='myGroup' ? myGrpName(curGrp) : 'Темы', title: cardsBack==='groupList' ? `Блок ${b.num}` : b.title, count:`${cards.pos+1} / ${n}`, progress:(cards.pos+1)/n});
-  return `<article class="card card-study" data-swipe>
+  const tag = `<div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>`;
+  const mine = MY_SET.has(d) && MY_ACTIVE.find(m => m.d===d);
+  const info = mine
+    ? `<dl class="facts">${facts([[FIELDS.dose, d[1]], [FIELDS.route, d[2]]])}</dl><div class="my-prev">${myrxBlank(mine.r)}</div>`
+    : drugFacts(d, true);
+  const hide = !!store.get(CARD_SPOILER_KEY);
+  return `${cardSpoilerSetting()}<article class="card card-study" data-swipe>
     ${favoriteButton(d)}
-    <div class="card-tag"><span class="chip">${esc(grpText(d))}</span></div>
-    ${drugHead(d)}
-    ${(() => { const mine = MY_SET.has(d) && MY_ACTIVE.find(m => m.d===d);
-      return mine ? `<dl class="facts">${facts([[FIELDS.dose, d[1]], [FIELDS.route, d[2]]])}</dl><div class="my-prev">${myrxBlank(mine.r)}</div>` : drugFacts(d, true); })()}
+    ${hide ? '' : tag}
+    ${drugHead(d, {masked:hide})}
+    ${hide ? `<details class="card-spoiler">
+      <summary><span class="spoiler-show">Показать сведения</span><span class="spoiler-hide">Скрыть сведения</span></summary>
+      ${tag}<div class="drug-latin" lang="la">${esc(d[4])}</div>${info}
+    </details>` : info}
     <p class="swipe-hint">Смахните карточку, чтобы перейти к соседней</p>
     <div class="actions">
       <button class="btn btn-secondary" type="button" data-act="cardPrev"${cards.pos===0 ? ' disabled' : ''}>Назад</button>
@@ -2560,8 +2585,8 @@ function myGrpName(id){
 function myGrpOk(){ return myGrpLoad().some(x => x.id===curGrp); }   // папка существует (пустая тоже открывается)
 const myGrpNewId = () => (Date.now().toString(36).slice(-6) + Math.random().toString(36).slice(2, 6)).slice(0, 12);
 function myGrpMenuHtml(){
-  const rows = myGrpLoad().map(g => ({g, n:myGrpPool(g.id).length})).filter(x => x.n).map(({g, n}) =>
-    `<button class="rx-row" type="button" data-act="myGrpOpen" data-g="${esc(g.id)}"><span class="rx-lbl">${esc(g.name)}</span><span class="rx-pg">${n}</span><span class="rx-ico rx-i-pen" aria-hidden="true"></span><span class="rx-go" aria-hidden="true">${ICON.chevron}</span></button>`).join('');
+  const rows = myGrpLoad().filter(g => myGrpPool(g.id).length).map(g =>
+    `<button class="rx-row" type="button" data-act="myGrpOpen" data-g="${esc(g.id)}"><span class="rx-lbl">${esc(g.name)}</span><span class="rx-ico rx-i-pen" aria-hidden="true"></span><span class="rx-go" aria-hidden="true">${ICON.chevron}</span></button>`).join('');
   return rows ? `<h2 class="rx-sec" style="margin-top:42px">Мои папки</h2><div class="rx-rows">${rows}</div>` : '';
 }
 // Экран папки: добавить рецепты, пройти тест / «Впиши сам» / карточки, посмотреть и убрать рецепты
@@ -2569,21 +2594,21 @@ function viewMyGroup(){
   const g = myGrpLoad().find(x => x.id===curGrp), pool = g ? myGrpPool(g.id) : [];
   setTop({back: grpBack==='myrx' ? 'Мои рецепты' : 'Меню', title: g ? g.name : ''});
   if(!g) return '';
-  const tl = (m, icon, title, desc) => { const p = progressOf(loadSession(m, g.id));
-    return tile({act:'myGrpTest', m, i:g.id, icon, title, desc, meta:`<span>${count(pool.length)}</span>${chip(p)}`, reset: p && 'Сбросить прогресс папки'}); };
+  const tl = (m, icon, title) => { const p = progressOf(loadSession(m, g.id));
+    return tile({act:'myGrpTest', m, i:g.id, icon, title, meta:chip(p), reset: p && 'Сбросить прогресс папки'}); };
   const inside = myrxLoad().filter(r => r.tests.includes('g_' + g.id));
   const rows = inside.map(r => { const bad = myrxProblem(r), sub = [String(r.latin).trim(), String(r.group).trim()].filter(Boolean).join(' · ');
     return `<div class="my-grp${bad ? ' is-bad' : ''}"><div class="my-grp-t"><b>${esc(r.drug || r.latin || 'Без названия')}</b><small>${esc(bad ? 'Не хватает данных: в тестах не участвует' : sub)}</small></div>
       <button class="my-grp-b my-grp-rm" type="button" data-act="myGrpRemove" data-id="${esc(r.id)}" aria-label="Убрать «${esc(r.drug || r.latin)}» из папки">Убрать</button></div>`; }).join('');
-  return `<header class="page-head"><h1>${esc(g.name)}</h1><p>${pool.length ? 'Выберите формат подготовки.' : 'Папка пока пуста.'}</p></header>
+  return `<header class="page-head"><h1>${esc(g.name)}</h1>${pool.length ? '' : '<p>Папка пока пуста.</p>'}</header>
     <div class="my-newrow">
       <button class="btn btn-primary my-new" type="button" data-act="myGrpNewRx">+ Новый рецепт</button>
       <button class="btn btn-secondary my-new" type="button" data-act="myGrpAdd">Добавить из моих рецептов</button>
     </div>
     ${pool.length ? `<div class="list">${
-      tl('grpQuiz', ICON.choice, 'Тест', 'Выбираете дозу, путь введения и группу из трёх вариантов.')}${
-      tl('grpWrite', ICON.pen, 'Впиши сам', 'Видно только название — латынь, концентрацию и группу вписываете сами.')}${
-      tile({act:'myGrpTest', m:'groupCards', i:g.id, icon:ICON.cards, title:'Карточки', desc:'Вся информация о препарате на одной карточке — для повторения, без вопросов.', meta:`<span>${count(pool.length)}</span>`})}
+      tl('grpQuiz', ICON.choice, 'Тест')}${
+      tl('grpWrite', ICON.pen, 'Впиши сам')}${
+      tile({act:'myGrpTest', m:'groupCards', i:g.id, icon:ICON.cards, title:'Карточки'})}
     </div>` : ''}
     ${rows ? `<div class="label my-rows-h">Рецепты в папке · ${inside.length}</div>${rows}` : ''}`;
 }
@@ -2801,6 +2826,7 @@ function viewMyList(){
 // Строка списка раскрылась или свернулась: запоминаем и подгоняем бланк по ширине (в закрытой строке у него нулевая ширина)
 document.addEventListener('toggle', e => {
   const d = e.target;
+  if(d?.matches('.card-spoiler[open]')){ fitRx(); return; }
   if(d && d.classList && d.classList.contains('my-dest')){ myrxDestOpen = d.open; return; }
   if(!d || !d.classList || !d.classList.contains('my-row')) return;
   const id = d.dataset.rx;
@@ -3664,6 +3690,14 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('change', e => {
+  if(e.target.id==='cardSpoilerSetting'){
+    store.set(CARD_SPOILER_KEY, e.target.checked);
+    if(mode==='groupCards'){
+      render();
+      $id('cardSpoilerSetting')?.focus({preventScroll:true});
+    }
+    return;
+  }
   const t = e.target;
   if(t && t.dataset && t.dataset.sendpick!==undefined){   // отметки в окне «Отправить рецепты»
     if(t.checked) myrxSend.pick.add(t.dataset.sendpick); else myrxSend.pick.delete(t.dataset.sendpick);
