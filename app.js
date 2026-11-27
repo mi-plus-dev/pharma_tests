@@ -3962,19 +3962,37 @@ const TOURS = {
 };
 const TOURS_OLD_KEYS = ['pharma_tour_v1', 'pharma_tour_quiz_v1'];   // ключи прежнего единого обучения
 
-// Длинные строки сначала укорачиваются за счёт сокращений, затем при необходимости переносятся.
+// Кегль подбирается для всего бланка. Если текст всё ещё не помещается, разрешаем переносы.
+const FIT_MIN = 14.5, FIT_MIN_SHORT = 13.5;
 function fitRx(){
-  view.querySelectorAll('.rxd[data-short]').forEach(box => {
-    box.classList.remove('is-wrapping');
-    if(!box.dataset.full) box.dataset.full = box.innerHTML;
-    box.innerHTML = box.dataset.full;
-    if(box.scrollWidth <= box.clientWidth + 1) return;
-    box.innerHTML = box.dataset.short;
-    if(box.scrollWidth > box.clientWidth + 1) box.classList.add('is-wrapping');
+  view.querySelectorAll('.rxd').forEach(box => {
+    const width = box.clientWidth;
+    if(!width) return;
+    if(box.dataset.short){
+      if(!box.dataset.full) box.dataset.full = box.innerHTML;
+      else box.innerHTML = box.dataset.full;
+    }
+    box.style.fontSize = '';
+    const normalSize = parseFloat(getComputedStyle(box).fontSize);
+    box.classList.add('is-fitting');
+    const fits = min => {
+      let size = normalSize;
+      while(box.scrollWidth > width + 1 && size > min){
+        size = Math.max(min, size - 0.5);
+        box.style.fontSize = `${size}px`;
+      }
+      return box.scrollWidth <= width + 1;
+    };
+    if(!fits(FIT_MIN) && box.dataset.short){
+      box.innerHTML = box.dataset.short;
+      box.style.fontSize = '';
+      fits(FIT_MIN_SHORT);
+    }
+    box.classList.remove('is-fitting');
   });
 }
 addEventListener('resize', fitRx);
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitRx);
+document.fonts?.addEventListener('loadingdone', fitRx);
 let tour = null;     // {ids, key, steps, scope, i}
 const tourSeen = id => store.has(TOURS[id].key);
 const tourMark = id => store.set(TOURS[id].key, 1);

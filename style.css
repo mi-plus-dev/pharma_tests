@@ -560,7 +560,7 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 /* и латиница, и русский текст в Signa — один шрифт, один размер, один вес */
 .rxd .k,.rxd .v,.rxd .v.wrap{font-family:inherit;font-size:1em;font-weight:inherit;font-stretch:inherit;font-size-adjust:inherit;line-height:inherit}
 .blank .rxd .bl{font-size:inherit}
-.rxd .k,.rxd[data-short]:not(.is-wrapping) .v:not(.wrap){white-space:nowrap}
+.rxd .k,.rxd.is-fitting .v{white-space:nowrap}
 /* «Recipe:» / «Rp.:» — красный текст без плашки и рамки */
 .rxd .k:not(:empty){align-self:baseline;justify-self:start;padding:0;border:0;border-radius:0;background:none;color:var(--red);font:inherit;font-weight:700;letter-spacing:normal}
 .rxd .v{white-space:normal;overflow-wrap:anywhere}
@@ -568,6 +568,7 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 .rxd .ru{font-size:1em}
 @media (max-width:350px){.ht-step .blank:has(.with-side){padding-inline:8px}}
 .rxd .v.with-side{display:flex;flex-wrap:wrap;column-gap:.4em;align-items:baseline}
+.rxd.is-fitting .with-side{flex-wrap:nowrap}
 .rxd .side{margin-inline-start:auto;color:var(--red)}
 .rxd .gap{color:var(--red)}
 .wr-res{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;margin:0 0 6px;padding:9px 12px;border:0;border-radius:var(--r-md);background:none}
