@@ -91,12 +91,12 @@ h1,h2,h3{font-family:var(--display)}
 .rx-row:active{transform:translate(3px,3px);box-shadow:none}
 .rx-no{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 12px 0 -4px;border:2px solid var(--edge);border-radius:50%;background:var(--paper);font-family:var(--display);font-size:12px;font-weight:800;color:var(--ink)}
 .rx-lbl{flex:1;min-width:0}
-.rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:56px 56px;mask-size:56px 56px}
-.rx-i-cad{--webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
-.rx-i-book{--webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
-.rx-i-scis{--webkit-mask-image:url("icons/scis.svg");mask-image:url("icons/scis.svg")}
-.rx-i-search{--webkit-mask-image:url("icons/search.svg");mask-image:url("icons/search.svg")}
-.rx-i-clip{--webkit-mask-image:url("icons/clip.svg");mask-image:url("icons/clip.svg")}
+.rx-ico{flex:none;width:72px;height:56px;margin:0 2px 0 4px;background:var(--ink);opacity:.9;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:var(--rx-icon-size,56px);mask-size:var(--rx-icon-size,56px)}
+.rx-i-cad{--rx-icon-size:64px;-webkit-mask-image:url("icons/cad.svg");mask-image:url("icons/cad.svg")}
+.rx-i-book{--rx-icon-size:70px;-webkit-mask-image:url("icons/book.svg");mask-image:url("icons/book.svg")}
+.rx-i-scis{--rx-icon-size:80px;-webkit-mask-image:url("icons/scis.svg");mask-image:url("icons/scis.svg")}
+.rx-i-search{--rx-icon-size:52px;-webkit-mask-image:url("icons/search.svg");mask-image:url("icons/search.svg")}
+.rx-i-clip{--rx-icon-size:64px;-webkit-mask-image:url("icons/clip.svg");mask-image:url("icons/clip.svg")}
 .rx-chev{flex:none;display:grid;place-items:center;width:18px;height:18px;margin-right:0;color:var(--ink);transition:transform .22s ease}
 .rx-chev svg{width:16px;height:16px;stroke-width:2.4}
 .rx-row[aria-expanded="true"] .rx-chev{transform:rotate(180deg)}
@@ -642,7 +642,7 @@ body.tour-on .tour-focus{outline:3px solid var(--amber);outline-offset:var(--tou
 @media (prefers-reduced-motion:reduce){body.tour-on .tour-focus,.tour-card{animation:none}}
 
 /* ===== «Мои рецепты»: список и редактор собственного рецепта ===== */
-.rx-i-pen{--webkit-mask-image:url("icons/pencil.svg");mask-image:url("icons/pencil.svg")}
+.rx-i-pen{--rx-icon-size:50px;-webkit-mask-image:url("icons/pencil.svg");mask-image:url("icons/pencil.svg")}
 .my-new{margin:0 5px 20px 0;width:calc(100% - 5px)}
 .my-item{margin:0 5px 22px 0}
 .my-item h3{margin:0 0 8px 2px;font-family:var(--display);font-size:14px;line-height:1.25;font-weight:800;overflow-wrap:anywhere}
@@ -999,4 +999,4 @@ html.kb-open body .app{padding-bottom:calc(var(--vv-bottom, 0px) + 24px)}
 .drug .fav-btn{top:-8px;right:-6px}
 .drug:has(>.fav-btn) .drug-row .btn-info{position:absolute;top:0;left:2px;margin:0}
 .card-study .card-tag{padding:0 40px}   /* чтобы длинное название группы не залезало под звезду */
-.rx-i-star{--webkit-mask-image:url("icons/star.svg");mask-image:url("icons/star.svg")}
+.rx-i-star{--rx-icon-size:52px;-webkit-mask-image:url("icons/star.svg");mask-image:url("icons/star.svg")}
