@@ -86,5 +86,6 @@ html[data-theme="dark"] .card .opt.is-selected{border-color:var(--accent)}
 html[data-theme="dark"] .card .opt.is-correct{border-color:var(--good)}
 html[data-theme="dark"] .card .opt.is-wrong{border-color:var(--bad)}
 html[data-theme="dark"] .card .input:focus{border-color:var(--accent)}
+html[data-theme="dark"] .card-study .fact{background:color-mix(in srgb,var(--paper) 98%,var(--ink))}
 html[data-theme="dark"] .topbar.is-session .btn-back{border-color:var(--line)}
 html[data-theme="dark"] .btn-back{border-color:var(--line);background:var(--card)}
