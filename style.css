@@ -410,10 +410,10 @@ body.rx-home .app{min-height:100dvh;padding-bottom:calc(28px + var(--safe-b))}  
 
 /* Общая кнопка сброса прогресса */
 .rx-wrap,.rx-subitem,.tile-wrap{position:relative}
-.reset-button{position:absolute;top:-3px;right:-1px;z-index:3;display:grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid var(--red);border-radius:50%;background:var(--card);color:var(--red)}
-.reset-button::after{content:"";position:absolute;inset:-9px}
+.reset-button{position:absolute;top:-9px;right:-1px;z-index:3;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid var(--red);border-radius:50%;background:var(--card);color:var(--red)}
+.reset-button::after{content:"";position:absolute;inset:-5px -8px -7px;border-radius:50%}
 .reset-button:active{background:var(--bad-soft)}
-.reset-button svg{width:15px;height:15px;stroke-width:2.4}
+.reset-button svg{width:19px;height:19px;stroke-width:2.4}
 .block-list{grid-template-columns:minmax(0,1fr)}
 .block-row{gap:8px;padding-block:10px}
 .block-row .rx-lbl{overflow-wrap:anywhere}
